@@ -1,0 +1,31 @@
+% !TEX root = main.tex
+
+\section{Governing Equations}
+\label{sec:governing_equations}
+
+The governing equations of motion for the nonhydrostatic atmospheric models are
+
+\begin{subequations}
+\label{eq:governing_equations}
+\begin{equation}
+\diff{\rho}{t} + \divergence \vc{U} = 0
+\label{eq:governing_equations/mass}
+\end{equation}
+\begin{equation}
+\diff{\vc{U}}{t} + \divergence \left( \frac{ \vc{U} \otimes \vc{U} }{\rho} + P \vc{I}_3 \right) = \divergence \left( \mu \grad \vc{U} \right) - f \vc{r} \times \vc{U} - \rho g \vc{r}
+\label{eq:governing_equations/momentum}
+\end{equation}
+\begin{equation}
+\diff{\Theta}{t} + \divergence \left( \frac{ \Theta  \vc{U} }{\rho} \right)  = \divergence \left( \mu \grad \vc{\Theta} \right)
+\label{eq:governing_equations/theta}
+\end{equation}
+\end{subequations}
+where $\vc{U}=\rho \vc{u}$, $\vc{u}=\left(u,v,w\right)\transpose$, and $\Theta=\rho \theta$. In addition, in Eq.\eqref{eq:governing_equations/momentum} $\vc{I}_3$ is the rank-3 identity matrix, and the pressure is defined as follows:
+\[
+P=P_A \left(  \frac{R \Theta }{P_A}  \right)^{\gamma}
+\]
+where $R$ is the gas constant, $P_A$ is the atmospheric pressure, $\gamma=\frac{c_p}{c_v}$, $f$ is the Coriolis function, $\vc{r}$ is the radial vector, and $g$ is the gravitational constant.
+
+In Eqs.\ \eqref{eq:governing_equations/momentum} and \eqref{eq:governing_equations/theta} the term $\mu$ represents the viscosity coefficient  computed as follows: for the LES model, it is computed from the specific turbulence closure used (e.g., Lilly-Smagorinsky or another less dissipative model) and for the global model it is computed as the minimum artificial viscosity required to avoid Gibbs phenomena.
+
+Eqs.\ \eqref{eq:governing_equations} are written in Cartesian coordinates and are equally applicable to both the LES model as well as the global model.  The difference between the LES and global models is how the buoyancy term (last term on right-hand-side of Eq.\  \eqref{eq:governing_equations/momentum}) is defined.  For this reason, we define the buoyancy term with respect to the radial component which is $\vc{r}=(0,0,1)$ in the LES model and $\vc{r}=\frac{(x,y,z)}{|| \vc{x} ||}$ on the sphere, where $(x,y,z)$ are the coordinates of each point on the globe.

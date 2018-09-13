@@ -1,0 +1,76 @@
+% !TEX root = main.tex
+
+\section{Numerical Methods}
+\label{sec:numerical_methods}
+
+In order to describe the numerical methods used to solve the governing equations numerically, let us write the equations in the following compact form
+
+\[
+\diff{\vc{q}}{t} = S(\vc{q})
+\]
+where $\vc{q}$
+\[
+\vc{q}=\left( \begin{array}{c}
+\rho \\
+\vc{U} \\
+\Theta
+\end{array}
+\right)
+\]
+ is the solution vector, 
+ and 
+ \[
+ S(\vc{q}) = - \nabla \cdot \vc{F} - \mathcal{S}(\vc{q})
+ \]
+ is the right-hand-side containing the spatial operators where 
+ \[
+ \vc{F}=\left( \begin{array}{c}
+ \vc{U} \\
+ \frac{\vc{U} \otimes \vc{U}}{\rho} + P \vc{I}_3 - \left( \mu \grad \vc{U} \right) \\
+\frac{\Theta \vc{U}}{\rho} - \left( \mu \grad \Theta \right)
+\end{array}
+\right)
+ \]
+ is the flux tensor and
+ \[
+ \mathcal{S}(\vc{q})=\left( \begin{array}{c}
+ 0 \\
+ f \vc{r} \times \vc{U} + \rho g \vc{r} \\
+0 
+\end{array}
+\right)
+ \]
+contains the source terms. 
+
+\subsection{Spatial Discretization Methods}
+For the spatial discretization methods, we propose to use variants of the discontinuous Galerkin (dG) method with a tensor-product bases (see, e.g., \cite{giraldo:2008a, abdi:2016}. That is, we propose to use hexahedral (cube) elements in three dimensions.  The nodal tensor-product dG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. 
+
+For the LES model, we will also consider fully three-dimensional dG methods. For the global model, it may be beneficial to consider a hybrid approach whereby the horizontal direction (along the spherical manifold) uses dG while a more standard method (open for discussion) may be used in the vertical.  Along certain directions, it may be advantageous to use uniform grid resolution in order to take advantage of larger time-steps (e.g., in using uniform grids for the global or LES model along the vertical direction would allow for some of the grid aspect ratio stiffness to be reduced).  \textbf{FXG: Need references}.
+
+\subsection{Time-Discretization Methods}
+
+In order to circumvent the time-step restriction due to the fast moving acoustic waves, we will rely on implicit-explicit (IMEX) methods . For the LES model, if the aspect ratio of the horizontal to vertical grid spacing is near unity, it will be beneficial to use fully 3D-IMEX methods.  For the global atmospheric model, we propose to use 1D-IMEX methods whereby the time-integrator is fully explicit in the horizontal direction (HE) and implicit in the vertical direction (so-called HEVI schemes).
+
+We propose to use a general family of additive Runge-Kutta methods (ARK) methods for both the 1D and 3D IMEX approaches (see, e.g., \cite{giraldo:2013} for 1D and 3D-IMEX methods based on ARKs). Note that adding fully-implicit Runge-Kutta (IRK) methods to the 3D-IMEX approach is quite trivial so this can be included as an option. Fully-implicit methods have no time-step restriction with respect to stability.
+
+To get a sense of how the ARK approach works, let us partition the right-hand-side function $S(\vc{q})$ into its linear $L(\vc{q})$ and nonlinear $N(\vc{q})$ parts where the stiffness due to grid spacing or acoustic waves are contained in $L(\vc{q})$.  This then allow us to write the semi-discrete form (in space) as follows
+\[
+\diff{\qvector}{t} = L(\qvector) + N(\qvector) 
+\]
+which can now be discretized in time.  First we compute the stage values
+\[
+\vc{Q}^{(i+1)}=\qvector^n + \Delta t \sum_{k=0}^{i} \left( a_k N(\vc{Q}^{(k)}) \right) + \Delta t \sum_{k=0}^{i+1} \left( \wt{a}_k L(\vc{Q}^{(k)}) \right)
+\]
+with $i=0,\ldots,s$ where $s$ are the number of stages, $a$, and $\wt{a}$ are the coefficients of the double Butcher tableau defined in \cite{kennedy:2003,giraldo:2013}.  Additionally, 
+$\vc{Q}^{(0)}=\qvector^n$ and the solution at time $n+1$ is obtained as follows
+\[
+\vc{q}^{n+1}=\qvector^n + \Delta t \sum_{k=0}^{s} \left( b_k S(\vc{Q}^{(k)}) \right)
+\]
+where the coefficients $b$ are also found in \cite{kennedy:2003,giraldo:2013}.
+So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \cite{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we impose the restriction that all the diagonal values $\wt{a}_{ii}$ to be constant. This allows one construction of the matrix problem which does not change across stage values.  This we now refer to as singly-diagonally-implicit Runge-Kutta (SDIRK).
+
+
+
+
+
+

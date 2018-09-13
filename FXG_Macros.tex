@@ -1,0 +1,279 @@
+%FXG Math Macros
+\usepackage[english]{babel} 
+%\usepackage{algorithm}
+%\usepackage{algorithm2e}
+
+%\usepackage[numbered]{algo}
+%\usepackage{pseudocode}
+
+%\usepackage{algorithmic}
+%\usepackage{algorithmicx}
+%\usepackage{algpseudocode}
+
+\usepackage{epsfig}
+
+%\usepackage[chapter]{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\usepackage{subfigure}
+\usepackage{stmaryrd}
+\usepackage{amsmath} 
+\usepackage{color}
+\usepackage{amssymb} 
+\usepackage{amsfonts} 
+
+%\usepackage[dvips]{graphicx} 
+
+%\usepackage{floatflt} 
+\usepackage{mathrsfs}
+%\usepackage{mathabx}
+%\usepackage{wasysym} 
+%\usepackage{showkeys}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[font=small,labelfont=bf,tableposition=top]{caption}
+%\usepackage[font=footnotesize]{subcaption}
+\usepackage{multicol}
+
+\usepackage{float}
+\usepackage{graphicx}
+\input{epsf}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{acknowledgement}[theorem]{Acknowledgement}
+%\newtheorem{algorithm}[theorem]{Algorithm}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{case}[theorem]{Case}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{conclusion}[theorem]{Conclusion}
+\newtheorem{condition}[theorem]{Condition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{criterion}[theorem]{Criterion}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}[theorem]{Exercise}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{solution}[theorem]{Solution}
+\newtheorem{summary}[theorem]{Summary}
+\newenvironment{proof}[1][Proof]{\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
+%\newenvironment{homework}[1][Homework]{\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
+%\newtheorem{homework}[theorem]{Exercise}
+%\newtheorem{homework}[section]{Exercise}
+\newtheorem{homework}[subsubsection]{Exercise}
+%\newtheorem{remark}[section]{Remark}
+%\input{tcilatex}
+
+%FXG Commands
+\newtheorem{guess}{Definition}
+\newcommand{\comment}[1] {}
+\newcommand{\Norder} {N}
+\newcommand{\order}{\mathcal{O}}
+\newcommand{\Npoints} {N_p}
+\newcommand{\Nfaces} {N_{f}}
+\newcommand{\Nelements} {N_e}
+
+\newcommand{\Dweak}{\wt{D}}
+\newcommand{\diff}[2] {\frac{\partial #1}{\partial #2}}
+\newcommand{\dxx}[2] {\frac{\partial^2 #1}{\partial {#2}^2}}
+\newcommand{\difft}[2] {\frac{d #1}{d #2}}
+\newcommand{\dxxt}[2] {\frac{d^2 #1}{d {#2}^2}}
+\newcommand{\lagrange}[1] {\frac{d #1}{dt}}
+\newcommand{\lebesgue}{\parallel I \parallel}
+\newcommand{\polysp}{\mathcal{P}_N}
+\newcommand{\vc}[1]{\mbox{\boldmath$#1$\unboldmath}}
+\newcommand{\laplacian}{\nabla^2}
+\newcommand{\divergence}{\nabla \cdot}
+\newcommand{\inte}{\int_{\mbox{\footnotesize ${\Omega_e}$}}}
+\newcommand{\intb}{\int_{\mbox{\footnotesize ${\Gamma_e}$}}}
+\newcommand{\intce}{\int_{\mbox{\footnotesize ${\widehat{\Omega}_e}$}}}
+\newcommand{\intcb}{\int_{\mbox{\footnotesize ${\widehat{\Gamma}_e}$}}}
+\newcommand{\intg}{\int_{\mbox{\footnotesize ${\Omega}$}}}
+\newcommand{\intgb}{\int_{\mbox{\footnotesize ${\Gamma}$}}}
+\newcommand{\intv}{\int_{\mbox{\footnotesize ${\sigma}$}}}
+\newcommand{\sumv}{\sum_{K=1}^{N_{\mathrm{lev}}}}
+\newcommand{\sumk}{\sum_{L=1}^{K}}
+\newcommand{\sumN}{\sum_{i=1}^{N+1}}
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\inti}{\int_{\mbox{\footnotesize\sf I}}}
+\newcommand{\intbd}{\oint_{\mbox{\footnotesize ${\delta}$\sf D}}}
+\newcommand{\intbi}{\oint_{\mbox{\footnotesize ${\delta}$\sf I}}}
+\newcommand{\ldnorm}[1]{\left\| #1 \right\|_{\mbox{\footnotesize \sf D}} }
+\newcommand{\lonorm}[1]{\left\| #1 \right\|_{\Omega}}
+\newcommand{\spc}[1]{\mbox{\sf #1}}
+\newcommand{\ope}[1]{{\cal #1}}
+\newcommand{\mt}[1]{{\rm #1}}
+\newcommand{\dis}{\displaystyle}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\ov}{\overline}
+\newcommand{\wt}{\widetilde}
+\newcommand{\wh}{\widehat}
+\newcommand{\Dhat}{\widehat{D}}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\bea}{\begin{eqnarray*}}
+\newcommand{\eea}{\end{eqnarray*}}
+\newcommand{\Jace}{J^{(e)}}
+\newcommand{\Jacl}{J^{(l)}}
+\def\bepsilon{\mbox{\boldmath $\epsilon $}}
+\def\bpsi{\mbox{\boldmath $\psi $}}
+\def\bphi{\mbox{\boldmath $\phi $}}
+\def\bmu{\mbox{\boldmath $\mu $}}
+\def\Et{ \tilde{E} }
+\def\Ht{ \tilde{H} }
+\def\sdot{ \dot{\sigma} }
+%\newcommand{\innerd}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize \sf D}}}
+%\newcommand{\inners}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize
+%${\delta}$\sf D}}}
+%\newcommand{\innerbd}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize ${\delta}$\sf D}}}
+%\newcommand{\innerO}[2]{\left( #1,#2 \right)_{\Omega}}
+%\newcommand{\innerOs}[2]{\left( #1,#2 \right)_{\delta \Omega}}
+%\newcommand{\innerdk}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize \sf D}^k}}
+%\newcommand{\intbdk}{\oint_{\mbox{\footnotesize ${\delta}$\sf D}^k}}
+%\newcommand{\ldnormk}[1]{\left\| #1 \right\|_{\mbox{\footnotesize \sf D}^k}}
+%\newcommand{\intdk}{\int_{\mbox{\footnotesize \sf D}^k}}
+%\newcommand{\epsD}{\varepsilon_{\mbox{\footnotesize \sf D}}}
+%\newcommand{\ldnormsob}[2]{\left\| #2 \right\|_{W^{#1}(\mbox{\footnotesize \sf D})}}
+%\newcommand{\lbdnorm}[1]{\left\| #1 \right\|_{\mbox{\footnotesize \sf $\delta$D}}}
+%\renewcommand{\thetable}{\Roman{table}}
+
+\newcommand{\fstar}{f^{(*)}}
+
+\DeclareMathOperator{\Span}{span}
+\DeclareMathOperator{\Dim}{dim}
+
+\newcommand{\polyquad}{\mathcal{Q}_{N}}
+\newcommand{\polyP}{\mathcal{P}_{N}}
+\newcommand{\polyPnpm}{\mathcal{P}_{(N+M)}}
+\newcommand{\polyPd}{\mathcal{P}_{d}}
+\newcommand{\polyPnm}{\mathcal{P}_{N,M}}
+\newcommand{\polyPn}{\mathcal{P}_{N,0}}
+\newcommand{\transpose}{^{\mathcal{T}}}
+
+\newcommand{\qvector}{\vc{q}}
+\newcommand{\qvectorN}{\vc{q}_N^{(e)}}
+\newcommand{\Ftensor}{\vc{F}(\qvector)}
+\newcommand{\FtensorN}{\vc{F}\left( \qvectorN \right)}
+\newcommand{\FtensorStar}{\vc{F}\left( \qvector_N^{(e,k)} \right)}
+\newcommand{\Svector}{S(\qvector)}
+\newcommand{\SvectorN}{S \left( \qvectorN \right)}
+\newcommand{\qref}{\vc{q}_0}
+\newcommand{\qvectorb}{\vc{q}_b}
+\newcommand{\qtt}{\vc{q}_{tt}}
+\newcommand{\qhat}{\widehat{\vc{q}}}
+\newcommand{\qhatb}{\widehat{\vc{q}}_b}
+\newcommand{\qelem}{q^{(e)}}
+\newcommand{\rhoref}{\rho_0}
+\newcommand{\piref}{\pi_0}
+\newcommand{\Thetaref}{\Theta_0}
+\newcommand{\Gref}{G_0}
+\newcommand{\Tref}{T_0}
+\newcommand{\thetaref}{\theta_0}
+\newcommand{\Pref}{{P}_0}
+\newcommand{\Eref}{{E}_0}
+\newcommand{\Href}{{h}_0}
+\newcommand{\rhohat}{\widehat{\rho}}
+\newcommand{\pihat}{\widehat{\pi}}
+\newcommand{\Phat}{\widehat{P}}
+\newcommand{\uvechat}{\widehat{{\mbox{\boldmath$u$\unboldmath}}}}
+\newcommand{\uhathat}{\widehat{\widehat{{\mbox{\boldmath$u$\unboldmath}}}}}
+\newcommand{\Uhat}{\widehat{{\mbox{\boldmath$U$\unboldmath}}}}
+\newcommand{\Uhathat}{\widehat{\widehat{{\mbox{\boldmath$U$\unboldmath}}}}}
+\newcommand{\thetahat}{\widehat{\theta}}
+\newcommand{\Thetahat}{\widehat{\Theta}}
+\newcommand{\Ehat}{\widehat{E}}
+\newcommand{\uhat}{\widehat{u}}
+\newcommand{\vhat}{\widehat{v}}
+\newcommand{\what}{\widehat{w}}
+\newcommand{\pitt}{\pi_{tt}}
+\newcommand{\rhott}{\rho_{tt}}
+\newcommand{\Ett}{E_{tt}}
+\newcommand{\Utt}{\vc{U}_{tt}}
+\newcommand{\uvectt}{\vc{u}_{tt}}
+\newcommand{\utt}{u_{tt}}
+\newcommand{\vtt}{v_{tt}}
+\newcommand{\wtt}{w_{tt}}
+\newcommand{\Ptt}{P_{tt}}
+\newcommand{\vecPtt}{\vc{P}_{tt}}
+\newcommand{\Thetatt}{\Theta_{tt}}
+\newcommand{\thetatt}{\theta_{tt}}
+%Projector Matrices
+\newcommand{\projmatrix}{\vc{\mathcal{P}}}
+\newcommand{\qmatrix}{\vc{\mathcal{Q}}}
+\newcommand{\pcmatrix}{\vc{\mathcal{P}}_C}
+\newcommand{\Cmatrix}{\left(\vc{\mathcal{C}}^{(e,f)}\right)\transpose}
+\newcommand{\Dmatrix}{\vc{D}^{(e)}}
+\newcommand{\Dwmatrix}{\wt{\vc{D}}^{(e)}}
+\newcommand{\Mmatrix}{M^{(e)}}
+\newcommand{\Fmatrix}{\vc{F}^{(e,l)}}
+\newcommand{\Gmatrix}{\mathcal{G}}
+\newcommand{\Umatrix}{\mathcal{U}^{(e,f)}}
+\newcommand{\amatrix}{\vc{\mathcal{A}}}
+\newcommand{\rmatrix}{\vc{\mathcal{R}}}
+%Vectors
+\newcommand{\nvector}{\wh{\vc{n}}_{\Gamma}}
+\newcommand{\nhat}{\wh{\vc{n}}}
+\newcommand{\ivector}{\wh{\vc{i}}}
+\newcommand{\jvector}{\wh{\vc{j}}}
+\newcommand{\kvector}{\wh{\vc{k}}}
+\newcommand{\rvector}{\wh{\vc{r}}}
+\newcommand{\svector}{\wh{\vc{s}}}
+\newcommand{\tvector}{\wh{\vc{t}}}
+\newcommand{\vvector}{\wh{\vc{v}}}
+\newcommand{\Qvector}{\vc{Q}}
+%Vectors
+\newcommand{\ur}{{u}^{(r)}}
+\newcommand{\us}{{u}^{(s)}}
+\newcommand{\ut}{{u}^{(t)}}
+\newcommand{\urtt}{{u}_{tt}^{(r)}}
+\newcommand{\ustt}{{u}_{tt}^{(s)}}
+\newcommand{\uttt}{{u}_{tt}^{(t)}}
+\newcommand{\urhat}{\widehat{u}^{(r)}}
+\newcommand{\ushat}{\widehat{u}^{(s)}}
+\newcommand{\uthat}{\widehat{u}^{(t)}}
+%Other Operators
+\newcommand{\grad}{\vc{\nabla}}
+\newcommand{\Grad}{\vc{\nabla}}
+\newcommand{\Dskew}{\mathcal{D}}
+
+\def\bepsilon{\mbox{\boldmath $\epsilon $}}
+\def\bpsi{\mbox{\boldmath $\psi $}}
+\def\bphi{\mbox{\boldmath $\phi $}}
+\def\bmu{\mbox{\boldmath $\mu $}}
+\def\Et{ \tilde{E} }
+\def\Ht{ \tilde{H} }
+\def\sdot{ \dot{\sigma} }
+%\renewcommand{\thetable}{\Roman{table}}
+%\renewcommand{\thefigure}{\arabic{figure}}
+
+%\DeclareMathOperator{\Span}{span}
+%\DeclareMathOperator{\Dim}{dim}
+
+%Editing Commands
+\newcommand{\here}{ \textcolor{red}{YOU ARE HERE}}
+
+%Time-Integration
+\newcommand{\dt}{{\Delta t}}
+\newcommand\ST{\rule[-0.75em]{0pt}{2em}}
+\newcommand{\Sfunction}{\mathcal{S}}
+\newcommand{\Lfunction}{\mathcal{L}}
+\newcommand{\Nfunction}{\mathcal{N}}
+
+%DG Operators
+\newcommand{\average}[1]{ \left\{ #1 \right\} }
+\newcommand{\jump}[1]{ \llbracket #1 \rrbracket }
+
+%HDG Matrices
+\newcommand{\CCmatrix}{\mathcal{C}^{(e,k)}}
+\newcommand{\Jmatrix}{\mathcal{J}^{(e,k)}}
+\newcommand{\DDmatrix}{\wt{D}^{(e)}}
+\newcommand{\SSvector}{\mathcal{S}(q)}
+\newcommand{\cghdg}{cg\underline{\hspace{0.15cm}}to\underline{\hspace{0.15cm}}hdg}
+\newcommand{\ul}{\underline{\hspace{0.15cm}}}
+\newcommand{\RRmatrix}{\mathcal{R}}

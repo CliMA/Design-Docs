@@ -1,0 +1,16 @@
+% !TEX root = main.tex
+
+\section{Sub-grid Scale Models}
+\label{sec:sgs_models}
+
+In order to discuss the sub-grid scale models required for the nonhydrostatic atmospheric models, let us write the equations in the following compact form  
+\[
+\diff{\vc{q}}{t} = S_D(\vc{q}) + S_P(\vc{q})
+\]
+where $\vc{q}$ is the solution vector, $S_D$ denotes the RHS due to the dry dynamics while $S_P$ denotes the RHS due to the moist physics. We have already described $S_D$ so let us now focus on $S_P$.
+
+\subsection{Moist Physics}
+In MLAM, we propose to use a simplified moisture process (e.g., warm rain Kessler physics) with a Lilly-Smagorinsky type mixing scheme.    (Do we need long-wave radiation? Other such schemes?  If so, which ones?)
+
+\subsection{Topography}
+Will be incorporated at a later date.
