@@ -36,7 +36,7 @@
 \section{Introduction}
 \label{sec:introduction}
 
-This document highlights the design specifications for the Machine Learning Atmospheric Model (MLAM). MLAM is a suite of non-hydrostatic atmospheric models required by the Climate Machine  project (\textbf{FXG:Need a new name for the components: e.g., Clima-atmos or CLIMAa?}).  The two non-hydrostatic atmospheric models described are 
+This document highlights the design specifications for the atmospheric modeling component which is a part of the Climate Machine (CLIMA) project; this atmospheric modeling component is referred to as Clima-atmos and is comprised of the following two non-hydrostatic atmospheric models  
 \begin{enumerate}
 \item a Large-Eddy Simulation (LES) model and 
 \item a global model.
@@ -125,9 +125,107 @@ where $\vc{q}$
 contains the source terms. 
 
 \subsection{Spatial Discretization Methods}
+
+\subsubsection{Overview}
 For the spatial discretization methods, we propose to use variants of the discontinuous Galerkin (dG) method with a tensor-product bases (see, e.g., \cite{giraldo:2008a, abdi:2016}. That is, we propose to use hexahedral (cube) elements in three dimensions.  The nodal tensor-product dG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. 
 
 For the LES model, we will also consider fully three-dimensional dG methods. For the global model, it may be beneficial to consider a hybrid approach whereby the horizontal direction (along the spherical manifold) uses dG while a more standard method (open for discussion) may be used in the vertical.  Along certain directions, it may be advantageous to use uniform grid resolution in order to take advantage of larger time-steps (e.g., in using uniform grids for the global or LES model along the vertical direction would allow for some of the grid aspect ratio stiffness to be reduced).  \textbf{FXG: Need references}.
+
+\subsubsection{DG Basics}
+
+\begin{figure}[htbp]
+\begin{center}
+\subfigure[Global Domain]{\includegraphics[width=1.5in]{DG_domain.png}
+\label{fig:spatial_discretization/dg_domain}}
+\subfigure[Element $\Omega_e$]{\includegraphics[width=1.5in]{DG_element.png}
+\label{fig:spatial_discretization/dg_element}}
+\end{center}
+\caption{The (a) global domain and (b) element ($N=3$) for the DG method.}
+\label{fig:spatial_discretization/dg_method}
+\end{figure}
+
+To construct discrete approximations of continuous differential operators (e.g., gradient, divergence, or curl) with the DG method, we first must represent the solution vector (call it $q$) using a polynomial representation.  That is, we represent the solution vector inside of each element $\Omega_e$ as follows
+\be
+q^{(e)}_N(\vc{x},t) = \sum_{i=1}^{M_N} \psi_i(\vc{x}) q^{(e)}_i(t)
+\label{eq:spatial_discretization/dg_method}
+\ee
+where $\psi(\vc{x})$ are the known basis functions and $q^{(e)}_i(t)$ is the solution at each degree of freedom which will be time-dependent.
+The superscript $(e)$ represents the specific element we are working with, $i=1,\ldots,M_N$ represents degrees of freedom inside each element $\Omega_e$.  Figure \ref{fig:spatial_discretization/dg_domain} shows a sample global domain whereby we then identify one specific element $\Omega_e$ to work with.  We then map the element from its physical space to the reference element presented in Fig.\ \ref{fig:spatial_discretization/dg_element}; in this particular example $M_N=(N+1)^2$ where $N=3$ which means we are using 3rd degree polynomials in each direction (yielding 4th degree accuracy).  In general, $N$ need not be constant in each direction and so we can also write $M_N=(N_{\xi}+1)(N_{\eta}+1)$ in two dimensions or $M_N=(N_{\xi}+1)(N_{\eta}+1)(N_{\zeta}+1)$ in three dimensions, where $\xi$ is along the horizontal direction, $\eta$ along the vertical, and $\zeta$ coming out of the page. 
+
+The attraction of using basis functions $\psi$ to represent the solution $q$ is that computing the gradient of $q$ now only requires applying the gradient operator directly to Eq.\ \eqref{eq:spatial_discretization/dg_method} which yields
+\be
+\nabla q^{(e)}_N(\vc{x},t) = \sum_{i=1}^{M_N} \nabla \psi_i(\vc{x}) q^{(e)}_i(t)
+\label{eq:spatial_discretization/dg_method/gradient}
+\ee
+where we are able to construct $\grad \psi$ \emph{a priori} since we have chose $\psi$ and these basis functions do not change in time (unless p-refinement is used which we will not consider here).
+
+\subsubsection{DG Representation of Conservation Laws}
+To describe the DG method, let us use it to represent the divergence operator for the conservation law
+\be
+\diff{q}{t} + \nabla \cdot \vc{f} = 0
+\label{eq:spatial_discretization/DG_divergence/conservation_law}
+\ee
+where, in two dimensions, $f$ has components $\vc{f}=f_x \wh{\vc{i}} + f_y \wh{\vc{j}}$.
+To construct a discrete approximation to Eq.\ \eqref{eq:spatial_discretization/DG_divergence/conservation_law} we first multiply by a test function $\psi_i$ and integrate within each element $\Omega_e$ as follows
+\be
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \inte \psi_i \nabla \cdot \vc{f}^{(e)}_N d\Omega_e= 0.
+\label{eq:spatial_discretization/DG_divergence/conservation_law/discrete}
+\ee
+Using the product rule, the second term can be written as follows
+\be
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \inte \nabla \cdot \left( \psi_i \vc{f}^{(e)}_N \right) d\Omega_e - \inte \nabla \psi_i \cdot \vc{f}^{(e)}_N d\Omega_e= 0
+\label{eq:spatial_discretization/DG_divergence/conservation_law/discrete2}
+\ee
+and invoking the divergence theorem for the second term yields
+\be
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vc{f}^{(e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vc{f}^{(e)}_N d\Omega_e= 0
+\label{eq:spatial_discretization/DG_divergence/conservation_law/discrete3}
+\ee
+where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its outward pointing normal vector. We now need to fix the inconsistency of the second term above because it says that the solution along each element boundary $\Gamma_e$ is different from its neighbor since $\vc{f}^{(e)}_N$ is allowed to be discontinuous across element boundaries.  To fix this, we introduce a numerical flux such that what flows from element $\Omega_e$ to its neighbor $\Omega_k$ is the negative of what flows from $\Omega_k$ into $\Omega_e$.  We represent this fix as follows
+\be
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vc{f}^{(*,e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vc{f}^{(e)}_N d\Omega_e= 0
+\label{eq:spatial_discretization/DG_divergence/conservation_law/discrete4}
+\ee
+where $\vc{f}^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions we will have 4 face neighbors and in three dimensions we will have 6 face neighbors.  At this point one is free to choose their favorite numerical flux $\vc{f}^{(*,e)}_N$ just as one would do in the finite volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are purely local within the element - this should be quite familiar for those of you coming from the finite volume community.
+
+\subsubsection{Tensor Product Basis Functions}
+In Eq.\ \eqref{eq:spatial_discretization/dg_method} we have said very little about the basis functions $\psi$ and have written the approximation in so-called monolithic form whereby all the degrees of freedom within an element are written as one long vector of length $M_N$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used which is what we propose here.  In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as follows
+\[
+\psi_i(\xi,\eta) = h_j(\xi) \otimes h_k(\eta)
+\]
+where $h$ are one-dimensional basis functions, and $\otimes$ denotes the tensor (or Kronecker) product, and $j=1,\ldots N_{\xi}+1$, $k=1,\ldots,N_{\eta}+1$, and $i=j + (k-1) \left( N_{\xi}+1 \right)$. Using this strategy we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method} as follows
+\be
+q^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} h_i(\xi) h_j(\eta) q^{(e)}_{ij}(t)
+\label{eq:spatial_discretization/dg_method/tensor-product}
+\ee
+where we have written the approximation in terms of the reference element coordinates $(\xi,\eta$ instead of the physical coordinates $(x,y)$.  The advantage of doing this is that the reference element and its coordinates never change (assuming no p-refinement) which means that we can use one set of basis functions for all of the elements in the mesh.  
+
+Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields
+\be
+\diff{}{\vc{x}} q^{(e)}_N(\xi,\eta,t) = \diff{}{\vc{x}} \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} h_i(\xi) h_j(\eta) q^{(e)}_{ij}(t)
+\label{eq:spatial_discretization/dg_method/tensor-product/gradient}
+\ee
+where $\vc{x}$ can represent either $x$ or $y$.  Let us look at each component separate and so invoking the chain rule yields
+\[
+\diff{}{x}=\diff{}{\xi} \diff{\xi}{x} + \diff{}{\eta} \diff{\eta}{x}
+\]
+and
+\[
+\diff{}{y}=\diff{}{\xi} \diff{\xi}{y} + \diff{}{\eta} \diff{\eta}{y}
+\]
+where the metric terms $\diff{\vc{\xi}}{\vc{x}}$ need to be computed for each element in the mesh.
+Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/gradient} for the x-derivative as follows
+\be
+\diff{}{x} q^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \left( \diff{h_i(\xi)}{\xi}\diff{\xi}{x} h_j(\eta) + h_i(\xi) \diff{h_j(\eta)}{\eta}\diff{\eta}{x} \right) q^{(e)}_{ij}(t).
+\label{eq:spatial_discretization/dg_method/tensor-product/x-deriv}
+\ee
+If we use the same polynomial order along $\xi$ and $\eta$ we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/x-deriv} as follows
+\be
+\diff{}{x} q^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \left( dh_i \xi_x h_j + h_i dh_j \eta_x \right) q^{(e)}_{ij}(t).
+\label{eq:spatial_discretization/dg_method/tensor-product/x-deriv2}
+\ee
+where $h$ is the basis function and $dh$ is its derivative, which are the same functions used along both directions $\xi$ and $\eta$; the index $(i,j)$ will account for which direction we are referring to.
+
 
 \subsection{Time-Discretization Methods}
 
@@ -167,9 +265,6 @@ In MLAM, we propose to use a simplified moisture process (e.g., warm rain Kessle
 \subsection{Topography}
 Will be incorporated at a later date.
 
-\input{computing_aspects}
-
-
 \section{Computing Aspects}
 \label{sec:computing_aspects}
 
@@ -192,7 +287,7 @@ Although Python is a popular workflow language, we will likely explore Julia as 
 \end{itemize} 
 
 \subsection{Parallelization API}
-We propose to use the Message-Passing Interface (MPI) for communicating across processors and nodes (with multiple processors).  One of the NPS team members (Lucas or Jeremy?) has written Julia wrappers for MPI.
+We propose to use the Message-Passing Interface (MPI) for communicating across processors and nodes (with multiple processors).  One of the NPS team members (Lucas Wilcox) has written Julia wrappers for MPI.
 
 \subsection{Many-core API}
 \label{sec:computing_aspects/manycore}
@@ -202,7 +297,7 @@ We propose to use a GPU library for accessing the GPUs. The NPS team has vast ex
 One of the NPS team members (Jeremy Kozdon) has written Julia wrappers to the p4est library developed by another NPS team member (Lucas Wilcox).  We propose to use p4est for both grid-generation and graph-partitioning or Metis with a specific grid generator for both the LES and global domains. The global domain will use a cubed-sphere grid while the LES domains will use a logically Cartesian cube grid.
 
 \subsection{Code-base Repository}
-The code is maintained in Github under the name: Climate Modeling Alliance.
+The code is maintained in Github at \url{https://github.com/climate-machine}
 
 \subsection{Software Management}
 Software engineers are required in order to maintain the coupled software-base and to have a centralized person "in charge" of the software code.  It could also be helpful to have a support person who can dedicate time to help with HPC issues on running on the specific Caltech cluster that we will use.  

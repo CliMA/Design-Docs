@@ -29,7 +29,7 @@ We will design an ESM platform with subgrid-scale (SGS) process models that lear
     \item \emph{Global observations.} We live in the golden age of Earth observations from space. A suite of satellites is streaming coordinated and nearly simultaneous measurements of variables such as temperature, humidity, clouds, ocean surface currents, and sea ice cover, with global coverage for more than a decade. Space-based measurements of biogeochemical tracers and processes, such as measurements of column-average CO2 concentrations, of ocean biomass, and of photosynthesis in ecosystems, are also available, and so are more detailed observations of the cryosphere. To date, only a minute fraction of the data (mostly large-scale energy fluxes) has been directly used in ESM development (as opposed to ESM evaluation). CLIMA will learn directly from global data, augmented and validated with more detailed local observations where available.
     \item \emph{Local high-resolution simulations.} Some SGS processes in ESMs are in principle computable, only the globally achievable resolution precludes their explicit computation. For example, the turbulent dynamics of clouds can be computed with high fidelity in limited domains in large-eddy simulations (LES) with mesh sizes of meters to tens of meters. Increased computational performance has made LES domain widths of 10--100~km feasible in recent years, while the horizontal mesh size in climate models has shrunk, to the point that the two scales have converged \citep{Schneider17a}. Thus, while global LES that reliably resolve low clouds will not be feasible for decades, it is now possible to nest LES in limited areas of atmosphere models and conduct targeted local high-fidelity simulations of cloud dynamics in them. Local high-resolution simulations of ocean turbulence or sea ice dynamics can be conducted similarly. CLIMA will learn from such nested high-resolution simulations.
 \end{enumerate}
-Simultaneously exploiting global observations and local high-resolution simulations with new DA/ML tools presents the key opportunity for  progress in Earth system modeling. Replacing the inefficient and sub-optimal manual tuning process and the offline fitting of parameterization schemes to data from few locations, as is currently common, CLIMA will autotune itself and quantify its uncertainties based on statistics of much larger range of available data. It will adapt as new observations come online, and it will generate targeted high-resolution simulations on the fly---akin to targeted observations in weather forecasting \citep{Palmer98a,Lorenz98a}---to reduce and quantify uncertainties where needed to tighten estimates of SGS models of computable processes. This will increase the amount of data to which SGS models are fitted by several orders of magnitude.
+Simultaneously exploiting global observations and local high-resolution simulations with new DA/ML tools presents the key opportunity for  progress in Earth system modeling. Replacing the inefficient and sub-optimal manual tuning process and the offline fitting of parameterization schemes to data from few locations, as is currently common, CLIMA will autotune itself and quantify its uncertainties based on statistics of a much larger range of available data. It will adapt as new observations come online, and it will generate targeted high-resolution simulations on the fly---akin to targeted observations in weather forecasting \citep{Palmer98a,Lorenz98a}---to reduce and quantify uncertainties where needed to tighten estimates of SGS models of computable processes. This will increase the amount of data to which SGS models are fitted by several orders of magnitude.
 
 \subsection{Optimization Over Aggregate Climate Statistics}
 
@@ -186,7 +186,7 @@ To design CLIMA to learn from diverse data sources, we will employ the key conce
 
 \begin{itemize}
     \item Design the DA/ML layer to be as general purpose as possible, so that its algorithms can also be used for statistical learning problems in other sciences.
-    \item Use gradient-free optimization algorithms (to avoid the stasis in model development that often arises when manually manipulated ajoints are required).
+    \item Use gradient-free optimization algorithms (to avoid the stasis in model development that often arises when manually manipulated adjoints are required).
     \item Develop, test, and implement algorithms for optimizing parameters $\vec{\theta}$ that require as few ESM runs as possible---$O(1000)$ ESM runs, with embedded high-resolution simulations, over timescales of seasons are feasible. 
     \item Develop, test, and implement algorithms for quantifying uncertainties about parameters $\vec{\theta}$, via emulation of the functions $\vec{f}$, $\vec{g}$ etc. \citep{Kennedy01a,OHagan06a}.
 \end{itemize}
@@ -242,7 +242,7 @@ The component models at the center of the ESM should function in a coupled confi
     \item Scalability of the atmosphere model on a variety of hardware architectures, including accelerators, is paramount. This may require redesigning existing parameterizations, e.g., for radiative transfer, which currently involve extensive nonlocal operations (vertical integrals). 
     \item For historical reasons, distinct parameterizations have been employed for processes lying on a continuous spectrum, such as boundary-layer turbulence, shallow (non-precipitating) convection, and deep (precipitating) convection. Parameterizations for processes such as microphysics (e.g., rain droplet formation) and radiative transfer typically have not strongly interacted with parameterizations for dynamical processes, although in nature the processes do strongly interact. This has led to correlated and compensating errors between the parameterization schemes; it leads to identifiability problems in a DA/ML approach to parameterizations. For our DA/ML approaches, it will be important to devise process-informed parameterization schemes that represent processes that lie on a continuous spectrum in a unified manner, with as few parameters as possible. Parameterizations also need to be able to adapt to different host model resolutions (be ``scale aware'') and to refine themselves as more data informing the processes become available. Error models (e.g., Gaussian processes) may also be incorporated directly in parameterization schemes and be estimated along with parameters and parametric functions in the parameterization schemes. 
     \item Parameterizations should be developed in the form of continuous differential equations, which can then be discretized consistently with the host model (use the same compute kernels). However, parameterizations may employ resolutions and time steps that differ from those in the host model. 
-    \item It would be desirable for the global atmosphere model, parameterizations, and LES to share the same prognostic variables. This means that using moist conserved variables (e.g., liquid-ice static energies) throughout may be advantageous. Variables that are nonlinear functions of temperature (e.g., entropies) should be avoided, because they make it computationally expensive to retrieve temperature.
+    \item It would be desirable for the global atmosphere model, parameterizations, and LES to share the same prognostic variables. Prognostic variables that mix linearly and that are conserved in adiabatic and inviscid flow are desirable. Using total energy or moist conserved variables (e.g., liquid-ice static energies) throughout may be advantageous. Variables that are nonlinear functions of temperature should be avoided, because they make it computationally expensive to retrieve temperature. This includes entropies and potential temperatures (which also do not mix linearly). 
 \end{itemize}
 
 \paragraph{Goals}
@@ -260,12 +260,39 @@ The component models at the center of the ESM should function in a coupled confi
 \paragraph{Concepts}
 
 \begin{itemize}
-    \item Land models consists of models for the hydrology of ground and surface water (especially river runoff) and for the land biosphere. These two types of models interact closely but should be treated distinctly because we know the equations for modeling the physics of water flow, and can coarse grain and approximate the equations systematically. However, the biosphere must be modeled more empirically. 
+    \item Land models consist of models for the hydrology of ground water and surface water (river runoff, snow hydrology) and for the land biosphere. These two types of models interact closely (e.g., through water exchange and through plant effects on soil properties and water transport). But they should be modularized because we know the equations for modeling the physics of water flow, and we can coarse grain and approximate the equations systematically; we may want to refine the hydrology modeling when the need arises, without changing the biosphere model. However, the biosphere must be modeled more empirically; biosphere models are not refineable in the same way. 
+    \item The atmosphere provides the upper boundary condition for the land model, providing precipitation and radiative fluxes and, e.g., the wind velocity, temperature, and specific humidity of the near-surface air, on which sensible heat fluxes and evapotranspiration at the surface depend. In turn, the land model provides the fluxes of momentum, of atmospheric constituents such as carbon dioxide, and of energy (radiative energy fluxes that depend on land albedo and emissivity, and sensible and latent heat fluxes). These fluxes provide the lower boundary condition for the atmosphere over land; they need to be consistent with the surface-layer fluxes in the atmosphere (e.g., as determined by Monin-Obukhov similarity theory, consistently both over land and oceans).
+    \item The resolution of the land model should be adequate for its purposes. It should reflect the heterogeneity of the land surface (e.g., vegetation or soil heterogeneity) that needs to be resolved. The land model resolution does not need to be linked to the atmosphere resolution. But it is important that the fluxes that are being exchanged between different land and atmosphere grids in the coupling layer are aggregrated conservatively. 
+\end{itemize}
+
+\paragraph{Goals}
+
+\begin{itemize}
+    \item \hl{\dots}
 \end{itemize}
 
 \subsection{Compute Kernels}
 
+\paragraph{Concepts}
+\begin{itemize}
+    \item Compute kernels provide discrete approximations of continuous differential operators. They should be shared among component models (atmosphere, ocean, land hydrology, including SGS process models) to the extent possible, to reduce code redundancy and isolate hardware-specific implementation issues in as few places as possible. 
+    \item We distinguish (1) non-performant and (2) performant compute kernels. The non-performant kernels are constructed with the goal of maximizing readability.  Once tested and accepted, they will be redesigned to be performant (e.g., maximized for vectorization, ported to accelerators, and restructured to minimize communication).
+    \item For the atmosphere model, we will use the discontinuous Galerkin method for spatial discretization \citep{abdi:2016}. We are exploring using the same for the ocean model.
+\end{itemize}
+
+\paragraph{Goals}
+\begin{itemize}
+    \item Implement non-performant and then performant compute kernels in one, two, and three dimensions, to be used by the atmosphere dynamical core and SGS process models, the ocean dynamical core and SGS process models, and by the land hydrology model.
+    \item Benchmark the performance of the new kernels against existing compute kernels (e.g., in Fortran 95).
+\end{itemize}
+
+Under GitHub (see  \texttt{https://github.com/climate-machine/Canary.jl} under examples), we are constructing prototype compute kernels using the Julia language for testing the feel, accuracy, and performance. Sample code will be made available for: (1) passive transport (advection), (2) shallow water equations, and (3) Euler equations.  
+
+
 \subsection{Parallel Communications/Services}
+The compute kernel examples stored at \texttt{https://github.com/climate-machine/Canary.jl} have been written with MPI (Message-Passing Interface) included.  This approach ensures that even the very readable (and not necessarily performant) compute kernels can be run in a multi-processor approach and provide a good tutorial for the Alliance to see how the kernels can be used on high-performance computing platforms.
+
+\hl{Can you guys add a short overview of parallel communication issues (shared vs distributed memory parallelism) that are relevant for everyone here? How are we going to deal with the challenges different architectures pose? Whare are our goals here?}
 
 \section{General Guidelines}
 
@@ -285,16 +312,18 @@ The component models at the center of the ESM should function in a coupled confi
         \end{enumerate}
     \item Limit external package dependency as much as possible to facilitate portability. Where package dependencies are essential, use common packages with a broad user base (e.g., MPI, NetCDF library)
     \item Collect all input parameters (physical constants, topography/bathymetry datasets etc.) in one central place, where they are easy to modify and are shared by all components of the code. Input parameters should not be multiply defined for different code components.
+    \item Make use of Continuous Integration (CI) tools as much as possible.  For example, on GitHub we may use Travis as our CI tool in order to test 100\% of the code. Test the software across various platforms and operating systems (e.g., Linux, Mac OS, and Windows).  Some CI testing may be required to be performed on specific hardware; examples include testing the software on specific GPU hardware on local computers (rather than what is available on the cloud via GitHub).  At NPS we may use Gitlab with either runners or interleaved with Jenkins CI.
     \item \hl{[Add and expand!]}
 \end{itemize}
 
 \section{Objectives and Key Results for Years 1--3}
 
-We will pursue several key objectives in years 1--3 (by 2021), and we will measure progress by achievement of the key results listed for each objective.
+We will pursue several key objectives in years 1--3 (by 2021), and we will measure progress by achievement of the key results listed for each objective.\footnote{To read more about objectives and key results, or OKRs, for goal settings, see https://rework.withgoogle.com/guides/set-goals-with-okrs/steps/introduction/.}
 \begin{enumerate}
     \item \textbf{Develop scalable atmosphere and ocean dynamical cores that exploit emerging computing architectures and can run high-resolution simulations on the fly.}
     \begin{enumerate}
-        \item Demonstrated scaling of atmosphere and ocean models on CPUs and GPUs \hl{[can we say something more precise and quantitatively measurable here?]}.
+        \item Demonstrated performance of atmosphere and ocean models on CPUs and GPUs \hl{[can we say something more precise and quantitatively measurable here?]}. \hl{[FXG: Let me take a stab at it ]}.  Having pre-existing scalable atmospheric models \cite{abdi:2016b,abdi:2018,mueller:2016} will allow us to compare the CLIMA-atmos (and CLIMA-ocean) to well-tested modeling components.  In addition, the NGGPS benchmark results\footnote{see \texttt{https://www.weather.gov/media/sti/nggps/AVEC Level 1 Benchmarking Report 08 2020150602.pdf}}
+         will allow us to compare the time-to-solution of the global simulations with the best non-hydrostatic numerical weather prediction models found in the U.S.
         \item Demonstration of at least 100 concurrent high-resolution simulations (LES) running alongside global atmosphere model.
         \item \hl{Something specific and measurable about the ocean and high-resolution simulations}
     \end{enumerate}
@@ -317,10 +346,10 @@ We will pursue several key objectives in years 1--3 (by 2021), and we will measu
      \centerline{\includegraphics[width=.6\textwidth]{Lin-Sc-bias.pdf}}
       \caption{\textbf{Cloud cover bias in current climate models.} Annual cycle of (a) cloud cover and (b) sea surface temperature off the coast of subtropical South America from observations (black) and in current climate models (colors). Data from \protect\citet{Lin14b}.}\label{f:Sc-bias}
     \end{figure}
-    \item \textbf{Demonstrate atmosphere and ocean models and learning from observational data (primarily reanalysis) and nested high-resolution simulations.}
+    \item \textbf{Demonstrate atmosphere and ocean models that learn from observational data (primarily reanalysis) and nested high-resolution simulations.}
     \begin{enumerate}
         \item Demonstrate atmosphere-only simulations that learn automatically from observations and nested high-resolution simulations, in two configurations: (i) driven by observed sea surface temperatures, and (ii) coupled to a slab ocean with observed ocean energy fluxes. (Configuration (ii) will clearly expose biases in the surface energy balance resulting, e.g., from biases in cloud cover.)
-        \item Demonstrate a substantial reduction is biases relative to current (CMIP5) simulations: (i) reduce tropical low-cloud cover biases to less than 10\% (compare Fig.~\ref{f:Sc-bias} for current model biases) (ii) reduce polar temperature biases to less than 2~K and sea ice cover biases to less than $2\times 10^6~\mathrm{km^2}$ (compare Fig.~\ref{f:polar-bias} for current model biases); (iii) reduce global-mean precipitation biases by a factor 2.
+        \item Demonstrate a substantial reduction in biases over seasonal cycle relative to current (CMIP5) simulations: (i) reduce tropical low-cloud cover biases to less than 10\% (compare Fig.~\ref{f:Sc-bias} for current model biases) (ii) reduce polar temperature biases to less than 2~K and sea ice cover biases to less than $2\times 10^6~\mathrm{km^2}$ (compare Fig.~\ref{f:polar-bias} for current model biases); (iii) reduce global-mean precipitation biases by a factor 2.
         \item \hl{ocean targets? ML depth?}
     \end{enumerate}
     \begin{figure}[htb]
