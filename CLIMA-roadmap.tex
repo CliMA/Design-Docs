@@ -56,7 +56,7 @@ Both computable and non-computable parameters can, in principle, be learned from
 \caption{\textbf{Schematic of CLIMA.} Observations of the Earth system (e.g., from space) and output from targeted high-resolution simulations (e.g., of ocean turbulence) are passed through a data assimilation/machine learning (DA/ML) layer, which wraps around an Earth system model (ESM) with its component models. The high-resolution simulations that inform the ESM through the DA/ML layer are spun off from component models such as the atmosphere or ocean models. The DA/ML layer not only optimizes the ESM components but also quantifies uncertainties about model processes.} 
 \label{f:CLIMA-schematic}
 \end{figure}
-CLIMA will have a fresh model architecture (see the schematic in Fig.~\ref{f:CLIMA-schematic}). Current ESM architectures make it difficult to carry out the hundreds to thousands of ESM simulations that are necessary for DA/ML based on climate statistics, and current parameterization schemes are not well suited for DA/ML approaches (e.g., because they contain many correlated parameters).  We will need to design CLIMA to learn efficiently from observations and to run nested high-resolution simulations on demand, and we will need to replace several existing parameterization schemes by flexible SGS process models that learn effectively from diverse data sources. The SGS process models need to be systematically refine-able as more data become available, and they need to treat subgrid-scale motions (e.g., boundary layer turbulence, shallow convection, deep convection) in a unified manner. Achieving this will be a central focus of our development effort.
+CLIMA will have a fresh model architecture (see the schematic in Fig.~\ref{f:CLIMA-schematic}) to facilitate carrying out the hundreds to thousands of ESM simulations with nested high-resolution simulations, which we will need for our DA/ML approach. We will design CLIMA from the outset to learn efficiently from observations and to run nested high-resolution simulations on demand, and we will need to replace several existing parameterization schemes by flexible SGS process models that learn effectively from diverse data sources (and that have fewer correlated parameters than current parameterizations). The SGS process models need to be systematically refine-able as more data become available, and they need to treat subgrid-scale motions (e.g., boundary layer turbulence, shallow convection, deep convection) in a unified manner. Achieving this will be a central focus of our development effort.
 
 To achieve rapid payoffs in terms of reduced uncertainties in climate projections, we will focus the early development on the most uncertain components for which we have already begun development and prototyping of new SGS process models (e.g., for clouds, convection, and turbulence). Initially, we will use other components (e.g., radiative transfer schemes) from existing models. However, we seek to eventually replace most current parameterization schemes by more flexible SGS process models designed for DA/ML approaches. 
 
@@ -203,7 +203,7 @@ To design CLIMA to learn from diverse data sources, we will employ the key conce
 \begin{itemize}
     \item  Given observations and model output, both from the global model and high-resolution simulations, the diagnostics layer computes the statistics of model variables and observations that the DA/ML layer requires.
     \item Specifically, the diagnostics layer needs to provide the functions $\vec{f}$, $\vec{g}$ etc. and time averages $\langle \cdot \rangle_T$. These functions should be usable with input data from observations $\vec{\tilde y}$, global model state variables $\vec{x}$, high-resolution state variables $\vec{\tilde z}$, and single-column model variables $\vec{z}$.
-    \item Because I/O can be slow and may generate unwieldy amounts of data, the diagnostics layer should be able to accumulate the statistics the DA/ML layer needs from the ESM and from the targeted high-resolution simulations on the fly and in parallel, without intermediate write-outs to disk.
+    \item Because I/O can be slow and may generate unwieldy amounts of data, the diagnostics layer should be able to accumulate the statistics the DA/ML layer needs from the ESM and from the targeted high-resolution simulations on the fly and in parallel, without intermediate write-outs to file.
 \end{itemize}
 
 \paragraph{Goals}
@@ -221,7 +221,7 @@ To design CLIMA to learn from diverse data sources, we will employ the key conce
     \item The coupling layer needs to allow for conservative exchange of data (momentum, water, energy, and tracer fluxes) across the component models' grids. To facilitate this exchange, it will be helpful to co-align grid nodes across the component models to the extent possible (e.g., atmosphere and ocean, and atmosphere and land, should share some nodes, even if they have different resolutions).
     \item Making internal data structures consistent across the component models will facilitate design of the coupling layer. 
     \item The coupling layer needs to accommodate the parallel computing layout of the model components and needs to allow parallel data exchange between the model components \citep[e.g.,][]{Larson05a}. 
-    \item It may be desirable to run model components concurrently in parallel \citep{Balaji16a}, e.g., running the atmosphere model in parallel with the ocean model (as in Fig.~\ref{f:CLIMA-layers}). However, numerical coupling instabilities can arise when doing so \citep{Hallberg14a}. The timestepping strategy of the coupling needs to be chosen to guarantee stable coupling. 
+    \item It may be desirable to run model components concurrently in parallel \citep{Balaji16a}, e.g., running the atmosphere model in parallel with the ocean model (as in Fig.~\ref{f:CLIMA-layers}). However, numerical coupling instabilities can arise when doing so and when sequential updating model components within a time step \citep{Hallberg14a}. The timestepping strategy of the coupling needs to be chosen to guarantee stable coupling. 
 \end{itemize}
 
 \paragraph{Goals}
@@ -239,7 +239,12 @@ The component models at the center of the ESM should function in a coupled confi
 \paragraph{Concepts}
 \begin{itemize}
     \item The atmosphere model provides approximate solutions to the equations of fluid mechanics and thermodynamics on a rotating sphere. It consists of a dynamical core and parameterizations. The dynamical core discretizes the 3D compressible Euler equations and thermodynamic equations on a sphere. Parameterizations are needed principally for radiative transfer and for dynamical processes at scales below the resolution of the global grid, such as SGS turbulence, convection, cloud microphysics, and gravity waves.
-    \item Large-eddy simulations provide approximate solutions to the same (non-hydro\-static) equations as the atmosphere dynamical core, just at higher resolution and, because of the large computational expense, in limited domains. LES resolutions needed to resolve the dynamics of cumulus clouds are in the range of $O(100~\mathrm{m})$. To resolve the dynamics of stratocumulus clouds under a sharp inversion (a nearly discontinuous thermodynamic interface common in the subtropics), LES require resolutions of at least 50~m in the horizontal and 10~m in the vertical. Avoiding spurious mixing in the numerical solution of the equations of motion (caused, e.g., by spuriously oscillatory numerics interacting with dissipative SGS schemes) is essential for faithful simulations of the climatically important stratocumulus clouds \citep{Pressel17a}.
+    \item Large-eddy simulations provide approximate solutions to the same (non-hydro\-static) equations as the atmosphere dynamical core, just at higher resolution and, because of the large computational expense, in limited domains. LES resolutions needed to resolve the dynamics of cumulus clouds are in the range of $O(100~\mathrm{m})$. To resolve the dynamics of stratocumulus clouds under a sharp inversion (a nearly discontinuous thermodynamic interface common in the subtropics), LES require resolutions of at least 50~m in the horizontal and 10~m in the vertical (Fig.~\ref{f:DYCOMS-test}). Avoiding spurious mixing in the numerical solution of the equations of motion (caused, e.g., by spuriously oscillatory numerics interacting with dissipative SGS schemes) is essential for faithful simulations of the climatically important stratocumulus clouds \citep{Pressel17a}. If numerical schemes and SGS schemes are chosen carefully, much lower nominal resolution (and hence lower computational expense) may suffice for faithful simulations than with suboptimal numerics (Fig.~\ref{f:DYCOMS-test}).
+ \begin{figure}[htb]
+     \centerline{\includegraphics[width=\textwidth]{DYCOMS_tests.pdf}}
+      \caption{\textbf{Comparison of atmospheric LES in DYCOMS stratocumulus benchmark.} The figure shows liquid water specific humidity ($q_l$), vertical velocity variance ($\overline{w'w'}$), and the third cumulant of vertical velocity ($\overline{w'w'w'}$) in LES of the DyCOMS-II RF01 benchmark \citep{Stevens03,Stevens05a}. Simulations with the PyCLES code with weighted essentially non-oscillatory (WENO) numerics and an implicit LES approach at $50~\mathrm{m} \times 10~\mathrm{m}$ and $35~\mathrm{m} \times 5~\mathrm{m}$ resolution (solid and dashed black lines) compare favorably with observations (circles) \citep{Pressel15a,Pressel17a}. The PyCLES simulations show higher fidelity to observations than simulations with oscillatory numerics at more than a factor 4 higher resolution and hence much greater computational expense: shown for comparison are LES \citet{Matheou18a} and DNS by \citet{Mellado18a} on higher-resolution isotropic grids. Although the WENO schemes are slower by an $O(1)$ factor than the oscillatory schemes at a given nominal resolution, they achieve comparable fidelity to observations at lower resolution, and hence at much reduced computational cost for a given fidelity to observations. From \citet{Schneider18a}.}\label{f:DYCOMS-test}
+ \end{figure}
+
     \item The atmosphere dynamical core needs to be able to run at resolutions ranging from hundreds of kilometers in the horizontal (for prototyping and testing) to kilometers (where deep convection begins to be resolved).
     \item Scalability of the atmosphere model on a variety of hardware architectures, including accelerators, is paramount. This may require redesigning existing parameterizations, e.g., for radiative transfer, which currently involve extensive nonlocal operations (vertical integrals). 
     \item For historical reasons, distinct parameterizations have been employed for processes lying on a continuous spectrum, such as boundary-layer turbulence, shallow (non-precipitating) convection, and deep (precipitating) convection. Parameterizations for processes such as microphysics (e.g., rain droplet formation) and radiative transfer typically have not strongly interacted with parameterizations for dynamical processes, although in nature these processes do strongly interact. This has led to correlated and compensating errors between the parameterization schemes; it leads to identifiability problems in a DA/ML approach to parameterizations. For our DA/ML approaches, it will be important to devise process-informed parameterization schemes that represent processes that lie on a continuous spectrum in a unified manner, with as few parameters as possible. Parameterizations also need to be able to adapt to different host model resolutions (be ``scale aware'') and to refine themselves as more data informing the processes become available. Error models (e.g., Gaussian processes) may also be incorporated directly in parameterization schemes and be estimated along with parameters and parametric functions in the parameterization schemes. 
@@ -260,8 +265,8 @@ The component models at the center of the ESM should function in a coupled confi
 \begin{itemize}
     \item The ocean model shares many of the same elements as the atmosphere model. It consists of a dynamical core that solves, on a sphere, the 3D Euler equations and the thermodynamic equations for nearly incompressible seawater. Parameterizations are needed for dynamical processes at scales below the resolution of the global grid, such as SGS boundary layer turbulence, frontal instabilities, and interior mesoscale turbulence. In the ocean, there is no equivalent to the cloud microphysics processes whose physics is not fully understood. The parameterization problem is strictly one of representing SGS dynamics, whose governing equations are well known, in terms of variables resolved on the model's global grid.
     \item LES simulations will be used to provide solutions of the ocean dynamics at higher resolution than the global model. LES resolutions needed to resolve boundary layer turbulence are in the range of O(10~m) in the horizontal and a few meters in the vertical. Lateral domains of O(1~km) are sufficient to resolve the vertical fluxes generated by boundary layer turbulence. However, lateral fluxes generated by surface density fronts require domains of O(10--50~km). Even larger domains of O(1000~km), at resolutions of kilometers, are necessary to resolve mesoscale turbulence. We plan to run the global ocean model at resolutions of 10--50 km and will need to parameterize boundary layer turbulence, frontal instabilities, and SGS mesoscale turbulence.
-    \item Like for the atmospheric model, scalability will also be required for the ocean model to run on a variety of architectures, including accelerators. 
-    \item Parameterization of ocean processes share the same historical idiosyncrasies found in atmopsheric models. Parameterizations for boundary layer processes have been developed before and independently of those for mesoscale turbulence. However, the two processes strongly interact in the upper ocean: boundary layer processes such as convection and wind-driven turbulence weaken the ocean stratification, while mesoscale eddies tend to strengthen it. Indeed, when \citet{Gent90} implemented the first parameterization of mesoscale turbulence in an ocean model, it resulted in a nnonphysical near complete suppression of boundary layer turbulence. The ad-hoc solution was to arbitrarily tune down the mesoscale parameterization in the upper ocean, an unsatisfactory approach that has become common practice in climate models ever since. For  physical reasons and for our DA/ML approaches, it will be important to devise parameterization schemes that represent all SGS processes in a unified manner and properly capture their interactions, rather than selectively suppressing them. Much like in the atmospheric case, the parameterizations also need to be ``scale aware'' and to refine themselves as more data informing the processes become available. 
+    \item Like for the atmospheric model, scalability will also be required for the ocean model on a variety of architectures, including accelerators. 
+    \item Parameterization of ocean processes share the same historical idiosyncrasies found in atmopsheric models. Parameterizations for boundary layer processes have been developed before and independently of those for mesoscale turbulence. However, the two processes strongly interact in the upper ocean: boundary layer processes such as convection and wind-driven turbulence weaken the ocean stratification, while mesoscale eddies tend to strengthen it. Indeed, when \citet{Gent90} implemented the first parameterization of mesoscale turbulence in an ocean model, it resulted in a nonphysical near complete suppression of boundary layer turbulence. The ad-hoc solution was to arbitrarily tune down the mesoscale parameterization in the upper ocean, an unsatisfactory approach that has become common practice in climate models ever since. For  physical reasons and for our DA/ML approaches, it will be important to devise parameterization schemes that represent all SGS processes in a unified manner and properly capture their interactions, rather than selectively suppressing them. Much like in the atmospheric case, the parameterizations also need to be ``scale aware'' and to refine themselves as more data informing the processes become available. 
     \item The ocean parameterizations will follow the same guiding principles as the atmospheric ones, namely, they will be developed in the form of continuous differential equations, and they will share the same prognostic variables as the global ocean model and the LES.
 \end{itemize}
 
@@ -274,16 +279,15 @@ The component models at the center of the ESM should function in a coupled confi
 
 \subsubsection{Sea Ice Model (CLIMA-sea-ice)}
 
-\hl{[Raf: please review and edit/amend as needed]}
-
 \paragraph{Concepts}
 \begin{itemize}
-\item Sea ice models are coupled to the ocean underneath and to the atmosphere above, through exchanges of water, energy, and stresses. Typical sea ice models consist of a two-dimensional (horizontal) continuum model for the motion and deformation of sea ice and a one-dimensional (vertical) thermodynamic model \citep[e.g..][]{Semtner76a} for sea ice thickness and energy fluxes through the ice. 
+\item Sea ice models are coupled to the ocean underneath and to the atmosphere above, through exchanges of water, energy, and stresses. Typical sea ice models consist of a two-dimensional (horizontal) continuum model for the motion and deformation of sea ice and a one-dimensional (vertical) thermodynamic model \citep[e.g..][]{Semtner76a} for sea ice thickness and energy fluxes through the ice. The dynamic and thermodynamic models for sea ice do not necessarily need to share the horizontal grid (e.g., sometimes, the sea ice thermodynamic model is directly linked to the atmosphere, with the atmospheric resolution, whereas the sea ice dynamic model is linked to the ocean).
 \item An important choice in a sea ice model concerns the rheology of the sea ice, which determines how ice deforms and breaks, opening up leads. Options include visco-plastic rheologies \hl{[refs]} and Maxwell-elasto-brittle rheologies \citep{Dansereau16a,Weiss17a,Dansereau17a}.
-\item Around 40~km horizontal resolution is necessary to capture the energy fluxes through ice and leads accurately, which is essential for a climate model \hl{(Rampal's group has a forthcoming paper showing convergence of fluxes)}.
-\item Because sea ice forms leads (breaks), discontinuity-capturing numerical discretization schemes (e.g., discontinuous Galerkin schemes) are essential for sea ice. While Lagrangian advection schemes are in use \cite{Rampal16a}, in the context of a climate model, Eulerian schemes are preferable: they facilitate coupling to atmosphere and ocean. Ideally, the sea ice model would share discretization strategies and compute kernels with the atmosphere and ocean, to harness the performance of the compute kernels and facilitate coupling with both atmosphere and ocean.
-\item While sea ice models are often implemented as part of an ocean model, there seems to be no compelling reason to do so. Conservative coupling to atmosphere and ocean is essential, but this can be achieved as for other model components through a conservative coupler (which, for sea ice, needs to couple at the top and the bottom, to atmosphere and ocean). Using a shared coupling layer across all model components including sea ice has the advantage that the machinery for parallel coupling of components with different resolutions can be shared, and does not need to be developed and implemented separately for a sea ice model. It will also facilitate running targeted high-resolution simulations for sea ice. \hl{[Raf: do you agree? I really see no reason, other than history, why sea ice and ocean are glued together the way they are today. If you do not do that, you can have component concurrency in the coupled model, giving additional parallel efficiency.]} 
-\item One can learn about uncertain SGS parameters in sea ice models (e.g, rheological parameters) from observations, e.g., of statistics of seasonally varying sea ice cover and ice deformations (fro microwave and synthetic aperture radar measurements from space).
+\item Around 40~km horizontal resolution is necessary to capture the energy fluxes through ice and leads accurately, which is essential for a climate model \hl{(Rampal's group has a forthcoming paper showing convergence of fluxes at around 40~km resolution)}.
+\item Because sea ice forms leads (breaks), discontinuity-capturing numerical discretization schemes (e.g., discontinuous Galerkin schemes) are essential for sea ice. While Lagrangian advection schemes are in use \citep{Rampal16a}, in the context of a climate model, Eulerian schemes are preferable: they facilitate coupling to atmosphere and ocean. Ideally, the sea ice model would share discretization strategies and compute kernels with the atmosphere and ocean, to harness the performance of the compute kernels and facilitate coupling with both atmosphere and ocean.
+\item While sea ice models are often implemented as part of an ocean model, there seems to be no compelling reason to do so. Conservative coupling to atmosphere and ocean is essential, but this can be achieved as for other model components through a conservative coupler (which, for sea ice, needs to couple at the top and the bottom, to atmosphere and ocean). Using a shared coupling layer across all model components including sea ice has the advantage that the machinery for parallel coupling of components with different resolutions can be shared, and does not need to be developed and implemented separately for a sea ice model. It will also facilitate running targeted high-resolution simulations for sea ice.
+\item One can learn about uncertain SGS parameters in sea ice models (e.g, rheological parameters) from observations, e.g., of statistics of seasonally varying sea ice cover and ice deformations (from microwave and synthetic aperture radar measurements from space).
+\item Models for snow on sea ice should be consistent with models for snow on land.
 \end{itemize}
 
 \paragraph{Goals}
@@ -312,9 +316,9 @@ The component models at the center of the ESM should function in a coupled confi
 
 \paragraph{Goals}
 \begin{itemize}
-\item Develop a scalable, parallel land model that is process driven yet simple enough that it can harness a wide range of available data effectively, without overfitting that may degrade its predictive capabilities. The complexity of the land model is to be decided; JPL's CARbon DAta MOdel fraMework (CARDAMOM; \citet{Bloom16a} provides a good starting point for exploration for the biosphere model. 
+\item Develop a scalable, parallel land model that is process driven yet simple enough that it can harness a wide range of available data effectively, without overfitting that may degrade its predictive capabilities. The complexity of the land model is to be decided; JPL's CARbon DAta MOdel fraMework (CARDAMOM; \citet{Bloom16a} may provide a good starting point for exploration for the biosphere model. 
 \item Design a modular land model that separates hydrology and biosphere modeling to the extent possible, but allows for the essential direct coupling between the two, in such a way that the biosphere and hydrology model can be updated and refined separately. 
-\item Adopt the DA/ML approach to be developed at Caltech to optimize the land model using observables such as solar induced fluorescence (OCO-2 and OCO-3) and gravity measurements from GRACE.
+\item Adopt the DA/ML approach to be developed at Caltech to optimize the land model using observables such as solar induced fluorescence (OCO-2 and OCO-3) and gravity measurements (GRACE).
 \item Empirically determine the complexity of the land model optimal for decadal predictions.
 \end{itemize}
 
@@ -334,9 +338,15 @@ The component models at the center of the ESM should function in a coupled confi
     \item Develop our code so that it takes advantage of the many-core accelerators found in current and emerging supercomputers.
     \item Isolate all compute-intensive code in compute kernels with simple, array-based interfaces.  This will allow for the code to be transitioned to different compute environments/backends.
     \item Minimize use of data outside of compute kernels as that may incur a performance penalty when the kernels are offloaded.  In other words, be mindful of data accesses.
-    \item Implement non-performant and then performant compute kernels in one, two, and three dimensions. We need kernels for mesh generation, common differential operators, and vertical integration (e.g., for radiative transfer and the barotropic mode in ocean), to be used by the atmosphere dynamical core and SGS process models, the ocean dynamical core and SGS process models, and by the sea ice and land hydrology models.
+    \item Implement non-performant and then performant compute kernels in one, two, and three dimensions. We need kernels for 
+    \begin{enumerate}
+    	\item mesh generation;
+	\item common differential operators including advection and diffusion, in 1d (vertical), 2D (horizontal), and 3D;
+	\item vertical integration (e.g., for radiative transfer and the barotropic mode in ocean),
+    \end{enumerate}
+	The compute kernels are to be used by the atmosphere dynamical core and SGS process models, the ocean dynamical core and SGS process models, and by the sea ice and land hydrology models.
     \item Benchmark the performance of the new kernels against existing compute kernels (e.g., in Fortran 95).  Roofline plots can also be useful in measuring performance against expected performance.
-    \item Strive to make the CPU and GPU kernels readable and look as similar as possible. (Ideally and in the longer run, they may be one and the same, but for now they are separate but similar, as long as we use array-based implementations). 
+    \item Strive to make the CPU and GPU kernels readable and look as similar as possible. (Ideally and in the longer run, they may be one and the same, but for now they will likely be separate but similar, as long as we use array-based implementations). 
 \end{itemize}
 
 %% Under GitHub (see  \texttt{https://github.com/climate-machine/Canary.jl} under examples), we are constructing prototype compute kernels using the Julia language for testing the feel, accuracy, and performance. Sample code will be made available for: (1) passive transport (advection), (2) shallow water equations, and (3) Euler equations.  
@@ -370,33 +380,28 @@ The component models at the center of the ESM should function in a coupled confi
 \begin{itemize}
     \item Implement best practices for scientific computing \citep[e.g.,][]{Wilson14a}, including
         \begin{enumerate}
-            \item Make names consistent, distinctive, and meaningful. For variable names, follow CMIP conventions\footnote{http://clipc-services.ceda.ac.uk/dreq/index.html} where possible and practicable).
+            \item Make names consistent, distinctive, and meaningful. For variable names, follow CMIP conventions\footnote{http://clipc-services.ceda.ac.uk/dreq/index.html} where possible and practicable.
             \item Use a build tool to automate workflows.
             \item Make incremental changes, with version control (GitHub).
             \item Modularize code rather than copying and pasting (DRY--Don't Repeat Yourself).
             \item Integrate continuously and employ unit testing (try to develop tests before developing the code, and focus on short unit tests, which give more valuable information when they fail; make unit tests meaningful, e.g., check for conservation of properties that should be conserved).
             \item Make code correct first and fast second (then use profilers to identify bottlenecks).
             \item Document design and purpose (document interfaces and embed documentation in code).
-            \item Collaborate (pre-merge code reviews, pair programming to bring new people up to speed or for tricky problems; use issue tracking on GitHub).
+            \item Collaborate (have code reviews pre-merge; use pair programming to bring new people up to speed or for tricky problems; use issue tracking on GitHub).
             \item Design APIs for the simplest cases first, add options for more flexible use.
             \item Shared code ownership is the goal; siloed knowledge is bad.
         \end{enumerate}
-    \item Limit external package dependency as much as possible to facilitate portability. Where package dependencies are essential, use common packages with a broad user base (e.g., MPI, NetCDF library)
-    \item Collect \emph{all} parameters (e.g., physical constants, input data) in one central place, where they are easy to modify and are shared by all components of the code. No hard-coded parameters anywhere in the code. Input parameters should not be multiply defined for different code components. For example, there should be one and only one topography/bathymetry dataset that all model components (atmosphere, ocean, land) use. Depending on their resolution, some components (e.g., the atmosphere model) may need to smooth the input topography; but there should only be one input dataset, so topography can easily and consistently be changed for all model components.
+    \item Confine external package dependencies as much as possible to common packages with a broad user base (e.g., MPI, NetCDF library).
+    \item Collect \emph{all} parameters (e.g., physical constants, input data) in one central place, where they are easy to modify and are shared by all components of the code. \emph{No hard-coded parameters anywhere in the code} (except fixed coefficients, e.g., in interpolation or time-stepping schemes). 
+    \item Input data should not be multiply defined for different code components. For example, there should be one and only one topography/bathymetry dataset that all model components (atmosphere, ocean, land) use. Depending on their resolution, some components (e.g., the atmosphere model) may need to smooth the input topography; but there should only be one input dataset, so topography can easily and consistently be changed for all model components.
     \item Make use of Continuous Integration (CI) tools as much as possible.  For example, on GitHub we may use Travis as our CI tool to test 100\% of the code. Test the software across various platforms and operating systems (e.g., Linux, MacOS, and Windows).  Some CI testing may be required to be performed on specific hardware; examples include testing the software on specific GPU hardware on local computers (rather than what is available on the cloud via GitHub).  At NPS we may use Gitlab with either runners or interleaved with Jenkins CI.
-    \item \hl{[Add and expand!]}
 \end{itemize}
 
 \section{Objectives and Key Results for Years 1--3 (2018--2021)}
 
 We will pursue several key objectives in years 1--3 (by 2021), and we will measure progress by achievement of the key results listed for each objective.\footnote{To read more about objectives and key results, or OKRs, for goal settings, see https://rework.withgoogle.com/guides/set-goals-with-okrs/steps/introduction/.} The key results listed are intentionally ambitious. Some may be a stretch to achieve. We can consider ourselves successful if we achieve about 70\% of the key results. 
  
-Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}.
-\begin{figure}[htb]
-     \centerline{\includegraphics[width=\textwidth]{DYCOMS-test.pdf}}
-      \caption{\textbf{Comparison of atmospheric LES in DYCOMS stratocumulus benchmark.} The figure shows liquid water specific humidity ($q_l$), vertical velocity variance ($\overline{w'w'}$), and the third cumulant of vertical velocity ($\overline{w'w'w'}$) in LES of the DyCOMS-II RF01 benchmark \citep{Stevens03,Stevens05a}. Simulations with the PyCLES code with weighted essentially non-oscillatory (WENO) numerics and an implicit LES approach at $50~\mathrm{m} \times 10~\mathrm{m}$ and $35~\mathrm{m} \times 5~\mathrm{m}$ resolution (solid and dashed black lines) compare favorably with observations (circles) \citep{Pressel15a,Pressel17a}. The PyCLES simulations show higher fidelity to observations than simulations with oscillatory numerics at more than a factor 4 higher resolution and hence much greater computational expense \citep{Mellado18a}. Although the WENO schemes are slower by an $O(1)$ factor than the oscillatory schemes at a given nominal resolution, they achieve comparable fidelity to observations at lower resolution, and hence at much reduced computational cost for a given fidelity to observations. From \citet{Schneider18a}.}\label{f:DYCOMS-test}
-    \end{figure}
-    
+Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}. Other key results are to be achieved by Q2/2021.    
 \begin{enumerate}
     \item \textbf{Develop scalable atmosphere and ocean dynamical cores that exploit emerging computing architectures, can run high-resolution simulations on demand, and share numerical methods and computational architectures to the extent possible.}
         
@@ -404,21 +409,29 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}.
     \begin{enumerate}
         \item \hlg{Demonstrate well-tested compute kernels for common differential operators in 1, 2, and 3 dimensions, both for CPUs and GPUs, and to be shared by atmosphere and ocean dynamical cores.}
         \item \hlg{Demonstrate scalability and performance of the atmosphere dynamical core on CPUs and GPUs comparable to NUMA} \citep{abdi:2016b,abdi:2018,mueller:2016}. 
-        \item \hlg{Demonstrate time-to-solution of global simulations in the  NGGPS benchmark comparable to (within factor 3) the best non-hydrostatic weather prediction models in the U.S. at a given nominal resolution.}\footnote{For the NGGPS benchmark results, see https://www.weather.gov/media/sti/nggps/AVEC\%20Level\%201\%20Benchmarking\%20Report\%2008\%2020150602.pdf} (Note that our effective resolution may be higher than the nominal resolution used by some models with lower-order numerics. So a factor 3 slower performance in the NGGPS is acceptable to us because it will be compensated if we can achieve the same fidelity of a simulation at 30\% lower nominal resolution. See Fig.~\ref{f:DYCOMS-test} for an example.)
+        \item \hlg{Demonstrate time-to-solution of global simulations in the  NGGPS benchmark comparable to (within factor 3) the best non-hydrostatic weather prediction models in the U.S. at a given nominal resolution.}\footnote{For the NGGPS benchmark results, see https://www.weather.gov/media/sti/nggps/AVEC\%20Level\%201\%20Benchmarking\%20Report\%2008\%2020150602.pdf} (Note that our effective resolution may be higher than the nominal resolution used by some models with lower-order numerics. So a factor 3 slower performance in the NGGPS is acceptable to us if it will be compensated by the computational savings that result if we achieve the same fidelity of a simulation at 30\% lower nominal resolution. See Fig.~\ref{f:DYCOMS-test} for an example.)
         \item Demonstrate an ocean dynamical core that resembles the atmosphere core, has performance comparable with or superior to that of the MITgcm on CPUs, and can be run on GPUs.
     \end{enumerate}
  
- \item \textbf{Develop LES that can be run in standalone mode or be nested in the global atmosphere and ocean models and use essentially the same code base as the global models (but possibly with differences, e.g., in time stepping).}
+ \item \textbf{Develop atmosphere LES that can be run in standalone mode or be nested in the global atmosphere model and that uses essentially the same code base as the global model (but possibly with differences, e.g., in time stepping).}
  
     \emph{Key results}:
     \begin{enumerate}
         \item \hlg{Implement fully 3D implicit-explicit (IMEX) methods with scalable iterative solvers and preconditioners, to replace the classical horizontally-explicit-vertical-implicit (HEVI) methods typically used in global nonhydrostatic models.}
         \item \hlg{Implement and test ``bullet proof'' stable methods, such as entropy-stable DG methods} \citep[e.g.,][]{Chan18a}.
-        \item \hlg{Implement different choices of LES SGS models (e.g., Smagorinski-Lilly, dynamic models, implicit LES) and test them in canonical benchmark cases in atmosphere and oceans.}
+        \item \hlg{Implement different choices of LES SGS models (e.g., Smagorinski-Lilly, dynamic models, implicit LES) and test them in canonical benchmark cases} (e.g., Fig.~\ref{f:DYCOMS-test}).
         \item \hlg{Demonstrate successful simulations of a stratocumulus-topped boundary layer in the atmosphere with standalone LES, with fidelity of simulations comparable with or superior to PyCLES with WENO schemes} (Fig.~\ref{f:DYCOMS-test}). 
-        \item \hl{Ocean LES demonstration?}
-        \item Demonstrate at least 100 concurrent LES running alongside global atmosphere and ocean models and show that, if run with prescribed lower boundary conditions, they locally match observations (e.g., of subtropical low clouds and mixed-layer and sea ice seasonal cycle in oceans). Use the LES to establish database for training parameterizations.
+        \item Demonstrate at least 100 concurrent LES running alongside global atmosphere model and show that, if run with prescribed lower (and upper) boundary conditions, they locally match observations (e.g., of subtropical low clouds). Use the LES to establish database for training parameterizations.
     \end{enumerate}
+   
+   \item \textbf{Develop ocean LES that can be run in standalone mode or be nested in the global ocean model and that uses as much of the code base of the global model as possible (but, e.g., the global model may be hydrostatic, whereas the LES will be non-hydrostatic).}
+ 
+    \emph{Key results}: 
+    \begin{enumerate}
+    \item \hlg{Adopt the atmosphere LES to the ocean.}
+    \item \hlg{Drive ocean LES by observed boundary conditions in regions were lateral fluxes can be neglected and demonstrate a successful simulation of seasonal ocean mixed-layer variations,  with fidelity of simulations comparable with or superior to Diablo and and NCAR LES models.}
+    \item \hl{Raf/John: more?}
+\end{enumerate}
    
     \item \textbf{Develop atmosphere process models suitable for DA/ML approaches.}
     
@@ -427,7 +440,7 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}.
         \item \hlg{Demonstrate, in single-column mode, physical skeleton of a unified parameterization for atmospheric turbulence, convection, and clouds (TCC) (including microphysics) that can at least qualitatively capture boundary layer and cloud regimes from stable boundary layers, over shallow convection and stratocumulus-topped boundary layers, to deep convection.}
         \item \hlg{Demonstrate, in a perfect-model setting, learning about parameters, parametric functions, and (possibly) non-parameteric functions in the unified TCC parameterization.}
         \item Implement TCC parameterization in atmosphere model and demonstrate learning about its parameters in a perfect-model setting with simulated global observations.
-        \item Demonstrate a gravity-wave parameterization that can learn from observations.
+        \item Demonstrate a gravity-wave parameterization that can learn from observations and high-resolution simulations (e.g., along the lines of \citet{Garner18a, Zhao18a}).
     \end{enumerate}
     
      \item \textbf{Develop ocean process models suitable for DA/ML approaches (some of them may be conceptually similar to the atmospheric parameterization, e.g., in unifying diffusive and mass flux approaches).}
@@ -435,10 +448,24 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}.
     \emph{Key results:}
     \begin{enumerate}
         \item \hlg{Develop unified parameterization framework for mixed-layer turbulence, convection, and mesoscale and submesoscale eddies.}
-        \item \hlg{Demonstrate that the unified ocean parameterization can reproduce the seasonal cycle of mixed layers in (1) the high-latitude North Atlantic (where restratification in spring is not captured by present models) and (2) in the Southern Ocean (where mixed layer deepening in winter due to inertial shear is not included in present parameterizations).}
+        \item Demonstrate that the unified ocean parameterization can reproduce the seasonal cycle of mixed layers in (1) the high-latitude North Atlantic (where restratification in spring is not captured by present models) and (2) in the Southern Ocean (where mixed layer deepening in winter due to inertial shear is not included in present parameterizations).
         \item Develop parameterizations for heat and salt fluxes under sea ice and test them against observations of seasonal extent/thickness of sea ice in the Artcic and Antarctic Oceans.
         \item Implement new parameterizations in ocean model and demonstrate learning about its parameters in a perfect-model setting with simulated global observations.
     \end{enumerate}
+    
+\item \textbf{Develop land model and couple it to atmosphere model.}
+
+   \emph{Key Results:}
+     \begin{enumerate}
+        \item \hl{TBD}
+      \end{enumerate}
+      
+      \item \textbf{Develop sea ice model and couple it to ocean model.}
+
+   \emph{Key Results:}
+     \begin{enumerate}
+        \item \hl{TBD}
+      \end{enumerate}
     
     \item \textbf{Develop fast and efficient DA/ML algorithms.}
     
@@ -449,6 +476,20 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}.
         \item Investigate and exploit the trade-off between statistical information and computational tractability to develop mini-batch-type algorithms to learn parameters in a filtering approach.
         \item Demonstrate online optimal experimental design methods to help locate LES turbulence simulations to generate maximally informative small-scale data.
     \end{enumerate}
+
+\item \textbf{Develop and implement diagnostics layer.}
+    
+    \emph{Key Results:}
+     \begin{enumerate}
+        \item \hl{TBD}
+        \end{enumerate}
+        
+\item \textbf{Develop and implement coupling layer.}
+    
+    \emph{Key Results:}
+     \begin{enumerate}
+        \item \hl{TBD}
+        \end{enumerate}
 
 \begin{figure}[htb]
      \centerline{\includegraphics[width=.6\textwidth]{Zhao18a-Fig-14.pdf}}
@@ -461,11 +502,11 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \hlg{green}.
         
     \item \textbf{Demonstrate atmosphere and ocean models that learn from observational data (primarily reanalysis) and nested high-resolution simulations.}
     \begin{enumerate}
-        \item Demonstrate atmosphere-only simulations that learn automatically from observations (reanalysis data for the past decades) and nested high-resolution simulations, in two configurations: (i) driven by observed sea surface temperatures (SST), i.e., in Atmospheric Model Intercomparison Project (AMIP) mode, and (ii) coupled to a slab ocean with observed ocean energy fluxes. (Configuration (ii) will clearly expose biases in the surface energy balance resulting, e.g., from biases in cloud cover, which may remain hidden in configuration (i).)
-        \item Demonstrate a substantial reduction in errors over seasonal cycle relative to current (CMIP5) simulations. 
+        \item Demonstrate atmosphere-only simulations that learn automatically from observations (reanalysis data for the past decades) and nested high-resolution simulations, in two configurations: (i) driven by observed sea surface temperatures (SST), i.e., in Atmospheric Model Intercomparison Project (AMIP) mode, and (ii) coupled to a slab ocean with observed ocean energy fluxes. (Configuration (i) will allow direct comparison with other models and is a relatively straightforward-to-run benchmark; configuration (ii) will clearly expose biases in the surface energy balance resulting, e.g., from biases in cloud cover, which may remain hidden in configuration (i).)
+        \item Demonstrate a substantial reduction in errors over the climatological seasonal cycle relative to current (CMIP5) simulations. 
         \begin{enumerate}
             \item Reduce global rms error in precipitation in AMIP runs to below $0.8~\mathrm{mm~day^{-1}}$ in any season (more than factor 2 reduction relative to CMIP5 model median, see Fig.~\ref{f:CMIP-precip-error}).
-            \item Reduce global rms errors in TOA net, shortwave, and longwave radiative energy fluxes in AMIP simulations to below $5~\mathrm{W~m^{-2}}$ in any season (more than factor 3 reduction relative to CMIP5 model median).
+            \item Reduce global rms errors in TOA net, shortwave, and longwave radiative energy fluxes in AMIP simulations to below $5~\mathrm{W~m^{-2}}$ in any season (more than factor 3 reduction relative to CMIP5 model median, see Fig.~\ref{f:CMIP-TOA-error}).
             \item Reduce tropical low-cloud cover biases in coupled runs to less than 10\% (compare Fig.~\ref{f:Sc-bias} for current model biases, which are around 50\% and larger).
             \item Reduce polar temperature biases to less than 2~K and sea ice cover biases to less than $2\times 10^6~\mathrm{km^2}$ in coupled runs (compare Fig.~\ref{f:polar-bias} for CMIP5 model biases).
              \end{enumerate}
