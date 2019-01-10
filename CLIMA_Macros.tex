@@ -1,46 +1,25 @@
-%FXG Math Macros
-\usepackage[english]{babel} 
-%\usepackage{algorithm}
-%\usepackage{algorithm2e}
-
-%\usepackage[numbered]{algo}
-%\usepackage{pseudocode}
-
-%\usepackage{algorithmic}
-%\usepackage{algorithmicx}
-%\usepackage{algpseudocode}
-
-\usepackage{epsfig}
-
-%\usepackage[chapter]{algorithm}
-\usepackage{algorithmicx}
-\usepackage{algpseudocode}
-
-\usepackage{subfigure}
-\usepackage{stmaryrd}
-\usepackage{amsmath} 
-\usepackage{color}
-\usepackage{amssymb} 
-\usepackage{amsfonts} 
-
-%\usepackage[dvips]{graphicx} 
-
-%\usepackage{floatflt} 
-\usepackage{mathrsfs}
-%\usepackage{mathabx}
-%\usepackage{wasysym} 
-%\usepackage{showkeys}
-
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[font=small,labelfont=bf,tableposition=top]{caption}
-%\usepackage[font=footnotesize]{subcaption}
-\usepackage{multicol}
+\usepackage{times}
 
-\usepackage{float}
+\usepackage[font=small,labelfont=bf,tableposition=top]{caption}
 \usepackage{graphicx}
+\usepackage{natbib} 
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{color, soul}
 \usepackage{hyperref}
-\input{epsf}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{subfigure}
+\usepackage{stmaryrd}
+
+\renewcommand{\vec}[1]{\boldsymbol{{#1}}} 
+\newcommand{\duesoon}[1]{{\sethlcolor{green}\hl{#1}}}
+\usepackage{mathrsfs}
+
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{acknowledgement}[theorem]{Acknowledgement}
@@ -64,14 +43,7 @@
 \newtheorem{solution}[theorem]{Solution}
 \newtheorem{summary}[theorem]{Summary}
 \newenvironment{proof}[1][Proof]{\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
-%\newenvironment{homework}[1][Homework]{\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
-%\newtheorem{homework}[theorem]{Exercise}
-%\newtheorem{homework}[section]{Exercise}
-\newtheorem{homework}[subsubsection]{Exercise}
-%\newtheorem{remark}[section]{Remark}
-%\input{tcilatex}
 
-%FXG Commands
 \newtheorem{guess}{Definition}
 \newcommand{\comment}[1] {}
 \newcommand{\Norder} {N}
@@ -80,6 +52,7 @@
 \newcommand{\Nfaces} {N_{f}}
 \newcommand{\Nelements} {N_e}
 
+\newcommand{\eps}{\varepsilon}
 \newcommand{\Dweak}{\wt{D}}
 \newcommand{\diff}[2] {\frac{\partial #1}{\partial #2}}
 \newcommand{\dxx}[2] {\frac{\partial^2 #1}{\partial {#2}^2}}
@@ -88,7 +61,6 @@
 \newcommand{\lagrange}[1] {\frac{d #1}{dt}}
 \newcommand{\lebesgue}{\parallel I \parallel}
 \newcommand{\polysp}{\mathcal{P}_N}
-\newcommand{\vc}[1]{\mbox{\boldmath$#1$\unboldmath}}
 \newcommand{\laplacian}{\nabla^2}
 \newcommand{\divergence}{\nabla \cdot}
 \newcommand{\inte}{\int_{\mbox{\footnotesize ${\Omega_e}$}}}
@@ -129,20 +101,6 @@
 \def\Et{ \tilde{E} }
 \def\Ht{ \tilde{H} }
 \def\sdot{ \dot{\sigma} }
-%\newcommand{\innerd}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize \sf D}}}
-%\newcommand{\inners}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize
-%${\delta}$\sf D}}}
-%\newcommand{\innerbd}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize ${\delta}$\sf D}}}
-%\newcommand{\innerO}[2]{\left( #1,#2 \right)_{\Omega}}
-%\newcommand{\innerOs}[2]{\left( #1,#2 \right)_{\delta \Omega}}
-%\newcommand{\innerdk}[2]{\left( #1,#2 \right)_{\mbox{\footnotesize \sf D}^k}}
-%\newcommand{\intbdk}{\oint_{\mbox{\footnotesize ${\delta}$\sf D}^k}}
-%\newcommand{\ldnormk}[1]{\left\| #1 \right\|_{\mbox{\footnotesize \sf D}^k}}
-%\newcommand{\intdk}{\int_{\mbox{\footnotesize \sf D}^k}}
-%\newcommand{\epsD}{\varepsilon_{\mbox{\footnotesize \sf D}}}
-%\newcommand{\ldnormsob}[2]{\left\| #2 \right\|_{W^{#1}(\mbox{\footnotesize \sf D})}}
-%\newcommand{\lbdnorm}[1]{\left\| #1 \right\|_{\mbox{\footnotesize \sf $\delta$D}}}
-%\renewcommand{\thetable}{\Roman{table}}
 
 \newcommand{\fstar}{f^{(*)}}
 
@@ -157,18 +115,18 @@
 \newcommand{\polyPn}{\mathcal{P}_{N,0}}
 \newcommand{\transpose}{^{\mathcal{T}}}
 
-\newcommand{\qvector}{\vc{q}}
-\newcommand{\qvectorN}{\vc{q}_N^{(e)}}
-\newcommand{\Ftensor}{\vc{F}(\qvector)}
-\newcommand{\FtensorN}{\vc{F}\left( \qvectorN \right)}
-\newcommand{\FtensorStar}{\vc{F}\left( \qvector_N^{(e,k)} \right)}
+\newcommand{\qvector}{\vec{q}}
+\newcommand{\qvectorN}{\vec{q}_N^{(e)}}
+\newcommand{\Ftensor}{\vec{F}(\qvector)}
+\newcommand{\FtensorN}{\vec{F}\left( \qvectorN \right)}
+\newcommand{\FtensorStar}{\vec{F}\left( \qvector_N^{(e,k)} \right)}
 \newcommand{\Svector}{S(\qvector)}
 \newcommand{\SvectorN}{S \left( \qvectorN \right)}
-\newcommand{\qref}{\vc{q}_0}
-\newcommand{\qvectorb}{\vc{q}_b}
-\newcommand{\qtt}{\vc{q}_{tt}}
-\newcommand{\qhat}{\widehat{\vc{q}}}
-\newcommand{\qhatb}{\widehat{\vc{q}}_b}
+\newcommand{\qref}{\vec{q}_0}
+\newcommand{\qvectorb}{\vec{q}_b}
+\newcommand{\qtt}{\vec{q}_{tt}}
+\newcommand{\qhat}{\widehat{\vec{q}}}
+\newcommand{\qhatb}{\widehat{\vec{q}}_b}
 \newcommand{\qelem}{q^{(e)}}
 \newcommand{\rhoref}{\rho_0}
 \newcommand{\piref}{\pi_0}
@@ -195,39 +153,39 @@
 \newcommand{\pitt}{\pi_{tt}}
 \newcommand{\rhott}{\rho_{tt}}
 \newcommand{\Ett}{E_{tt}}
-\newcommand{\Utt}{\vc{U}_{tt}}
-\newcommand{\uvectt}{\vc{u}_{tt}}
+\newcommand{\Utt}{\vec{U}_{tt}}
+\newcommand{\uvectt}{\vec{u}_{tt}}
 \newcommand{\utt}{u_{tt}}
 \newcommand{\vtt}{v_{tt}}
 \newcommand{\wtt}{w_{tt}}
 \newcommand{\Ptt}{P_{tt}}
-\newcommand{\vecPtt}{\vc{P}_{tt}}
+\newcommand{\vecPtt}{\vec{P}_{tt}}
 \newcommand{\Thetatt}{\Theta_{tt}}
 \newcommand{\thetatt}{\theta_{tt}}
 %Projector Matrices
-\newcommand{\projmatrix}{\vc{\mathcal{P}}}
-\newcommand{\qmatrix}{\vc{\mathcal{Q}}}
-\newcommand{\pcmatrix}{\vc{\mathcal{P}}_C}
-\newcommand{\Cmatrix}{\left(\vc{\mathcal{C}}^{(e,f)}\right)\transpose}
-\newcommand{\Dmatrix}{\vc{D}^{(e)}}
-\newcommand{\Dwmatrix}{\wt{\vc{D}}^{(e)}}
+\newcommand{\projmatrix}{\vec{\mathcal{P}}}
+\newcommand{\qmatrix}{\vec{\mathcal{Q}}}
+\newcommand{\pcmatrix}{\vec{\mathcal{P}}_C}
+\newcommand{\Cmatrix}{\left(\vec{\mathcal{C}}^{(e,f)}\right)\transpose}
+\newcommand{\Dmatrix}{\vec{D}^{(e)}}
+\newcommand{\Dwmatrix}{\wt{\vec{D}}^{(e)}}
 \newcommand{\Mmatrix}{M^{(e)}}
-\newcommand{\Fmatrix}{\vc{F}^{(e,l)}}
+\newcommand{\Fmatrix}{\vec{F}^{(e,l)}}
 \newcommand{\Gmatrix}{\mathcal{G}}
 \newcommand{\Umatrix}{\mathcal{U}^{(e,f)}}
-\newcommand{\amatrix}{\vc{\mathcal{A}}}
-\newcommand{\rmatrix}{\vc{\mathcal{R}}}
+\newcommand{\amatrix}{\vec{\mathcal{A}}}
+\newcommand{\rmatrix}{\vec{\mathcal{R}}}
 %Vectors
-\newcommand{\nvector}{\wh{\vc{n}}_{\Gamma}}
-\newcommand{\nhat}{\wh{\vc{n}}}
-\newcommand{\ivector}{\wh{\vc{i}}}
-\newcommand{\jvector}{\wh{\vc{j}}}
-\newcommand{\kvector}{\wh{\vc{k}}}
-\newcommand{\rvector}{\wh{\vc{r}}}
-\newcommand{\svector}{\wh{\vc{s}}}
-\newcommand{\tvector}{\wh{\vc{t}}}
-\newcommand{\vvector}{\wh{\vc{v}}}
-\newcommand{\Qvector}{\vc{Q}}
+\newcommand{\nvector}{\wh{\vec{n}}_{\Gamma}}
+\newcommand{\nhat}{\wh{\vec{n}}}
+\newcommand{\ivector}{\wh{\vec{i}}}
+\newcommand{\jvector}{\wh{\vec{j}}}
+\newcommand{\kvector}{\wh{\vec{k}}}
+\newcommand{\rvector}{\wh{\vec{r}}}
+\newcommand{\svector}{\wh{\vec{s}}}
+\newcommand{\tvector}{\wh{\vec{t}}}
+\newcommand{\vvector}{\wh{\vec{v}}}
+\newcommand{\Qvector}{\vec{Q}}
 %Vectors
 \newcommand{\ur}{{u}^{(r)}}
 \newcommand{\us}{{u}^{(s)}}
@@ -239,8 +197,8 @@
 \newcommand{\ushat}{\widehat{u}^{(s)}}
 \newcommand{\uthat}{\widehat{u}^{(t)}}
 %Other Operators
-\newcommand{\grad}{\vc{\nabla}}
-\newcommand{\Grad}{\vc{\nabla}}
+\newcommand{\grad}{\vec{\nabla}}
+\newcommand{\Grad}{\vec{\nabla}}
 \newcommand{\Dskew}{\mathcal{D}}
 
 \def\bepsilon{\mbox{\boldmath $\epsilon $}}
@@ -276,5 +234,5 @@
 \newcommand{\DDmatrix}{\wt{D}^{(e)}}
 \newcommand{\SSvector}{\mathcal{S}(q)}
 \newcommand{\cghdg}{cg\underline{\hspace{0.15cm}}to\underline{\hspace{0.15cm}}hdg}
-\newcommand{\ul}{\underline{\hspace{0.15cm}}}
+%\newcommand{\ul}{\underline{\hspace{0.15cm}}}
 \newcommand{\RRmatrix}{\mathcal{R}}

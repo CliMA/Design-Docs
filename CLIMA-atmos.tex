@@ -1,86 +1,257 @@
+\documentclass{article}
 
-\documentclass[12pt]{article}
+\include{CLIMA_Macros}
 
-%\usepackage[pdf]{pstricks}
-%\usepackage[on]{auto-pst-pdf}
-
-\topmargin 0in
-\oddsidemargin 0.25in
-\evensidemargin 0.25in
-\textwidth 6.0in
-\textheight 9.0in
-
-\include{FXG_Macros}
+\title{Design Document for the CLIMA Atmosphere Model} 
+\author{ }
 
 \begin{document}
-%\frontmatter
-\title{ \textcolor{red}{Software Design Document for the Climate Machine Atmospheric Models} }
-\author{ }
-%\author{Francis X. Giraldo \\
-%Department of Applied Mathematics \\
-%Naval Postgraduate School \\
-%Monterey, CA 93943-5216}
 
 \maketitle
 \tableofcontents
-%\listoffigures
-%\listoftables
-%\listofalgorithms
-
-%\mainmatter
-
-%\part{Introduction}
-
-%Background and Motivation
 
 \section{Introduction}
 \label{sec:introduction}
 
-This document highlights the design specifications for the atmospheric modeling component which is a part of the Climate Machine (CLIMA) project; this atmospheric modeling component is referred to as Clima-atmos and is comprised of the following two non-hydrostatic atmospheric models  
-\begin{enumerate}
-\item a Large-Eddy Simulation (LES) model and 
-\item a global model.
-\end{enumerate}
-This document outlines the details of these two models in terms of 
-\begin{enumerate}
-\item governing equations  used for both models
-\item numerical discretization methods
-\item programming language and continuous integration approach.
-\end{enumerate}
-
-% !TEX root = main.tex
+This document highlights the design specifications for the atmosphere model that is part of the Climate Machine (CLIMA). We refer to this atmosphere model as CLIMA-atmos. The model is designed to run both in a global configuration and in a large-eddy simulation (LES) configuration from the same code base.  
 
 \section{Governing Equations}
 \label{sec:governing_equations}
 
-The governing equations of motion for the nonhydrostatic atmospheric models are
+\subsection{Working Fluid and Equation of State}
 
-\begin{subequations}
-\label{eq:governing_equations}
+The working fluid of the atmosphere model is moist, potentially cloudy air, considered to be an ideal mixture of dry air, water vapor, and condensed water (liquid and ice) suspended in clouds. Dry air and water vapor are taken to be ideal gases. The specific volume of the cloud condensate is neglected relative to that of the gas phases (it is a  factor $10^{3}$ less than that of the gas phases). All phases are assumed to have the same temperature and move with the working fluid. However, although the suspended cloud condensates are moving with the fluid, they need not be in thermodynamic equilibrium with the other fluid constituents; out-of-equilibrium phases such as supercooled liquid can exist. Falling condensate (precipitation) is not considered part of the working fluid and is treated separately.
+
+The density of the moist air is denoted by $\rho$. We use the following notation for the mass fractions of the moist air mixture (mass of a constituent divided by the total mass of the working fluid):
+\begin{itemize}
+\item $q_d$: dry air mass fraction,
+\item $q_v$: water vapor specific humidity,
+\item $q_l$: liquid water specific humidity,
+\item $q_i$: ice specific humidity,
+\item $q_c = q_l + q_i$: condensate specific humidity,
+\item $q_t = q_v + q_c$: total specific humidity.
+\end{itemize}
+Because this enumerates all constituents of the working fluid, we have $q_t + q_d = 1$. In Earth's atmosphere, the water vapor specific humidity $q_v$ generally dominates the total specific humidity $q_t$ and is usually $\order(10^{-2})$ or smaller; the condensate specific humidity is typically $\order(10^{-4})$. Hence, water is a trace constituent of the atmosphere, and only a small fraction of atmospheric water is in condensed phases. 
+
+The pressure $p$ of the working fluid is the sum of the partial pressures of dry air and water vapor, both taken to be ideal gases. Neglecting the volume of the condensed phases (but not their masses), this gives $p = \rho (R_d q_d + R_v q_v) T$, where $R_d$ is the specific gas constant of dry air, and $R_v$ is the specific gas constant of water vapor. Since $q_d = 1-q_t$ and $q_v = q_t - q_c$, this can also be written as
 \begin{equation}
-\diff{\rho}{t} + \divergence \vc{U} = 0
-\label{eq:governing_equations/mass}
+    p = \rho R_m T,
+\label{eq:eos}
 \end{equation}
+where
 \begin{equation}
-\diff{\vc{U}}{t} + \divergence \left( \frac{ \vc{U} \otimes \vc{U} }{\rho} + P \vc{I}_3 \right) = \divergence \left( \mu \grad \vc{U} \right) - f \vc{r} \times \vc{U} - \rho g \vc{r}
+    R_m = R_d \left[1 + (\eps_{dv}-1)q_t - \eps_{dv} q_c\right]
+\label{eq:R_m}
+\end{equation}
+is the specific gas ``constant'' of moist air (which is not a constant), and $\eps_{dv} = R_v/R_d$ is the ratio of the molar masses of dry air and water vapor ($\eps_{dv} \approx 1.61$). Equations~\eqref{eq:eos} and \eqref{eq:R_m} constitute the equation of state of the working fluid.
+
+\subsection{Momentum Balance}
+
+The vector invariant form of the momentum equation in a coordinate system rotating with constant angular velocity $\vec{\Omega}$ is 
+\begin{equation}
+\diff{\vec{U}}{t} + \divergence \left( \frac{\vec{U} \otimes \vec{U} }{\rho} + p \vec{I}_3\right) = - 2\vec{\Omega} \times \vec{U}  - \rho \grad\Phi - \divergence (\rho\vec{\tau}) - \divergence\left( \vec{U} \otimes \vec{d}_t \right)
 \label{eq:governing_equations/momentum}
 \end{equation}
+where $\vec{U}=\rho \vec{u}$, with three-dimensional velocity vector $\vec{u}$, understood to be the velocity of the barycenter of moist air elements; $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS turbulent stress tensor (momentum flux); and $\vec{d}_t =\vec{d}_v + \vec{d}_l + \vec{d}_i$ is a diffusive and/or SGS turbulent flux of total specific humidity, consisting of fluxes of water vapor, cloud liquid, and cloud ice \citep{Romps08a}. Mechanical interactions between falling precipitation and the fluid, giving rise to frictional drag on the fluid in shear zones across falling hydrometeors \citep{Pauluis00}, are taken to be included in the stress tensor $\vec{\tau}$. Momentum transport by precipitating hydrometeors is neglected.
+
+These are the general, deep-atmosphere equations for a moist, nonhydrostatic atmosphere, without the thin-shell approximation traditionally made in climate models. (The thin-shell approximation assumes that in the formulation of the angular momentum, the distance from any point in the atmosphere to the barycenter of the planet is a constant and equal to the mean planetary radius.)
+
+\subsection{Mass Balance}
+
+Moist air mass satisfies the conservation equation
 \begin{equation}
-\diff{\Theta}{t} + \divergence \left( \frac{ \Theta  \vc{U} }{\rho} \right)  = \divergence \left( \mu \grad \vc{\Theta} \right)
-\label{eq:governing_equations/theta}
+\diff{\rho}{t} + \divergence \vec{U} = - \rho C(q_t \rightarrow q_p) -\divergence (\rho \vec{d}_t).
+\label{eq:governing_equations/mass}
 \end{equation}
-\end{subequations}
-where $\vc{U}=\rho \vc{u}$, $\vc{u}=\left(u,v,w\right)\transpose$, and $\Theta=\rho \theta$. In addition, in Eq.\eqref{eq:governing_equations/momentum} $\vc{I}_3$ is the rank-3 identity matrix, and the pressure is defined as follows:
-\[
-P=P_A \left(  \frac{R \Theta }{P_A}  \right)^{\gamma}
-\]
-where $R$ is the gas constant, $P_A$ is the atmospheric pressure, $\gamma=\frac{c_p}{c_v}$, $f$ is the Coriolis function, $\vc{r}$ is the radial vector, and $g$ is the gravitational constant.
+Moist air mass is not exactly conserved where precipitation forms, sublimates, or evaporates, or where water diffuses \citep{Bott08a}. The first term on the right-hand side, $C(q_t \rightarrow q_p)$, represents the conversion of suspended moisture (vapor, liquid, and ice) into precipitation, which represents a mass loss to elements of the working fluid when positive. This term is generally provided by a microphysics parameterization (e.g., a Kessler scheme). The second term, $-\divergence (\rho \vec{d}_t)$, represents the convergence of diffusive or turbulent SGS fluxes of water. 
 
-In Eqs.\ \eqref{eq:governing_equations/momentum} and \eqref{eq:governing_equations/theta} the term $\mu$ represents the viscosity coefficient  computed as follows: for the LES model, it is computed from the specific turbulence closure used (e.g., Lilly-Smagorinsky or another less dissipative model) and for the global model it is computed as the minimum artificial viscosity required to avoid Gibbs phenomena.
+The mass sources/sinks usually are about two orders of magnitude smaller than the other terms in the mass balance. However, there is evidence that their effect is important, e.g., in strongly precipitating tropical cyclones \citep{Qiu93a,Lackmann04a}. They are zeroth-order important in some other planetary atmospheres, in which the condensable species is a major constituent of the atmosphere, such as CO\textsubscript{2} on Mars \cite[e.g.,][]{Soto15a}.
 
-Eqs.\ \eqref{eq:governing_equations} are written in Cartesian coordinates and are equally applicable to both the LES model as well as the global model.  The difference between the LES and global models is how the buoyancy term (last term on right-hand-side of Eq.\  \eqref{eq:governing_equations/momentum}) is defined.  For this reason, we define the buoyancy term with respect to the radial component which is $\vc{r}=(0,0,1)$ in the LES model and $\vc{r}=\frac{(x,y,z)}{|| \vc{x} ||}$ on the sphere, where $(x,y,z)$ are the coordinates of each point on the globe.
+\subsection{Moisture Balances}
 
-% !TEX root = main.tex
+Total water satisfies the conservation equation
+\begin{equation}
+\diff{(\rho q_t)}{t} + \divergence (q_t \vec{U}) = - \rho C(q_t \rightarrow q_p) - \divergence (\rho \vec{d}_t).   
+\label{eq:governing_equations/moisture}
+\end{equation}
+The right-hand side represents sources and sinks of total water in the working fluid, with evaporation or sublimation of precipitation and formation of precipitation contributing to $C(q_t \rightarrow q_p)$, and diffusive and SGS turbulent fluxes of moisture captured by $\vec{d}_t$. 
+
+If the suspended condensates (cloud liquid and ice) are in local thermodynamic equilibrium with the gas phase, Gibbs' phase rule implies that their specific humidities, $q_l$ and $q_i$, can be determined by ``saturation adjustment'' from the three thermodynamic state variables temperature $T$, pressure $p$, and total water specific humidity $q_t$. However, to enable the explicit modeling of out-of-equilibrium phases (e.g., supersaturated water vapor in the upper troposphere or supercooled liquid water in mixed-phase clouds), we explicitly model the specific humidities of suspended liquid ($q_l$) and ice ($q_i)$. They satisfy conservation equations of the form
+\begin{equation}
+\diff{(\rho q_k)}{t} + \divergence (q_k \vec{U}) = \rho S_k  -\divergence (\rho \vec{d}_{k}),   
+\label{eq:governing_equations/condensate}
+\end{equation}
+where $k \in \{l, i\}$,
+\begin{align}
+    S_l & = C(q_i \rightarrow q_l) + C(q_v \rightarrow q_l) + C(q_p \rightarrow q_l), \\
+    S_i & = C(q_l \rightarrow q_i) + C(q_v \rightarrow q_i) + C(q_p \rightarrow q_i)
+\end{align}
+represent sources of cloud liquid and ice, and $\vec{d}_{k}$ represents diffusive or SGS turbulent fluxes of phase $k$. The terms $C(q_j \rightarrow q_{l/i}) = - C(q_{l/i} \rightarrow q_j)$ represent the conversion of species $j$ ($j \in \{l, i, v, p\}$) to cloud liquid $q_l$ or cloud ice $q_i$. The conversion terms include processes such as evaporation or sublimation of cloud condensate, melting of cloud ice, or precipitation formation, provided by microphysics parameterizations.
+ 
+\subsection{Energy Balance}
+
+To close the equations of motion for the working fluid, we require a thermodynamic or energy balance equation. Various choices are possible, a temperature (internal energy or enthalpy) equation being most common in climate models. We instead use the total specific energy $E^\mathrm{tot}$ to close the system, as in \citet{Romps08a}, a quantity that is conserved in reversible moist processes such as phase transitions of water. 
+
+Total energy satisfies the conservation law \citep{Romps08a}
+\begin{multline}
+ \diff{(\rho E^{\mathrm{tot}})}{t} + \divergence \left[\vec{U} \left(E^{\mathrm{tot}} + \frac{p}{\rho}\right) \right] 
+ = -\divergence (\rho \vec{F}_R)   \\
+  - \divergence (\vec{U} \cdot \tau) - \divergence (\rho \vec{J}) - \divergence (\rho \vec{D}),
+ \label{eq:energy_balance}
+\end{multline}
+\hl{need to add precipitation sink term in equation} where the total specific energy is the sum $E^\mathrm{tot} = (1-q_t) E_d^{\mathrm{tot}}  + q_v E_v^{\mathrm{tot}} + q_l E_l^{\mathrm{tot}} + q_i E_i^{\mathrm{tot}}$ of the total specific energies of the moist air constituents (dry air, water vapor, cloud liquid, cloud ice),  each assumed to be moving with the same velocity and having the same temperature: 
+\begin{align}
+E_d^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vd} (T - T_0) + \Phi \\
+E_v^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vv} (T - T_0) + \Phi + I_{v,0}\\
+E_l^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vl} (T - T_0) + \Phi\\
+E_i^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vv} (T - T_0) + \Phi - I_{i,0}.
+\end{align}
+The total specific energy of each constituent consists of the kinetic energy per unit mass, specific internal energy, and gravitational potential energy per unit mass. Here, $c_{v\cdot}$ are the isochoric specific heat capacities of the constituents, taken to be constant;  $T_0$ is a reference temperature, $I_{v,0}$ is the difference in specific internal energy between vapor and liquid at $T_0$, and $I_{i,0}$ is the difference in specific internal energy between ice and liquid at $T_0$. After summation over the constituents, the total specific energy of moist air can be written as
+\begin{equation}
+     E^{\mathrm{tot}} = \frac{1}{2} \| \vec{u} \|^2 + c_{vm} (T - T_0) + \Phi + q_v I_{v,0} - q_i I_{i,0},
+     \label{eq:total_energy_def}
+\end{equation}
+where $c_{vm}= (1-q_t) c_{vd} + q_v c_{vv} + q_l c_{vl} + q_i c_{vi}$ is the isochoric specific heat capacity of moist air. The flux $\vec{F}_R$ is the radiative energy flux per unit mass, and $\vec{J}$ is the conductive or SGS turbulent flux of sensible heat per unit mass. The flux 
+\begin{equation}
+\vec{D} = (E_v^{\mathrm{tot}} + R_v T) \vec{d}_v + E_l^{\mathrm{tot}} \vec{d}_l +  E_i^{\mathrm{tot}} \vec{d}_i
+\end{equation}
+is the total specific energy flux (plus the term $p_v/\rho = R_v T$ involving the partial pressure of water vapor $p_v$ for the gas phase) owing to the diffusive or SGS turbulent flux of water.  
+
+The temperature can be recovered from the definition of total energy \eqref{eq:total_energy_def} as 
+\begin{equation}
+    T = T_0 + \frac{E^{\mathrm{tot}} - 0.5 \| \vec{u} \|^2 - \Phi - q_v I_{v,0} + q_i I_{i,0}}{c_{vm}},
+    \label{eq:temperature}
+\end{equation}
+and the pressure $p$ can then be computed from the ideal gas law \eqref{eq:eos}. The equations \eqref{eq:eos}--\eqref{eq:temperature} form the governing equations of the moist atmosphere.
+
+Note that latent heating as a result of phase changes of water redistributes energy among terms in the definition of total energy, but it does not appear as a source term on the right-hand side of the energy balance \eqref{eq:energy_balance}. The internal energy terms in the total energy of Earth's atmosphere are typically about two orders of magnitude larger than the kinetic energy terms: Because the speed of sound in an ideal gas is $c_s = \sqrt{(c_p/c_v) R T}$, the internal energy is of order $c_s^2 \approx (330~\mathrm{m~s^{-1}})^2$, compared with the kinetic energy $0.5 \|\vec{u}\|^2 \lesssim 0.5(40~\mathrm{m~s^{-1}})^2$.
+
+The thermodynamic quantities appearing here are discussed further in section~\ref{s:thermodynamics}.
+
+\subsection{Precipitation}
+
+We  consider $N_p$ species of precipitation (e.g., rain, snow, graupel), with specific humidities $q_{p,i}$ ($i=1,\dots,N_p$). Precipitation species $i$ falls with a fall velocity $w_i$ (approximately the terminal velocity of falling hydrometeors), which is defined to be positive downward. With the upward vertical unit vector $\vec{k}$, the conservation equation for the precipitation species $i$ then becomes
+\begin{equation}
+\diff{(\rho q_{p,i})}{t} + \divergence \left[q_{p,i} (\vec{U} - \rho w_i \vec{k}) \right] = \rho \left[C(q_t \rightarrow q_{p,i}) + C(q_{p,k} \rightarrow q_{p,i}) \right],   
+\label{eq:precip}
+\end{equation}
+where $C(q_t \rightarrow q_{p,i})$ represents the conversion of suspended total water to precipitation species $i$, and $C(q_{p,k} \rightarrow q_{p,i}) = -C(q_{p,i} \rightarrow q_{p,k})$ represents the conversion of precipitation species $k$ to $i$.
+
+\subsection{Tracers}
+
+We also allow $N_\chi$ passive tracers $\chi_i$ ($i=1, \dots, N_\chi$), each satisfying conservation laws
+\begin{equation}
+\diff{(\rho \chi_i)}{t} + \divergence \left(\chi_i \vec{U} \right) = \rho S_{\chi_i},   
+\label{eq:tracers}
+\end{equation}
+with sources/sinks $S_{\chi_i}$.
+ 
+\subsection{Boundary Conditions}
+
+\paragraph{Top.} At the top of the atmosphere, we require a boundary that absorbs upward propagating waves. This is commonly accomplished by the introduction of sponge layers at a rigid model lid. However, sponge layers often lead to non-conservation of angular momentum and imply unphysical zonal-mean torques exerted by the atmosphere on outer space. These can lead to artifacts and biases in the circulation of the model's upper atmosphere \citep[e.g.,][]{Shepherd96a}.
+
+\hl{Frank: Your thoughts here would be appreciated. How do we formulate the upper boundary, ideally so that the atmosphere model can be easily made into an ocean model (i.e., with a free surface)? In usual discretizations, the choice of upper boundary affects energy conservation} \citep[e.g.,][]{Staniforth03a}, \hl{but probably that disappears as a problem when energy is a prognostic variable}.
+
+\paragraph{Bottom.} At the bottom boundary, Monin-Obukhov similarity theory is typically used for modeling the exchange of momentum, heat, water vapor, and tracers between the surface and the lowest model level. Care must be taken to formulate this accurately for finite-volume discretizations  \citep{Nishizawa18a}.
+
+\paragraph{Lateral.} Lateral boundary conditions do not arise on the sphere. However, several forms of lateral boundary conditions arise in LES configurations: We want to be able to configure the model (i) with horizontally doubly periodic boundary conditions, (ii) in a re-entrant channel configuration with impenetrable walls on two sides, and (iii) with absorbing horizontal boundary conditions (e.g., relaxation to a global-model state on a coarse grid). 
+
+\subsection{Coordinate Systems}
+
+spherical coordinate version? \citep{Staniforth03a}
+
+\subsection{Model Configurations.} The model will need to be capable of running in a global climate model configuration and in a regional LES configuration. Ideally, it would solve the same equations of motion in either configuration and at any resolution. This would require SGS process models in the global model that are scale-aware and reduce to LES SGS models (or no SGS models for implicit LES) at high resolution. This may not be feasible to achieve immediately. Thus, we will need easy ways to configure SGS models for global and LES configurations of the model. 
+
+The global model needs to be able to spin-off high-resolution LES (with around $10^6$ degrees of freedom each) on demand, at locations that need to be addressable from the DA/ML layer of CLIMA. Parameterizations in the global will learn from these high-resolution simulations. 
+
+\section{Moist Thermodynamics}\label{s:thermodynamics}
+
+The thermodynamics of moist air is often subject to empirical approximations, which usually are intransparent, internally inconsistent, and/or inconsistent across model components. For example, microphysical process models often use different approximations for thermodynamic quantities such as saturation vapor pressures than the dynamical core. The often bewildering array of approximations makes it difficult to achieve global conservation, e.g., of energy, and it complicates the use of models for other planetary atmospheres, with different thermodynamic parameters. 
+
+Here we employ one consistent set of thermodynamic approximations for all model components. These result in straightforward, easily adaptable, and relatively accurate expressions for thermodynamic quantities, including closed-form expressions of saturation vapor pressures in terms of thermodynamic parameters. The key to thermodynamic consistency at reasonable accuracy is to take the specific heat capacities of the constituents of moist air (dry air, water vapor, liquid water, and ice) to be constant. All other thermodynamic quantities can then be derived \citep[cf.][]{Romps08a}. 
+
+\subsection{Heat Capacities}\label{s:heat_capacities}
+
+The isochoric specific heat capacities of the constituents of moist air are:
+\begin{enumerate}
+    \item $c_{vd}$: Isochoric specific heat capacity of dry air;
+    \item $c_{vv}$: Isochoric specific heat capacity of water vapor;
+    \item $c_{vl}$: Isochoric specific heat capacity of liquid water;
+    \item $c_{vi}$: Isochoric specific heat capacity of ice.
+\end{enumerate}
+We take these isochoric specific heat capacities to be constants. This is an approximation because they depend weakly on temperature. But for atmospheric conditions, the error of approximating them as constant is less than 1\% for dry air, the main constituent of moist air, and at most a few percent for the water phases.
+
+The difference between the isochoric and isobaric specific heat capacities is proportional to the specific volume. Consistent with taking the specific volume of liquid water and ice to be zero, we take the isochoric and isobaric specific heat capacities of the condensed phases to be equal. The isobaric specific heat capacities of the constituents then are:
+\begin{enumerate}
+    \item $c_{pd} = c_{vd} + R_d$: Isobaric specific heat capacity of dry air;
+    \item $c_{pv} = c_{vv} + R_v$: Isobaric specific heat capacity of water vapor;
+    \item $c_{pl} = c_{vl}$: Isobaric specific heat capacity of liquid water;
+    \item $c_{pi} = c_{pi}$: Isobaric specific heat capacity of ice.
+\end{enumerate}
+
+The corresponding specific heat capacities of moist air are the weighted sum of those of the constituents:
+\begin{align}
+    c_{\cdot m} & = (1-q_t) c_{\cdot d} + q_v c_{\cdot v} + q_l c_{\cdot l} + q_i c_{\cdot i}\\
+    & = c_{\cdot d} + (c_{\cdot v} - c_{\cdot d})q_t + (c_{\cdot l} - c_{\cdot v})q_l + (c_{\cdot i} - c_{\cdot v})q_i
+\end{align}
+where $\cdot$ stands for $v$ or $p$ and we have used $q_v = q_t -q_l - q_i$.
+
+\subsection{Latent Heats}
+
+Kirchoff's relation states that the specific latent enthalpy (heat) $L$ of a phase change depends on temperature $T$ through
+\begin{equation}
+    \frac{dL}{dT} = \Delta c_p,
+\end{equation}
+where $\Delta c_p$ is the difference in isobaric specific heat capacities between the phase with the higher specific volume and that with the lower specific volume. For the constant isobaric specific heat capacities we assume, this can be integrated to give
+\begin{equation}
+    L = L_0 + \Delta c_p (T-T_0),
+    \label{eq:LH_temperature}
+\end{equation}
+where $T_0$ is a reference temperature and $L_0$ is the latent heat at $T_0$. 
+
+For the phase transitions of water, this implies specifically:
+\begin{enumerate}
+    \item $L_v = L_{v,0} + (c_{pv} - c_{pl}) (T - T_0)$: Latent heat of vaporization;
+    \item $L_f = L_{f,0} + (c_{pl} - c_{pi}) (T - T_0)$: Latent heat of fusion;
+    \item $L_s = L_{s,0} + (c_{pv} - c_{pi}) (T - T_0)$: Latent heat of sublimation.
+\end{enumerate}
+
+\subsection{Reference Internal Energies}
+
+The total specific energy \eqref{eq:total_energy_def} requires the difference in specific internal energy between vapor and liquid and between liquid and ice, both at the reference temperature $T_0$. 
+
+The specific latent heats $L_{v,0}$, $L_{f,0}$, and $L_{s,0}$ give the enthalpy difference between the phases at $T_0$. The specific internal energy differences are obtained by subtracting the ``$pV$'' term, which is the $p_\cdot/\rho_\cdot$ for the relevant partial pressure $p_\cdot$ and specific volume $1/\rho_\cdot$. This gives
+\begin{align}
+     I_{v,0} &= L_{v, 0} - R_v T_0,\\
+     I_{i,0} &= L_{f, 0},
+\end{align}
+where we again neglected the specific volume of the condensed phases. 
+   
+\subsection{Saturation Vapor Pressure}
+
+The Clausius-Clapeyron relation describes how the saturation vapor pressure $p_v^*$ of an ideal gas over a plane surface of condensate depends on temperature:
+\begin{equation}
+    \frac{d \log(p_v^*)}{dT} = \frac{L}{R_v T^2}.
+\end{equation}
+Here, $L$ is the latent heat of the phase transition, which may be $L_v$ for the saturation vapor pressure over liquid, or $L_s$ for the saturation vapor pressure over ice. Substituting the linear relation \eqref{eq:LH_temperature} between latent heat and temperature, and taking $p_\mathrm{tr}$ to be the vapor pressure at the triple point (by definition equal to the saturation vapor pressures both over liquid and ice), the Clausius-Clapeyron relation can be integrated to give a closed-form expression for the vapor pressure that is consistent with our thermodynamic assumptions:
+\begin{equation}
+    p_v^* = p_{\mathrm{tr}} \left( \frac{T}{T_{\mathrm{tr}}} \right)^{\frac{\Delta c_p}{R_v}}
+        \exp \left[ \frac{L_0 - \Delta c_p T_0}{R_v} 
+        \left( \frac{1}{T_{\mathrm{tr}}} - \frac{1}{T} \right) \right].
+\end{equation}
+With $L_0 = L_{v,0}$ or $L_0 = L_{s,0}$ and the corresponding heat capacity difference $\Delta c_p$, this gives saturation vapor pressures over liquid or ice that are accurate within 3\% for temperatures between 200 and 330~K (with accuracy better than 1\% for typical near-surface conditions).
+
+\subsection{Saturation Specific Humidity}
+
+From the saturation vapor pressure $p_v^*$, the saturation specific humidity can be computed using the ideal gas law, giving
+\begin{equation}
+     q_v^* = \frac{R_m}{R_v} \frac{p_v^*}{p}.
+\end{equation}
+Using that we have $R_m = (1-q_t) R_d + q_v^* R_v$ at saturation, the saturation specific humidity becomes 
+\begin{equation}
+    q_v^* = \frac{1}{\eps_{dv}} \frac{(1 - q_t)}{p - p_v^*} p_v^*.
+\end{equation}
+This expression treats the total mass density of water, $q_t \rho$, and by implication that of dry air, $(1-q_t)\rho$, as fixed, independent variables.
 
 \section{Numerical Methods}
 \label{sec:numerical_methods}
@@ -88,13 +259,13 @@ Eqs.\ \eqref{eq:governing_equations} are written in Cartesian coordinates and ar
 In order to describe the numerical methods used to solve the governing equations numerically, let us write the equations in the following compact form
 
 \[
-\diff{\vc{q}}{t} = S(\vc{q})
+\diff{\vec{q}}{t} = S(\vec{q})
 \]
-where $\vc{q}$
+where $\vec{q}$
 \[
-\vc{q}=\left( \begin{array}{c}
+\vec{q}=\left( \begin{array}{c}
 \rho \\
-\vc{U} \\
+\vec{U} \\
 \Theta
 \end{array}
 \right)
@@ -102,22 +273,22 @@ where $\vc{q}$
  is the solution vector, 
  and 
  \[
- S(\vc{q}) = - \nabla \cdot \vc{F} - \mathcal{S}(\vc{q})
+ S(\vec{q}) = - \nabla \cdot \vec{F} - \mathcal{S}(\vec{q})
  \]
  is the right-hand-side containing the spatial operators where 
  \[
- \vc{F}=\left( \begin{array}{c}
- \vc{U} \\
- \frac{\vc{U} \otimes \vc{U}}{\rho} + P \vc{I}_3 - \left( \mu \grad \vc{U} \right) \\
-\frac{\Theta \vc{U}}{\rho} - \left( \mu \grad \Theta \right)
+ \vec{F}=\left( \begin{array}{c}
+ \vec{U} \\
+ \frac{\vec{U} \otimes \vec{U}}{\rho} + P \vec{I}_3 - \left( \mu \grad \vec{U} \right) \\
+\frac{\Theta \vec{U}}{\rho} - \left( \mu \grad \Theta \right)
 \end{array}
 \right)
  \]
  is the flux tensor and
  \[
- \mathcal{S}(\vc{q})=\left( \begin{array}{c}
+ \mathcal{S}(\vec{q})=\left( \begin{array}{c}
  0 \\
- f \vc{r} \times \vc{U} + \rho g \vc{r} \\
+ f \vec{r} \times \vec{U} + \rho g \vec{r} \\
 0 
 \end{array}
 \right)
@@ -127,7 +298,7 @@ contains the source terms.
 \subsection{Spatial Discretization Methods}
 
 \subsubsection{Overview}
-For the spatial discretization methods, we propose to use variants of the discontinuous Galerkin (dG) method with a tensor-product bases (see, e.g., \cite{giraldo:2008a, abdi:2016}. That is, we propose to use hexahedral (cube) elements in three dimensions.  The nodal tensor-product dG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. 
+For the spatial discretization methods, we propose to use variants of the discontinuous Galerkin (dG) method with a tensor-product bases (see, e.g., \citet{giraldo:2008a, abdi:2016}). That is, we propose to use hexahedral (cube) elements in three dimensions.  The nodal tensor-product dG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. 
 
 For the LES model, we will also consider fully three-dimensional dG methods. For the global model, it may be beneficial to consider a hybrid approach whereby the horizontal direction (along the spherical manifold) uses dG while a more standard method (open for discussion) may be used in the vertical.  Along certain directions, it may be advantageous to use uniform grid resolution in order to take advantage of larger time-steps (e.g., in using uniform grids for the global or LES model along the vertical direction would allow for some of the grid aspect ratio stiffness to be reduced).  \textbf{FXG: Need references}.
 
@@ -146,15 +317,15 @@ For the LES model, we will also consider fully three-dimensional dG methods. For
 
 To construct discrete approximations of continuous differential operators (e.g., gradient, divergence, or curl) with the DG method, we first must represent the solution vector (call it $q$) using a polynomial representation.  That is, we represent the solution vector inside of each element $\Omega_e$ as follows
 \be
-q^{(e)}_N(\vc{x},t) = \sum_{i=1}^{M_N} \psi_i(\vc{x}) q^{(e)}_i(t)
+q^{(e)}_N(\vec{x},t) = \sum_{i=1}^{M_N} \psi_i(\vec{x}) q^{(e)}_i(t)
 \label{eq:spatial_discretization/dg_method}
 \ee
-where $\psi(\vc{x})$ are the known basis functions and $q^{(e)}_i(t)$ is the solution at each degree of freedom which will be time-dependent.
+where $\psi(\vec{x})$ are the known basis functions and $q^{(e)}_i(t)$ is the solution at each degree of freedom which will be time-dependent.
 The superscript $(e)$ represents the specific element we are working with, $i=1,\ldots,M_N$ represents degrees of freedom inside each element $\Omega_e$.  Figure \ref{fig:spatial_discretization/dg_domain} shows a sample global domain whereby we then identify one specific element $\Omega_e$ to work with.  We then map the element from its physical space to the reference element presented in Fig.\ \ref{fig:spatial_discretization/dg_element}; in this particular example $M_N=(N+1)^2$ where $N=3$ which means we are using 3rd degree polynomials in each direction (yielding 4th degree accuracy).  In general, $N$ need not be constant in each direction and so we can also write $M_N=(N_{\xi}+1)(N_{\eta}+1)$ in two dimensions or $M_N=(N_{\xi}+1)(N_{\eta}+1)(N_{\zeta}+1)$ in three dimensions, where $\xi$ is along the horizontal direction, $\eta$ along the vertical, and $\zeta$ coming out of the page. 
 
 The attraction of using basis functions $\psi$ to represent the solution $q$ is that computing the gradient of $q$ now only requires applying the gradient operator directly to Eq.\ \eqref{eq:spatial_discretization/dg_method} which yields
 \be
-\nabla q^{(e)}_N(\vc{x},t) = \sum_{i=1}^{M_N} \nabla \psi_i(\vc{x}) q^{(e)}_i(t)
+\nabla q^{(e)}_N(\vec{x},t) = \sum_{i=1}^{M_N} \nabla \psi_i(\vec{x}) q^{(e)}_i(t)
 \label{eq:spatial_discretization/dg_method/gradient}
 \ee
 where we are able to construct $\grad \psi$ \emph{a priori} since we have chose $\psi$ and these basis functions do not change in time (unless p-refinement is used which we will not consider here).
@@ -162,31 +333,31 @@ where we are able to construct $\grad \psi$ \emph{a priori} since we have chose 
 \subsubsection{DG Representation of Conservation Laws}
 To describe the DG method, let us use it to represent the divergence operator for the conservation law
 \be
-\diff{q}{t} + \nabla \cdot \vc{f} = 0
+\diff{q}{t} + \nabla \cdot \vec{f} = 0
 \label{eq:spatial_discretization/DG_divergence/conservation_law}
 \ee
-where, in two dimensions, $f$ has components $\vc{f}=f_x \wh{\vc{i}} + f_y \wh{\vc{j}}$.
+where, in two dimensions, $f$ has components $\vec{f}=f_x \wh{\vec{i}} + f_y \wh{\vec{j}}$.
 To construct a discrete approximation to Eq.\ \eqref{eq:spatial_discretization/DG_divergence/conservation_law} we first multiply by a test function $\psi_i$ and integrate within each element $\Omega_e$ as follows
 \be
-\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \inte \psi_i \nabla \cdot \vc{f}^{(e)}_N d\Omega_e= 0.
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \inte \psi_i \nabla \cdot \vec{f}^{(e)}_N d\Omega_e= 0.
 \label{eq:spatial_discretization/DG_divergence/conservation_law/discrete}
 \ee
 Using the product rule, the second term can be written as follows
 \be
-\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \inte \nabla \cdot \left( \psi_i \vc{f}^{(e)}_N \right) d\Omega_e - \inte \nabla \psi_i \cdot \vc{f}^{(e)}_N d\Omega_e= 0
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \inte \nabla \cdot \left( \psi_i \vec{f}^{(e)}_N \right) d\Omega_e - \inte \nabla \psi_i \cdot \vec{f}^{(e)}_N d\Omega_e= 0
 \label{eq:spatial_discretization/DG_divergence/conservation_law/discrete2}
 \ee
 and invoking the divergence theorem for the second term yields
 \be
-\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vc{f}^{(e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vc{f}^{(e)}_N d\Omega_e= 0
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vec{f}^{(e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vec{f}^{(e)}_N d\Omega_e= 0
 \label{eq:spatial_discretization/DG_divergence/conservation_law/discrete3}
 \ee
-where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its outward pointing normal vector. We now need to fix the inconsistency of the second term above because it says that the solution along each element boundary $\Gamma_e$ is different from its neighbor since $\vc{f}^{(e)}_N$ is allowed to be discontinuous across element boundaries.  To fix this, we introduce a numerical flux such that what flows from element $\Omega_e$ to its neighbor $\Omega_k$ is the negative of what flows from $\Omega_k$ into $\Omega_e$.  We represent this fix as follows
+where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its outward pointing normal vector. We now need to fix the inconsistency of the second term above because it says that the solution along each element boundary $\Gamma_e$ is different from its neighbor since $\vec{f}^{(e)}_N$ is allowed to be discontinuous across element boundaries.  To fix this, we introduce a numerical flux such that what flows from element $\Omega_e$ to its neighbor $\Omega_k$ is the negative of what flows from $\Omega_k$ into $\Omega_e$.  We represent this fix as follows
 \be
-\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vc{f}^{(*,e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vc{f}^{(e)}_N d\Omega_e= 0
+\inte \psi_i \diff{q^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vec{f}^{(*,e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vec{f}^{(e)}_N d\Omega_e= 0
 \label{eq:spatial_discretization/DG_divergence/conservation_law/discrete4}
 \ee
-where $\vc{f}^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions we will have 4 face neighbors and in three dimensions we will have 6 face neighbors.  At this point one is free to choose their favorite numerical flux $\vc{f}^{(*,e)}_N$ just as one would do in the finite volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are purely local within the element - this should be quite familiar for those of you coming from the finite volume community.
+where $\vec{f}^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions we will have 4 face neighbors and in three dimensions we will have 6 face neighbors.  At this point one is free to choose their favorite numerical flux $\vec{f}^{(*,e)}_N$ just as one would do in the finite volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are purely local within the element - this should be quite familiar for those of you coming from the finite volume community.
 
 \subsubsection{Tensor Product Basis Functions}
 In Eq.\ \eqref{eq:spatial_discretization/dg_method} we have said very little about the basis functions $\psi$ and have written the approximation in so-called monolithic form whereby all the degrees of freedom within an element are written as one long vector of length $M_N$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used which is what we propose here.  In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as follows
@@ -202,10 +373,10 @@ where we have written the approximation in terms of the reference element coordi
 
 Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields
 \be
-\diff{}{\vc{x}} q^{(e)}_N(\xi,\eta,t) = \diff{}{\vc{x}} \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} h_i(\xi) h_j(\eta) q^{(e)}_{ij}(t)
+\diff{}{\vec{x}} q^{(e)}_N(\xi,\eta,t) = \diff{}{\vec{x}} \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} h_i(\xi) h_j(\eta) q^{(e)}_{ij}(t)
 \label{eq:spatial_discretization/dg_method/tensor-product/gradient}
 \ee
-where $\vc{x}$ can represent either $x$ or $y$.  Let us look at each component separate and so invoking the chain rule yields
+where $\vec{x}$ can represent either $x$ or $y$.  Let us look at each component separate and so invoking the chain rule yields
 \[
 \diff{}{x}=\diff{}{\xi} \diff{\xi}{x} + \diff{}{\eta} \diff{\eta}{x}
 \]
@@ -213,7 +384,7 @@ and
 \[
 \diff{}{y}=\diff{}{\xi} \diff{\xi}{y} + \diff{}{\eta} \diff{\eta}{y}
 \]
-where the metric terms $\diff{\vc{\xi}}{\vc{x}}$ need to be computed for each element in the mesh.
+where the metric terms $\diff{\vec{\xi}}{\vec{x}}$ need to be computed for each element in the mesh.
 Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/gradient} for the x-derivative as follows
 \be
 \diff{}{x} q^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \left( \diff{h_i(\xi)}{\xi}\diff{\xi}{x} h_j(\eta) + h_i(\xi) \diff{h_j(\eta)}{\eta}\diff{\eta}{x} \right) q^{(e)}_{ij}(t).
@@ -231,102 +402,60 @@ where $h$ is the basis function and $dh$ is its derivative, which are the same f
 
 In order to circumvent the time-step restriction due to the fast moving acoustic waves, we will rely on implicit-explicit (IMEX) methods . For the LES model, if the aspect ratio of the horizontal to vertical grid spacing is near unity, it will be beneficial to use fully 3D-IMEX methods.  For the global atmospheric model, we propose to use 1D-IMEX methods whereby the time-integrator is fully explicit in the horizontal direction (HE) and implicit in the vertical direction (so-called HEVI schemes).
 
-We propose to use a general family of additive Runge-Kutta methods (ARK) methods for both the 1D and 3D IMEX approaches (see, e.g., \cite{giraldo:2013} for 1D and 3D-IMEX methods based on ARKs). Note that adding fully-implicit Runge-Kutta (IRK) methods to the 3D-IMEX approach is quite trivial so this can be included as an option. Fully-implicit methods have no time-step restriction with respect to stability.
+We propose to use a general family of additive Runge-Kutta methods (ARK) methods for both the 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013} for 1D and 3D-IMEX methods based on ARKs). Note that adding fully-implicit Runge-Kutta (IRK) methods to the 3D-IMEX approach is quite trivial so this can be included as an option. Fully-implicit methods have no time-step restriction with respect to stability.
 
-To get a sense of how the ARK approach works, let us partition the right-hand-side function $S(\vc{q})$ into its linear $L(\vc{q})$ and nonlinear $N(\vc{q})$ parts where the stiffness due to grid spacing or acoustic waves are contained in $L(\vc{q})$.  This then allow us to write the semi-discrete form (in space) as follows
+To get a sense of how the ARK approach works, let us partition the right-hand-side function $S(\vec{q})$ into its linear $L(\vec{q})$ and nonlinear $N(\vec{q})$ parts where the stiffness due to grid spacing or acoustic waves are contained in $L(\vec{q})$.  This then allow us to write the semi-discrete form (in space) as follows
 \[
 \diff{\qvector}{t} = L(\qvector) + N(\qvector) 
 \]
 which can now be discretized in time.  First we compute the stage values
 \[
-\vc{Q}^{(i+1)}=\qvector^n + \Delta t \sum_{k=0}^{i} \left( a_k N(\vc{Q}^{(k)}) \right) + \Delta t \sum_{k=0}^{i+1} \left( \wt{a}_k L(\vc{Q}^{(k)}) \right)
+\vec{Q}^{(i+1)}=\qvector^n + \Delta t \sum_{k=0}^{i} \left( a_k N(\vec{Q}^{(k)}) \right) + \Delta t \sum_{k=0}^{i+1} \left( \wt{a}_k L(\vec{Q}^{(k)}) \right)
 \]
-with $i=0,\ldots,s$ where $s$ are the number of stages, $a$, and $\wt{a}$ are the coefficients of the double Butcher tableau defined in \cite{kennedy:2003,giraldo:2013}.  Additionally, 
-$\vc{Q}^{(0)}=\qvector^n$ and the solution at time $n+1$ is obtained as follows
+with $i=0,\ldots,s$ where $s$ are the number of stages, $a$, and $\wt{a}$ are the coefficients of the double Butcher tableau defined in \citet{kennedy:2003,giraldo:2013}.  Additionally, 
+$\vec{Q}^{(0)}=\qvector^n$ and the solution at time $n+1$ is obtained as follows
 \[
-\vc{q}^{n+1}=\qvector^n + \Delta t \sum_{k=0}^{s} \left( b_k S(\vc{Q}^{(k)}) \right)
+\vec{q}^{n+1}=\qvector^n + \Delta t \sum_{k=0}^{s} \left( b_k S(\vec{Q}^{(k)}) \right)
 \]
-where the coefficients $b$ are also found in \cite{kennedy:2003,giraldo:2013}.
-So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \cite{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we impose the restriction that all the diagonal values $\wt{a}_{ii}$ to be constant. This allows one construction of the matrix problem which does not change across stage values.  This we now refer to as singly-diagonally-implicit Runge-Kutta (SDIRK).
+where the coefficients $b$ are also found in \citet{kennedy:2003,giraldo:2013}.
+So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \citep{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we impose the restriction that all the diagonal values $\wt{a}_{ii}$ to be constant. This allows one construction of the matrix problem which does not change across stage values.  This we now refer to as singly-diagonally-implicit Runge-Kutta (SDIRK).
 
+\section{Topography}
 
-\section{Sub-grid Scale Models}
+\hl{Can we include a broad outline of how topography will be included already? I'd like to work from one high-resolution topography file, which may need to be coarse grained to the working resolution of the model.}
+
+\section{Subgrid Scale Models}
 \label{sec:sgs_models}
 
-In order to discuss the sub-grid scale models required for the nonhydrostatic atmospheric models, let us write the equations in the following compact form  
-\[
-\diff{\vc{q}}{t} = S_D(\vc{q}) + S_P(\vc{q})
-\]
-where $\vc{q}$ is the solution vector, $S_D$ denotes the RHS due to the dry dynamics while $S_P$ denotes the RHS due to the moist physics. We have already described $S_D$ so let us now focus on $S_P$.
+Subgrid-scale models for ``physics'' such as radiative transfer, microphysics, and convection parameterizations for coarse-resolution configurations are discussed in a separate document. Here we focus on SGS filters needed at any resolution, including LES resolutions \hl{(if we need them at all \dots).}
 
-\subsection{Moist Physics}
-In MLAM, we propose to use a simplified moisture process (e.g., warm rain Kessler physics) with a Lilly-Smagorinsky type mixing scheme.    (Do we need long-wave radiation? Other such schemes?  If so, which ones?)
-
-\subsection{Topography}
-Will be incorporated at a later date.
 
 \section{Computing Aspects}
 \label{sec:computing_aspects}
 
 Let us decompose the computing aspects into the following groups
 \begin{enumerate}
-\item workflow language
 \item parallelization API
 \item many-core API
 \item graph-partitioning and grid generation
 
 \end{enumerate}
 
-\subsection{Workflow Language}
-Although Python is a popular workflow language, we will likely explore Julia as another option.  The reasons for possibly using Julia are: 
-\begin{itemize}
-\item We would like to use one language for both prototyping and workflow development,
-\item Unlike Python, Julia was built for high-performance computing (see Sec.\ \ref{sec:computing_aspects/manycore}),
-\item If we engage with the Julia community, we can get many good students to participate in various forms,
-\item Risk-mitigation plan includes falling back to pure C code with Python scaffolding and OCCA kernels.
-\end{itemize} 
-
 \subsection{Parallelization API}
 We propose to use the Message-Passing Interface (MPI) for communicating across processors and nodes (with multiple processors).  One of the NPS team members (Lucas Wilcox) has written Julia wrappers for MPI.
 
 \subsection{Many-core API}
 \label{sec:computing_aspects/manycore}
-We propose to use a GPU library for accessing the GPUs. The NPS team has vast experience in this area. For example, the NPS team ported NUMA using OCCA2 with a CUDA back-end to run on the Titan supercomputer using 16,000 GPU cards achieving very good weak scaling (see \cite{abdi:2016b,abdi:2018}). The approach will be to write all of the compute-kernels in either GPUArrays (from Julia), OCCA2, or CUDA. From our perspective, the compute-kernel is the focus and most GPU-ready kernels look more or less the same (OCCA, CUDA, and OpenCL). 
+We propose to use a GPU library for accessing the GPUs. The NPS team has vast experience in this area. For example, the NPS team ported NUMA using OCCA2 with a CUDA back-end to run on the Titan supercomputer using 16,000 GPU cards achieving very good weak scaling \citep{abdi:2016b,abdi:2018}. The approach will be to write all of the compute-kernels in either GPUArrays (from Julia), OCCA2, or CUDA. From our perspective, the compute-kernel is the focus and most GPU-ready kernels look more or less the same (OCCA, CUDA, and OpenCL). 
 
 \subsection{Graph-Partitioning and Grid Generation}
 One of the NPS team members (Jeremy Kozdon) has written Julia wrappers to the p4est library developed by another NPS team member (Lucas Wilcox).  We propose to use p4est for both grid-generation and graph-partitioning or Metis with a specific grid generator for both the LES and global domains. The global domain will use a cubed-sphere grid while the LES domains will use a logically Cartesian cube grid.
 
 \subsection{Code-base Repository}
-The code is maintained in Github at \url{https://github.com/climate-machine}
-
-\subsection{Software Management}
-Software engineers are required in order to maintain the coupled software-base and to have a centralized person "in charge" of the software code.  It could also be helpful to have a support person who can dedicate time to help with HPC issues on running on the specific Caltech cluster that we will use.  
-
-\subsection{Computing Hardware}
-We propose to use about \$30K for purchasing a number of GPU cards.  Most of the development work will be performed on this new GPU cluster at NPS.  We will also  time available to us on the Caltech cluster. We also need to consider which types of computers we will be targeting (e.g., Summit at ORNL) although this will not happen until after year 1.
-
-
-\section{Machine Learning}
-\label{sec:machine_learning}
-
-In this section, we shall describe the role of the non-hydrostatic atmospheric models in the machine learning/data assimilation approach.  To make the exposition clear, let us represent the model in the following way
-\[
-\diff{\vc{q}}{t} = S_C(\vc{q}) + S_{NC}(\vc{q})
-\]
-where $\vc{q}$ is the solution vector, $S_C$ denotes the computable terms on the RHS of the equations while $S_{NC}$ denotes the non-computable parameters.  Examples of computable terms includes the full dry dynamics in addition to explicit convection.  Non-computable terms are those that are below the sub-grid scales of even an LES model.  These terms will be obtained from observational data.  Let us describe the nature of this data and how often it needs to be read in.
-
-\subsection{Non-computable Terms}
-What sort of data will we be reading in and how often? Once per simulation?  
-
-\subsection{LES Model}
-The LES model will require approximately 1 million DOF.  We are targeting 10-100 meter resolutions at this range.
-
-\subsection{Global Model}
-Need to describe the process of how to spin-off the LES models and use them to improve the global model. 200 km global resolutions or better if we can afford it. 
-
+The code is maintained in Github at \url{https://github.com/climate-machine/CLIMA}.
 
 %-------Bibliography
-\bibliographystyle{siam}
-\bibliography{Giraldo_refs}
+\bibliographystyle{agufull08}
+\bibliography{Giraldo_refs,CLIMA-refs}
 
 \end{document}
