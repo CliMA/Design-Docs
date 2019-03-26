@@ -26,6 +26,7 @@ The density of the moist air is denoted by $\rho$. We use the following notation
 \begin{itemize}
 \item $q_d$: dry air mass fraction,
 \item $q_v$: water vapor specific humidity,
+
 \item $q_l$: liquid water specific humidity,
 \item $q_i$: ice specific humidity,
 \item $q_c = q_l + q_i$: condensate specific humidity,
@@ -45,88 +46,115 @@ where
 \end{equation}
 is the specific gas ``constant'' of moist air (which is not a constant), and $\eps_{dv} = R_v/R_d$ is the ratio of the molar masses of dry air and water vapor ($\eps_{dv} \approx 1.61$). Equations~\eqref{eq:eos} and \eqref{eq:R_m} constitute the equation of state of the working fluid.
 
-\subsection{Momentum Balance}
-
-The vector invariant form of the momentum equation in a coordinate system rotating with constant angular velocity $\vec{\Omega}$ is 
-\begin{equation}
-\diff{\vec{U}}{t} + \divergence \left( \frac{\vec{U} \otimes \vec{U} }{\rho} + p \vec{I}_3\right) = - 2\vec{\Omega} \times \vec{U}  - \rho \grad\Phi - \divergence (\rho\vec{\tau}) - \divergence\left( \vec{U} \otimes \vec{d}_t \right)
-\label{eq:governing_equations/momentum}
-\end{equation}
-where $\vec{U}=\rho \vec{u}$, with three-dimensional velocity vector $\vec{u}$, understood to be the velocity of the barycenter of moist air elements; $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS turbulent stress tensor (momentum flux); and $\vec{d}_t =\vec{d}_v + \vec{d}_l + \vec{d}_i$ is a diffusive and/or SGS turbulent flux of total specific humidity, consisting of fluxes of water vapor, cloud liquid, and cloud ice \citep{Romps08a}. Mechanical interactions between falling precipitation and the fluid, giving rise to frictional drag on the fluid in shear zones across falling hydrometeors \citep{Pauluis00}, are taken to be included in the stress tensor $\vec{\tau}$. Momentum transport by precipitating hydrometeors is neglected.
-
-These are the general, deep-atmosphere equations for a moist, nonhydrostatic atmosphere, without the thin-shell approximation traditionally made in climate models. (The thin-shell approximation assumes that in the formulation of the angular momentum, the distance from any point in the atmosphere to the barycenter of the planet is a constant and equal to the mean planetary radius.)
-
 \subsection{Mass Balance}
 
 Moist air mass satisfies the conservation equation
 \begin{equation}
-\diff{\rho}{t} + \divergence \vec{U} = - \rho C(q_t \rightarrow q_p) -\divergence (\rho \vec{d}_t).
+\diff{\rho}{t} + \divergence \vec{U} = \rho S_{q_t},
 \label{eq:governing_equations/mass}
 \end{equation}
-Moist air mass is not exactly conserved where precipitation forms, sublimates, or evaporates, or where water diffuses \citep{Bott08a}. The first term on the right-hand side, $C(q_t \rightarrow q_p)$, represents the conversion of suspended moisture (vapor, liquid, and ice) into precipitation, which represents a mass loss to elements of the working fluid when positive. This term is generally provided by a microphysics parameterization (e.g., a Kessler scheme). The second term, $-\divergence (\rho \vec{d}_t)$, represents the convergence of diffusive or turbulent SGS fluxes of water. 
+where $\vec{U}=\rho \vec{u}$ is the mass flux, with the three-dimensional velocity vector $\vec{u}$ understood to be the velocity of the barycenter of the moist air elements. Moist air mass is not exactly conserved where precipitation forms, sublimates, or evaporates, or where water diffuses \citep{Bott08a}. The  right-hand side involves the local source/sink of water mass $S_{q_t}$ owing to precipitation formation, evaporation/sublimation of precipitating hydrometeors (generally provided by a microphysics parameterization such as the Kessler scheme), or diffusion of water. 
 
-The mass sources/sinks usually are about two orders of magnitude smaller than the other terms in the mass balance. However, there is evidence that their effect is important, e.g., in strongly precipitating tropical cyclones \citep{Qiu93a,Lackmann04a}. They are zeroth-order important in some other planetary atmospheres, in which the condensable species is a major constituent of the atmosphere, such as CO\textsubscript{2} on Mars \cite[e.g.,][]{Soto15a}.
+The water mass sources/sinks usually are about two orders of magnitude smaller than the other terms in the mass balance. However, there is evidence that their effect is important, e.g., in strongly precipitating tropical cyclones \citep{Qiu93a,Lackmann04a}. They are zeroth-order important in some other planetary atmospheres, in which the condensable species is a major constituent of the atmosphere. For example, CO\textsubscript{2} is the primary constituent of Mars' atmosphere and seasonally condenses onto the winter pole, leading to large effects of mass non-conservation on the flow \cite[e.g.,][]{Soto15a}. Since we want to be able to use CLIMA-atmos for other planetary atmospheres, we are taking such mass sources/sinks into account.
 
 \subsection{Moisture Balances}
 
 Total water satisfies the conservation equation
 \begin{equation}
-\diff{(\rho q_t)}{t} + \divergence (q_t \vec{U}) = - \rho C(q_t \rightarrow q_p) - \divergence (\rho \vec{d}_t).   
+\diff{(\rho q_t)}{t} + \divergence (q_t \vec{U}) = \rho S_{q_t}.   
 \label{eq:governing_equations/moisture}
 \end{equation}
-The right-hand side represents sources and sinks of total water in the working fluid, with evaporation or sublimation of precipitation and formation of precipitation contributing to $C(q_t \rightarrow q_p)$, and diffusive and SGS turbulent fluxes of moisture captured by $\vec{d}_t$. 
+The right-hand side is the same as that in the conservation law \eqref{eq:governing_equations/mass} for total mass, which means that the dry air mass $(1-q_t)\rho$ is exactly conserved, and deviations from conservation of the moist air mass $\rho = (1-q_t)\rho + q_t \rho$ arise from deviations from conservation of total water $q_t\rho$. The conservation laws for mass \eqref{eq:governing_equations/mass} and total water \eqref{eq:governing_equations/moisture} together imply the material derivative $dq_t/dt = (1-q_t) S_{q_t}$, with the factor $(1-q_t)$ arising because both the density of moist air $\rho$ and the density of water $\rho_t$ enter $q_t = \rho_t/\rho$, and both change simultaneously when $S_{q_t}$ is nonzero.
 
-If the suspended condensates (cloud liquid and ice) are in local thermodynamic equilibrium with the gas phase, Gibbs' phase rule implies that their specific humidities, $q_l$ and $q_i$, can be determined by ``saturation adjustment'' from the three thermodynamic state variables temperature $T$, pressure $p$, and total water specific humidity $q_t$. However, to enable the explicit modeling of out-of-equilibrium phases (e.g., supersaturated water vapor in the upper troposphere or supercooled liquid water in mixed-phase clouds), we explicitly model the specific humidities of suspended liquid ($q_l$) and ice ($q_i)$. They satisfy conservation equations of the form
+The sources/sink of total water can be written as  
+\begin{equation}
+     \rho S_{q_t} = - \rho C(q_t \rightarrow q_p) - \divergence (\rho \vec{d}_t),
+\end{equation}
+with evaporation or sublimation of precipitation and formation of precipitation contributing to the conversion from $q_t$ to $q_p$ (i.e., $C(q_t \rightarrow q_p)$), and diffusive and SGS turbulent fluxes of moisture captured by $\vec{d}_t$. The diffusive flux of water consists of fluxes of water vapor, cloud liquid, and cloud ice: $\vec{d}_t =\vec{d}_v + \vec{d}_l + \vec{d}_i$ \citep{Romps08a}.
+
+If the suspended condensates (cloud liquid and ice) are in local thermodynamic equilibrium with the gas phase, Gibbs' phase rule implies that their specific humidities, $q_l$ and $q_i$, can be determined by ``saturation adjustment'' from three other thermodynamic state variables, such as density $\rho$, total water specific humidity $q_t$, and an internal energy variable. However, to enable the explicit modeling of out-of-equilibrium phases (e.g., supersaturated water vapor in the upper troposphere or supercooled liquid water in mixed-phase clouds), we explicitly model the specific humidities of suspended liquid ($q_l$) and ice ($q_i)$. They satisfy conservation equations of the form
 \begin{equation}
 \diff{(\rho q_k)}{t} + \divergence (q_k \vec{U}) = \rho S_k  -\divergence (\rho \vec{d}_{k}),   
 \label{eq:governing_equations/condensate}
 \end{equation}
-where $k \in \{l, i\}$,
+where $k \in \{l, i\}$, 
 \begin{align}
     S_l & = C(q_i \rightarrow q_l) + C(q_v \rightarrow q_l) + C(q_p \rightarrow q_l), \\
     S_i & = C(q_l \rightarrow q_i) + C(q_v \rightarrow q_i) + C(q_p \rightarrow q_i)
 \end{align}
-represent sources of cloud liquid and ice, and $\vec{d}_{k}$ represents diffusive or SGS turbulent fluxes of phase $k$. The terms $C(q_j \rightarrow q_{l/i}) = - C(q_{l/i} \rightarrow q_j)$ represent the conversion of species $j$ ($j \in \{l, i, v, p\}$) to cloud liquid $q_l$ or cloud ice $q_i$. The conversion terms include processes such as evaporation or sublimation of cloud condensate, melting of cloud ice, or precipitation formation, provided by microphysics parameterizations.
+represent sources of cloud liquid and ice, and $\vec{d}_{k}$ represents diffusive or SGS turbulent fluxes of phase $k$. The terms $C(q_j \rightarrow q_{l/i}) = - C(q_{l/i} \rightarrow q_j)$ represent the conversion of species $j \in \{l, i, v, p\}$ to cloud liquid $q_l$ or cloud ice $q_i$, with $q_p$ representing the mass fraction of precipitation. The conversion terms include processes such as evaporation or sublimation of cloud condensate, melting of cloud ice, or precipitation formation, all provided by microphysics parameterizations. The conversion term $C(q_t \rightarrow q_p) = -C(q_p \rightarrow q_t)$ in equation \eqref{eq:governing_equations/moisture} for total water is the sum of the conversion terms $C(q_l \rightarrow q_p)=-C(q_p \rightarrow q_l)$ and $C(q_i \rightarrow q_p)=-C(q_p \rightarrow q_i)$ from liquid and ice to precipitation, plus an analogous term, $C(q_v \rightarrow q_p)=-C(q_p \rightarrow q_v)$, for the conversion of vapor to precipitation. 
  
+
+\subsection{Momentum Balance}
+
+The vector invariant form of the momentum equation in a coordinate system rotating with constant angular velocity $\vec{\Omega}$ is 
+\begin{equation}
+\diff{\vec{U}}{t} + \divergence \left( \frac{\vec{U} \otimes \vec{U} }{\rho} + p \vec{I}_3\right) =  - \rho \grad\Phi - 2\vec{\Omega} \times \vec{U} - \divergence \vec{\tau} - \divergence\left( \vec{d}_t \otimes \vec{U} \right)
+\label{eq:governing_equations/momentum}
+\end{equation}
+where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); and $\vec{\tau}$ is a viscous and/or SGS turbulent stress tensor (momentum flux) which is typically defined as follows
+\begin{equation}
+\vec{\tau}  =  \nabla \vec{u} +  \left( \nabla \vec{u} \right)^T + \lambda \nabla \cdot \vec{u}
+\label{eq:governing_equations/momentum/viscous_fluxes}
+\end{equation}
+where the superscript $T$ represents the transpose operator and the constant $\lambda$ is derived from Stokes' hypothesis.
+Mechanical interactions between falling precipitation and the fluid, giving rise to frictional drag on the fluid in shear zones around falling hydrometeors \citep{Pauluis00}, are taken to be included in the stress tensor $\vec{\tau}$. Momentum and kinetic energy transport by precipitating hydrometeors is neglected; it is 3--4 orders of magnitude smaller than other terms in the budgets \citep{Romps08a}.
+
+These are the general, deep-atmosphere equations for a moist, nonhydrostatic atmosphere, without the thin-shell approximation traditionally made in climate models. (The thin-shell approximation assumes that in the formulation of the angular momentum, the distance from any point in the atmosphere to the barycenter of the planet is a constant and equal to the mean planetary radius.)
+
 \subsection{Energy Balance}
 
-To close the equations of motion for the working fluid, we require a thermodynamic or energy balance equation. Various choices are possible, a temperature (internal energy or enthalpy) equation being most common in climate models. We instead use the total specific energy $E^\mathrm{tot}$ to close the system, as in \citet{Romps08a}, a quantity that is conserved in reversible moist processes such as phase transitions of water. 
+To close the equations of motion for the working fluid, we require a thermodynamic or energy balance equation. Various choices are possible, a temperature (internal energy or enthalpy) equation being most common in climate models. We instead use the total specific energy $e^\mathrm{tot}$ to close the system, as in \citet{Romps08a}, a quantity that is conserved in reversible moist processes such as phase transitions of water. 
 
 Total energy satisfies the conservation law \citep{Romps08a}
 \begin{multline}
- \diff{(\rho E^{\mathrm{tot}})}{t} + \divergence \left[\vec{U} \left(E^{\mathrm{tot}} + \frac{p}{\rho}\right) \right] 
+ \diff{(\rho e^{\mathrm{tot}})}{t} + \divergence \left[\vec{U} \left(e^{\mathrm{tot}} + \frac{p}{\rho}\right) \right] 
  = -\divergence (\rho \vec{F}_R)   \\
-  - \divergence (\vec{U} \cdot \tau) - \divergence (\rho \vec{J}) - \divergence (\rho \vec{D}),
+  - \divergence (\vec{u} \cdot \vec{\tau)} - \divergence (\rho \vec{J}) - \divergence (\rho \vec{D})\\
+   - \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M,
  \label{eq:energy_balance}
 \end{multline}
-\hl{need to add precipitation sink term in equation} where the total specific energy is the sum $E^\mathrm{tot} = (1-q_t) E_d^{\mathrm{tot}}  + q_v E_v^{\mathrm{tot}} + q_l E_l^{\mathrm{tot}} + q_i E_i^{\mathrm{tot}}$ of the total specific energies of the moist air constituents (dry air, water vapor, cloud liquid, cloud ice),  each assumed to be moving with the same velocity and having the same temperature: 
-\begin{align}
-E_d^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vd} (T - T_0) + \Phi \\
-E_v^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vv} (T - T_0) + \Phi + I_{v,0}\\
-E_l^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vl} (T - T_0) + \Phi\\
-E_i^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + c_{vv} (T - T_0) + \Phi - I_{i,0}.
-\end{align}
-The total specific energy of each constituent consists of the kinetic energy per unit mass, specific internal energy, and gravitational potential energy per unit mass. Here, $c_{v\cdot}$ are the isochoric specific heat capacities of the constituents, taken to be constant;  $T_0$ is a reference temperature, $I_{v,0}$ is the difference in specific internal energy between vapor and liquid at $T_0$, and $I_{i,0}$ is the difference in specific internal energy between ice and liquid at $T_0$. After summation over the constituents, the total specific energy of moist air can be written as
+where the total specific energy is the weighted sum of the total specific energies of the moist air constituents (dry air, water vapor, cloud liquid, cloud ice):
 \begin{equation}
-     E^{\mathrm{tot}} = \frac{1}{2} \| \vec{u} \|^2 + c_{vm} (T - T_0) + \Phi + q_v I_{v,0} - q_i I_{i,0},
+    e^{\mathrm{tot}} = (1-q_t) e_d^{\mathrm{tot}} + q_v e_v^{\mathrm{tot}} + q_l e_l^{\mathrm{tot}} + q_i e_i^{\mathrm{tot}}.
+\end{equation}
+Each constituent is assumed to be moving with the same velocity and to have the same temperature, so that the constituent specific energies can be written as
+\begin{align}
+e_d^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I_d(T), \qquad & I_d(T) & = c_{vd} (T - T_0)  \\
+e_v^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I_v(T), \qquad & I_v(T) & = c_{vv} (T - T_0) + I_{v,0}\\
+e_l^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I_l(T), \qquad & I_l(T) & = c_{vl} (T - T_0) \\
+e_i^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I_i(T), \qquad & I_i(T) & = c_{vv} (T - T_0)  - I_{i,0}.
+\end{align}
+The total specific energy of each constituent consists of the kinetic energy per unit mass, gravitational potential energy per unit mass $\Phi$, and the specific internal energy $I_k$ ($k \in \{d, v, l, i\}$). Here, $c_{vx}$ are the isochoric specific heat capacities of the constituents $x$, taken to be constant;  $T_0$ is a reference temperature, $I_{v,0}$ is the difference in specific internal energy between vapor and liquid at $T_0$, and $I_{i,0}$ is the difference in specific internal energy between ice and liquid at $T_0$. After summation over the constituents, the total specific energy of moist air becomes
+\begin{equation}
+     e^{\mathrm{tot}} = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I,
      \label{eq:total_energy_def}
 \end{equation}
-where $c_{vm}= (1-q_t) c_{vd} + q_v c_{vv} + q_l c_{vl} + q_i c_{vi}$ is the isochoric specific heat capacity of moist air. The flux $\vec{F}_R$ is the radiative energy flux per unit mass, and $\vec{J}$ is the conductive or SGS turbulent flux of sensible heat per unit mass. The flux 
+where 
 \begin{equation}
-\vec{D} = (E_v^{\mathrm{tot}} + R_v T) \vec{d}_v + E_l^{\mathrm{tot}} \vec{d}_l +  E_i^{\mathrm{tot}} \vec{d}_i
+     I(T) = c_{vm} (T - T_0)  + q_v I_{v,0} - q_i I_{i,0}
+     \label{eq:total_internal_energy}
 \end{equation}
-is the total specific energy flux (plus the term $p_v/\rho = R_v T$ involving the partial pressure of water vapor $p_v$ for the gas phase) owing to the diffusive or SGS turbulent flux of water.  
+is the specific internal energy of the moist air, with the isochoric specific heat capacity of moist air $c_{vm} = (1-q_t) c_{vd} + q_v c_{vv} + q_l c_{vl} + q_i c_{vi}$.
 
-The temperature can be recovered from the definition of total energy \eqref{eq:total_energy_def} as 
+On the right-hand side of \eqref{eq:energy_balance}, the flux $\vec{F}_R$ is the radiative energy flux per unit mass, and $\vec{J}$ is the conductive or SGS turbulent flux of sensible heat per unit mass. The flux 
 \begin{equation}
-    T = T_0 + \frac{E^{\mathrm{tot}} - 0.5 \| \vec{u} \|^2 - \Phi - q_v I_{v,0} + q_i I_{i,0}}{c_{vm}},
+\vec{D} = (e_v^{\mathrm{tot}} + R_v T) \vec{d}_v + e_l^{\mathrm{tot}} \vec{d}_l +  e_i^{\mathrm{tot}} \vec{d}_i
+\end{equation}
+is the total specific energy flux (plus the term $p_v/\rho = R_v T$ involving the partial pressure of water vapor $p_v$ for the gas phase) owing to the diffusive or SGS turbulent flux of water. The terms involving $\rho C(q_j \rightarrow q_p)$ ($j \in \{ v, l, i \}$) represent the loss of internal and potential energy of moist air masses owing to precipitation formation; the kinetic energy loss is neglected consistent with the neglect of the source/sink associated with precipitation formation in the momentum balance \eqref{eq:governing_equations/momentum}. Additional energy sinks involve the energy loss owing to heat transfer from the working fluid to precipitation as it falls through it and possibly melts at the freezing level \citep{Raymond13b}; the associated energy sources/sinks are provided by a microphysics parameterization and are subsumed in the term $M$.
+
+The temperature can be recovered from the definition \eqref{eq:total_internal_energy} of internal energy $I = e^{\mathrm{tot}} - 0.5 \| \vec{u} \|^2 - \Phi$  as 
+\begin{equation}
+    T = T_0 + \frac{I - (q_t - q_l) I_{v,0} + q_i (I_{i,0} + I_{v,0})}{c_{vm}},
     \label{eq:temperature}
 \end{equation}
-and the pressure $p$ can then be computed from the ideal gas law \eqref{eq:eos}. The equations \eqref{eq:eos}--\eqref{eq:temperature} form the governing equations of the moist atmosphere.
+where we have used $q_v = q_t - q_l - q_i$. The pressure $p$ can then be computed from the ideal gas law \eqref{eq:eos}. The equations \eqref{eq:eos}--\eqref{eq:temperature} form the governing equations of the moist atmosphere.
 
-Note that latent heating as a result of phase changes of water redistributes energy among terms in the definition of total energy, but it does not appear as a source term on the right-hand side of the energy balance \eqref{eq:energy_balance}. The internal energy terms in the total energy of Earth's atmosphere are typically about two orders of magnitude larger than the kinetic energy terms: Because the speed of sound in an ideal gas is $c_s = \sqrt{(c_p/c_v) R T}$, the internal energy is of order $c_s^2 \approx (330~\mathrm{m~s^{-1}})^2$, compared with the kinetic energy $0.5 \|\vec{u}\|^2 \lesssim 0.5(40~\mathrm{m~s^{-1}})^2$.
+Note that latent heating as a result of phase changes of water redistributes energy among terms in the definition of total energy, but it does not appear as a source term on the right-hand side of the energy balance \eqref{eq:energy_balance}. Therefore, a dry dynamical core can easily be converted into a moist dynamical core simply by adapting the definition of internal energy to include moisture variables. The right-hand sides only need to change to account for irreversible processes such as diffusion of water vapor or precipitation formation. 
 
-The thermodynamic quantities appearing here are discussed further in section~\ref{s:thermodynamics}.
+The internal energy terms in the total energy of Earth's atmosphere are typically about two orders of magnitude larger than the kinetic energy terms: Because the speed of sound in an ideal gas is $c_s = \sqrt{(c_p/c_v) R T}$, the internal energy is of order $c_s^2 \approx (330~\mathrm{m~s^{-1}})^2 \approx 110000~\mathrm{m^2~s^{-2}}$, which is two orders of magnitude greater than the kinetic energy $0.5 \|\vec{u}\|^2 \lesssim 0.5(40~\mathrm{m~s^{-1}})^2 = 800~\mathrm{m^2~s^{-2}}$. This means that the magnitudes of total energy and internal energy are of the same order - this implies that the truncation error in mapping from total energy to temperature should not be severe.
+
+Thermodynamic quantities appearing here, such as the specific heats and the specific internal energies at a reference temperature, will be discussed further in section~\ref{s:thermodynamics}.
 
 \subsection{Precipitation}
 
@@ -135,16 +163,18 @@ We  consider $N_p$ species of precipitation (e.g., rain, snow, graupel), with sp
 \diff{(\rho q_{p,i})}{t} + \divergence \left[q_{p,i} (\vec{U} - \rho w_i \vec{k}) \right] = \rho \left[C(q_t \rightarrow q_{p,i}) + C(q_{p,k} \rightarrow q_{p,i}) \right],   
 \label{eq:precip}
 \end{equation}
-where $C(q_t \rightarrow q_{p,i})$ represents the conversion of suspended total water to precipitation species $i$, and $C(q_{p,k} \rightarrow q_{p,i}) = -C(q_{p,i} \rightarrow q_{p,k})$ represents the conversion of precipitation species $k$ to $i$.
+where $C(q_t \rightarrow q_{p,i})$ represents the conversion of suspended total water to precipitation species $i$, and $C(q_{p,k} \rightarrow q_{p,i}) = -C(q_{p,i} \rightarrow q_{p,k})$ represents the conversion of precipitation species $k$ to $i$. 
+
+In principle, the temperature of the precipitation species can differ from the ambient temperature (e.g., the wet bulb temperature can be a good approximation). If that is to be taken into account, an additional temperature tracer for each precipitation species is also needed.
 
 \subsection{Tracers}
 
-We also allow $N_\chi$ passive tracers $\chi_i$ ($i=1, \dots, N_\chi$), each satisfying conservation laws
+We also allow $N_\chi$ passive tracers $\chi_i$ ($i=1, \dots, N_\chi$), each satisfying balance laws
 \begin{equation}
 \diff{(\rho \chi_i)}{t} + \divergence \left(\chi_i \vec{U} \right) = \rho S_{\chi_i},   
 \label{eq:tracers}
 \end{equation}
-with sources/sinks $S_{\chi_i}$.
+with sources/sinks $S_{\chi_i}$. Note that the mass sink associated with precipitation on the right-hand side of the continuity equation \eqref{eq:governing_equations/mass} implies that the material derivative of the tracer is $D\chi_i/Dt = S_{\chi_i} - \chi S_{q_t}$.
  
 \subsection{Boundary Conditions}
 
@@ -152,21 +182,30 @@ with sources/sinks $S_{\chi_i}$.
 
 \hl{Frank: Your thoughts here would be appreciated. How do we formulate the upper boundary, ideally so that the atmosphere model can be easily made into an ocean model (i.e., with a free surface)? In usual discretizations, the choice of upper boundary affects energy conservation} \citep[e.g.,][]{Staniforth03a}, \hl{but probably that disappears as a problem when energy is a prognostic variable}.
 
+\hl{Tapio: This is tricky and I will need to talk to the Ocean modeling group about this.  I believe John told me that the way they will handle a free surface is through the inclusion of another variable (eta) which is the free surface boundary. For atmosphere, I assume we just need some radiative BC at the top; however, as you state above, this will affect conservation so let me propose what I write here below. However, both of these approaches below only handle the atmosphere - not sure what to do with the ocean.}
+One possible approach, which is typically used in Godunov methods, is to use an extrapolation condition whereby the Riemann solver is modified in order to let flow move out of the domain.  Another possibility is to use an approach recently proposed by Benacchio and Bonaventura whereby they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
+
+
 \paragraph{Bottom.} At the bottom boundary, Monin-Obukhov similarity theory is typically used for modeling the exchange of momentum, heat, water vapor, and tracers between the surface and the lowest model level. Care must be taken to formulate this accurately for finite-volume discretizations  \citep{Nishizawa18a}.
 
-\paragraph{Lateral.} Lateral boundary conditions do not arise on the sphere. However, several forms of lateral boundary conditions arise in LES configurations: We want to be able to configure the model (i) with horizontally doubly periodic boundary conditions, (ii) in a re-entrant channel configuration with impenetrable walls on two sides, and (iii) with absorbing horizontal boundary conditions (e.g., relaxation to a global-model state on a coarse grid). 
+\paragraph{Lateral.} Lateral boundary conditions do not arise on the sphere. However, several forms of lateral boundary conditions arise in LES configurations: We want to be able to configure the model
+\begin{itemize}
+    \item with horizontally doubly periodic boundary conditions,
+    \item in a re-entrant channel configuration with impenetrable walls on two sides, and 
+    \item with absorbing horizontal boundary conditions (e.g., relaxation to a global-model state on a coarse grid). 
+\end{itemize}
 
 \subsection{Coordinate Systems}
 
-spherical coordinate version? \citep{Staniforth03a}
+Expressing the equations of motion in spherical coordinates may be convenient for some purposes. The transformation of differential operators to spherical coordinates is straightforward for all scalar conservation laws. For the vector-valued momentum balance, additional (``metric'') terms arise from derivatives of the rotating coordinate basis vectors. The transformation of the three components of the momentum balance \eqref{eq:governing_equations/momentum} to spherical coordinates is standard \citep[e.g.,][]{Staniforth03a}. We will consider whether we want to adopt spherical coordinates later. 
 
 \subsection{Model Configurations.} The model will need to be capable of running in a global climate model configuration and in a regional LES configuration. Ideally, it would solve the same equations of motion in either configuration and at any resolution. This would require SGS process models in the global model that are scale-aware and reduce to LES SGS models (or no SGS models for implicit LES) at high resolution. This may not be feasible to achieve immediately. Thus, we will need easy ways to configure SGS models for global and LES configurations of the model. 
 
-The global model needs to be able to spin-off high-resolution LES (with around $10^6$ degrees of freedom each) on demand, at locations that need to be addressable from the DA/ML layer of CLIMA. Parameterizations in the global will learn from these high-resolution simulations. 
+The global model needs to be able to spin-off high-resolution LES (with around $10^6$ degrees of freedom each) on demand, at locations that need to be addressable from the DA/ML layer of CLIMA. Parameterizations in the global model will learn from these high-resolution simulations. 
 
 \section{Moist Thermodynamics}\label{s:thermodynamics}
 
-The thermodynamics of moist air is often subject to empirical approximations, which usually are intransparent, internally inconsistent, and/or inconsistent across model components. For example, microphysical process models often use different approximations for thermodynamic quantities such as saturation vapor pressures than the dynamical core. The often bewildering array of approximations makes it difficult to achieve global conservation, e.g., of energy, and it complicates the use of models for other planetary atmospheres, with different thermodynamic parameters. 
+The thermodynamics of moist air is often subject to empirical approximations, which usually are opaque, internally inconsistent, and/or inconsistent across model components. For example, microphysical process models often use different approximations for thermodynamic quantities such as saturation vapor pressures than the dynamical core. The often bewildering array of approximations makes it difficult to achieve global conservation, e.g., of energy, and it complicates the use of models for other planetary atmospheres, with different thermodynamic parameters. 
 
 Here we employ one consistent set of thermodynamic approximations for all model components. These result in straightforward, easily adaptable, and relatively accurate expressions for thermodynamic quantities, including closed-form expressions of saturation vapor pressures in terms of thermodynamic parameters. The key to thermodynamic consistency at reasonable accuracy is to take the specific heat capacities of the constituents of moist air (dry air, water vapor, liquid water, and ice) to be constant. All other thermodynamic quantities can then be derived \citep[cf.][]{Romps08a}. 
 
@@ -186,12 +225,12 @@ The difference between the isochoric and isobaric specific heat capacities is pr
     \item $c_{pd} = c_{vd} + R_d$: Isobaric specific heat capacity of dry air;
     \item $c_{pv} = c_{vv} + R_v$: Isobaric specific heat capacity of water vapor;
     \item $c_{pl} = c_{vl}$: Isobaric specific heat capacity of liquid water;
-    \item $c_{pi} = c_{pi}$: Isobaric specific heat capacity of ice.
+    \item $c_{pi} = c_{vi}$: Isobaric specific heat capacity of ice.
 \end{enumerate}
 
 The corresponding specific heat capacities of moist air are the weighted sum of those of the constituents:
 \begin{align}
-    c_{\cdot m} & = (1-q_t) c_{\cdot d} + q_v c_{\cdot v} + q_l c_{\cdot l} + q_i c_{\cdot i}\\
+    c_{x m} & = (1-q_t) c_{\cdot d} + q_v c_{\cdot v} + q_l c_{\cdot l} + q_i c_{\cdot i}\\
     & = c_{\cdot d} + (c_{\cdot v} - c_{\cdot d})q_t + (c_{\cdot l} - c_{\cdot v})q_l + (c_{\cdot i} - c_{\cdot v})q_i
 \end{align}
 where $\cdot$ stands for $v$ or $p$ and we have used $q_v = q_t -q_l - q_i$.
@@ -202,7 +241,7 @@ Kirchoff's relation states that the specific latent enthalpy (heat) $L$ of a pha
 \begin{equation}
     \frac{dL}{dT} = \Delta c_p,
 \end{equation}
-where $\Delta c_p$ is the difference in isobaric specific heat capacities between the phase with the higher specific volume and that with the lower specific volume. For the constant isobaric specific heat capacities we assume, this can be integrated to give
+where $\Delta c_p$ is the difference in isobaric specific heat capacities between the phase with the higher specific volume and that with the lower specific volume. For the constant isobaric specific heat capacities that we assume, this can be integrated to give
 \begin{equation}
     L = L_0 + \Delta c_p (T-T_0),
     \label{eq:LH_temperature}
@@ -218,9 +257,9 @@ For the phase transitions of water, this implies specifically:
 
 \subsection{Reference Internal Energies}
 
-The total specific energy \eqref{eq:total_energy_def} requires the difference in specific internal energy between vapor and liquid and between liquid and ice, both at the reference temperature $T_0$. 
+The specific internal energy \eqref{eq:total_internal_energy} requires the difference in specific internal energy between vapor and liquid and between liquid and ice, both at the reference temperature $T_0$. 
 
-The specific latent heats $L_{v,0}$, $L_{f,0}$, and $L_{s,0}$ give the enthalpy difference between the phases at $T_0$. The specific internal energy differences are obtained by subtracting the ``$pV$'' term, which is the $p_\cdot/\rho_\cdot$ for the relevant partial pressure $p_\cdot$ and specific volume $1/\rho_\cdot$. This gives
+The specific latent heats $L_{v,0}$, $L_{f,0}$, and $L_{s,0}$ give the enthalpy difference between the phases at $T_0$. The specific internal energy differences are obtained by subtracting the ``$pV$'' term, which is $p_\cdot/\rho_\cdot$ for the relevant partial pressure $p_\cdot$ and specific volume $1/\rho_\cdot$. This gives
 \begin{align}
      I_{v,0} &= L_{v, 0} - R_v T_0,\\
      I_{i,0} &= L_{f, 0},
@@ -238,62 +277,81 @@ Here, $L$ is the latent heat of the phase transition, which may be $L_v$ for the
     p_v^* = p_{\mathrm{tr}} \left( \frac{T}{T_{\mathrm{tr}}} \right)^{\frac{\Delta c_p}{R_v}}
         \exp \left[ \frac{L_0 - \Delta c_p T_0}{R_v} 
         \left( \frac{1}{T_{\mathrm{tr}}} - \frac{1}{T} \right) \right].
+        \label{eq:sat_vapor_pressure}
 \end{equation}
 With $L_0 = L_{v,0}$ or $L_0 = L_{s,0}$ and the corresponding heat capacity difference $\Delta c_p$, this gives saturation vapor pressures over liquid or ice that are accurate within 3\% for temperatures between 200 and 330~K (with accuracy better than 1\% for typical near-surface conditions).
 
+To obtain the saturation vapor pressure over a mixture of liquid and ice (e.g., in mixed-phase clouds), using a weighted average of the relevant specific latent heats in the vapor pressure \eqref{eq:sat_vapor_pressure} leads to a thermodynamically consistent formulation \citep{Pressel15a}. That is, if a fraction $\lambda$ of the condensate is liquid and the complement $1-\lambda$ is ice, calculating the saturation vapor pressure with a latent heat $\lambda L_v + (1-\lambda)L_s$ gives a thermodynamically consistent saturation vapor pressure over the mixture. In thermodynamic equilibrium, the liquid fraction $\lambda(T) = \mathcal{H}(T-T_{\mathrm{freeze}})$ is a Heaviside function $\mathcal{H}$ of temperature, being zero 0 below the freezing temperature $T_{\mathrm{freeze}}$ and 1 above it. However, out of thermodynamic equilibrium, supercooled liquid can exist between the temperature of homogeneous ice nucleation and the freezing temperature.
+
 \subsection{Saturation Specific Humidity}
 
-From the saturation vapor pressure $p_v^*$, the saturation specific humidity can be computed using the ideal gas law, giving
-\begin{equation}
-     q_v^* = \frac{R_m}{R_v} \frac{p_v^*}{p}.
+From the saturation vapor pressure $p_v^*$, the saturation specific humidity can be computed using the ideal gas law, giving the density of water vapor at saturation $\rho_v^* = p_v^*(T)/(R_v T)$, and hence the saturation specific humidity 
+\begin{equation}\label{eq:sat_shum}
+     q_v^* = \frac{\rho_v^*}{\rho} = \frac{p_v^*(T)}{\rho R_v T}.
 \end{equation}
-Using that we have $R_m = (1-q_t) R_d + q_v^* R_v$ at saturation, the saturation specific humidity becomes 
-\begin{equation}
-    q_v^* = \frac{1}{\eps_{dv}} \frac{(1 - q_t)}{p - p_v^*} p_v^*.
-\end{equation}
-This expression treats the total mass density of water, $q_t \rho$, and by implication that of dry air, $(1-q_t)\rho$, as fixed, independent variables.
+
+\subsection{Saturation Adjustment}
+
+Gibbs' phase rule states that in thermodynamic equilibrium, the temperature $T$ and liquid and ice specific humidities $q_l$ and $q_i$ can be obtained from the three thermodynamic state variables density $\rho$, total water specific humidity $q_t$, and internal energy $I$. Thus, a moist dynamical core that assumes equilibrium thermodynamics can be obtained from a dry dynamical core with total energy as a prognostic variable by including only a tracer for the total specific humidity $q_t$, and calculating the temperature and condensate specific humidities from $\rho$, $q_t$, and $I$. 
+
+Because the temperature \eqref{eq:temperature} depends on the condensate specific humidities at saturation (equilibrium), which in turn depend on temperature, obtaining the temperature and condensate specific humidities from the other state variables is a nonlinear problem. This nonlinear problem must be solved iteratively, in what is known as a saturation adjustment procedure. Saturation adjustment proceeds by calculating the internal energy at saturation $I^*(T; \rho, q_t)$ and then finding the zero of $I-I^*(T; \rho, q_t)$ as a function of temperature $T$. The internal energy at saturation is obtained from the saturation specific humidity \eqref{eq:sat_shum}, which determines the condensate specific humidity $q_c = \max(q_t - q_v^*, 0)$, and then partitioning the condensate specific humidity according to the liquid fraction $\lambda(T)$ into liquid $q_l = \lambda q_c$ and ice $(1-\lambda)q_c$. 
+
+Using saturation adjustment allows a moist dynamical core that has the total specific humidity $q_t$ as the only prognostic moisture variable. The price for this simplicity is the necessity to solve a nonlinear problem iteratively at each time step, and being confined to an equilibrium thermodynamics framework. Using explicit tracers for the condensates $q_l$ and $q_i$ in addition to $q_t$ avoids iterations at each time step and allows the inclusion of explicit non-equilibrium processes, such as those leading to the formation of supercooled liquid in mixed-phase clouds. 
+
 
 \section{Numerical Methods}
 \label{sec:numerical_methods}
 
-In order to describe the numerical methods used to solve the governing equations numerically, let us write the equations in the following compact form
+\hl{[Please include the moisture equations here along with the dry equations, and make notation and rhs's consistent with section~1.]}
 
+In order to describe the numerical methods used to solve the governing equations numerically, let us write the equations in the following compact form \hl{[need tracers for $q_t$, $q_l$, $q_i$, and others $\chi_i$ for chemistry]}
 \[
-\diff{\vec{q}}{t} = S(\vec{q})
+\diff{\vec{Q}}{t} = - \nabla \cdot \left( \vec{F}^{inv} - \vec{F}^{visc} \right) + \mathcal{S}(\vec{Q})
 \]
-where $\vec{q}$
+where \hl{[define $E = \rho e^{\mathrm{tot}}$ here or above, make equations here consistent with above]}
 \[
-\vec{q}=\left( \begin{array}{c}
+\vec{Q}=\left( \begin{array}{c}
 \rho \\
 \vec{U} \\
-\Theta
+ E\\
+\rho \vec{q}\\
 \end{array}
 \right)
 \]
  is the solution vector, 
- and 
  \[
- S(\vec{q}) = - \nabla \cdot \vec{F} - \mathcal{S}(\vec{q})
- \]
- is the right-hand-side containing the spatial operators where 
- \[
- \vec{F}=\left( \begin{array}{c}
+ \vec{F}^{inv}=\left( \begin{array}{c}
  \vec{U} \\
- \frac{\vec{U} \otimes \vec{U}}{\rho} + P \vec{I}_3 - \left( \mu \grad \vec{U} \right) \\
-\frac{\Theta \vec{U}}{\rho} - \left( \mu \grad \Theta \right)
+ \frac{\vec{U} \otimes \vec{U}}{\rho} + p \vec{I}_3 \\
+\frac{(E+p) \vec{U}}{\rho}\\
+\frac{\vec{q} \otimes \vec{U}}{\rho}
 \end{array}
 \right)
  \]
- is the flux tensor and
+ \hl{[Why the Kronecker product in the moisture equation? Also it is odd to use the specific humidity $q$ as a primitive variable, but then use energy per unit volume $E$ (rather than per unit mass $e^\mathrm{tot}$) as primitive variable. Let's make this consistent.]} is the inviscid flux tensor, 
  \[
- \mathcal{S}(\vec{q})=\left( \begin{array}{c}
- 0 \\
- f \vec{r} \times \vec{U} + \rho g \vec{r} \\
-0 
+ \vec{F}^{visc}=\left( \begin{array}{c}
+ \rho\vec{d} \\
+ \vec{F}_u \\
+\vec{u} \cdot \vec{F}_u + \frac{\mu c_p}{\mathrm{Pr}} \nabla T\\
+\rho\vec{d}
+\end{array}
+\right)
+ \] \hl{[leave the sensible heat flux more open--we will not want to diffusive temperature here. Just use $\vec{J}$ as in section~2, and also include the other flux terms symbolically]} is the viscous flux tensor, and
+ \[
+ \mathcal{S}(\vec{Q})= - \left( \begin{array}{c}
+ -\rho C(q_t \rightarrow q_p) \\
+ 2 \vec{\Omega} \times \vec{U} + \rho g \vec{r} \\
+ \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M \\
+-\rho C(q_t \rightarrow q_p)
 \end{array}
 \right)
  \]
-contains the source terms. 
+contains the source terms \hl{[Note that the diffusive fluxes and source/sink terms for mass and total moisture are the same--we should make this clearer here, and also in the code: no need to re-type.]}. The viscous stresses for the momentum are defined as \hl{[leave this more open--we will want other SGS closures, e.g., with state-dependent viscosities/diffusivities, Prandtl numbers etc.]}
+\[
+\vec{F}_u = \mu \left[ \vec{u} + \left( \nabla \vec{u} \right)^T + \lambda \nabla \cdot \vec{u} \vec{I}_3 \right].
+\]
+In the above flux definitions, $\mathrm{Pr}$ denotes the turbulent Prandtl number, $\lambda$ comes from Stokes hypothesis, and $\mu$ is the dynamic viscosity, which is used for the SGS closures for the LES model.
 
 \subsection{Spatial Discretization Methods}
 
@@ -424,6 +482,65 @@ So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \citep{al
 
 \hl{Can we include a broad outline of how topography will be included already? I'd like to work from one high-resolution topography file, which may need to be coarse grained to the working resolution of the model.}
 
+\hl{This could be something one of our postdocs could work on.}
+
+\hl{If you don't have a tool in mind yet, I'd like to suggest to use MMESH3D which was designed exactly to handle topography files and build a mesh on top of them.
+Below are some properties and a sample high resolution grid image:
+}
+\begin{itemize}
+    \item It reads topography files from {\bf DEM, NOAA, NCDF}
+    \item It is coupled to P4est
+    \item It has an elliptic solver for grid smoothing.
+    \item It could be easily coupled directly to CLIMA to avoid passing files around.
+\end{itemize}
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=3in]{mmesh3d_spain_surface_grid.png}
+\caption{Surface grid of iberian peninsula using MMesh3d.}
+\label{fig:spainSurfaceGrid}
+\end{figure}
+
+\section{Test cases}
+\hl{Should this section be kept in this document or should test cases be described elsewhere?}
+\subsection{Rising thermal bubble in a saturated atmosphere}
+The moist dynamics is tested by means of the saturated rising bubble test described in \cite{Pressel15a}. The initial conditions are setup as follows:
+
+\begin{itemize}
+\item Initialize dry atmosphere with uniform background $\theta_{ref} = 320$ K
+\item Add thermal perturbation $\Delta \theta$ of radius $r=2$ km
+\item Set a uniform total mixing ratio $q_t = 0.0192 \,{\rm kg/kg}$ and $q_l = q_i = 0.0\,{\rm kg/kg}$
+\item Calculate the gas constants for moist air: 
+\[\begin{array}{lcl}
+R_{gas} &=& {\tt MoistThermodynamics.gas\_constant\_air(q_t, q_l, q_i)}\\
+c_v     &=& {\tt MoistThermodynamics.cv\_m(q_t, q_l, q_i)}\\
+c_p     &=& {\tt MoistThermodynamics.cp\_m(q_t, q_l, q_i)}\\
+\end{array}
+\]
+\item  Compute $\theta$, $\rho$, and $T$ as if the background were dry:\\
+    \[ \begin{array}{lcl}
+  \theta &=& \theta_{ref} + \Delta\theta\\
+ \pi & =& 1 - gz/(c_p\theta)\\
+ \rho & = & p0/(R_{gas}\theta)\pi^(c_v/R_{gas})\\
+ T   & = &\pi \theta
+\end{array}\]
+
+\item Add the contribution of moisture to the internal energy and recalculate $T$ and $P$, and obtain $e^{\rm tot}$ using the following {\tt MoistThermodynamics} functions:
+\[\begin{array}{lcl}
+I &=& {\tt MoistThermodynamics.internal_energy(T + T_0, q_t, q_l, q_i)}\\
+T &=& {\tt MoistThermodynamics.air_temperature(I, q_t, q_l, q_i)}\\
+P &=& {\tt MoistThermodynamics.air_pressure(T - T_0, \rho, q_t, q_l, q_i)}\\
+e^{\rm tot} &=& {\tt MoistThermodynamics.total_energy(0.5\|{\bf u} \|^2, gz, T, q_t)}
+\end{array}\]
+\end{itemize}
+
+\hl{As of now, the saturation adjustment diverges on this initial condition. To be checked.}
+
+\subsection{External sounding}
+The current version of Cahttps://www.overleaf.com/2425712669sdzjdvvwvstsnary (\hl{A pull request from my fork was submitted yesterday to the main Canary repo}) contains the reader of an external sounding. The sounding of the test case in \citet{kurowskiEtAl2013} was added.
+
+
 \section{Subgrid Scale Models}
 \label{sec:sgs_models}
 
@@ -453,6 +570,87 @@ One of the NPS team members (Jeremy Kozdon) has written Julia wrappers to the p4
 
 \subsection{Code-base Repository}
 The code is maintained in Github at \url{https://github.com/climate-machine/CLIMA}.
+
+\section{Tutorial of CliMa Kernels}
+\label{sec:tutorial}
+
+In \texttt{https://github.com/climate-machine/Canary.jl/tree/master/examples} the following three folders
+\begin{enumerate}
+    \item 1d$\_$kernels
+    \begin{itemize}
+        \item LDG1d
+        \item burger1d
+        \item swe1d
+    \end{itemize}
+    \item 2d$\_$kernels
+    \begin{itemize}
+        \item LDG2d
+        \item euler2d$\_$set3c
+        \item nse2d
+        \item nse2d$\_$sgs
+        \item swe2d
+    \end{itemize}
+    \item 3d$\_$kernels
+    \begin{itemize}
+        \item LDG3d
+        \item euler3d$\_$set3c
+        \item nse3d
+    \end{itemize}
+\end{enumerate}
+containing various sets of governing equations can be found. 
+
+In all the folders, the LDG files solve an elliptic equation (a Poisson equation) using the Local Discontinuous Galerkin (LDG) method.  The swe files solve the shallow water equations, the euler files solve the Euler equations using the conservation form with total energy, and the nse files solve the fully compressible Navier-Stokes equations (NSE) which are nothing more than the Euler equations with the viscous stresses solved via the LDG method.  All hyperbolic equations (burger, swe, and euler) use the discontinuous Galerkin (DG) method with a simple Rusanov flux with arbitrary order polynomial basis functions on tensor-product grids (1D line, 2D quads, and 3D hexahedra).
+
+All of these codes are structured in the same way.  Namely, at the bottom of each JL file there is a MAIN function that contains an initial condition and runs the program.  MAIN then calls the solver (e.g., in the case of Burgers equation, it calls the function BURGER, in the case of shallow water, it calls the SWE, in the case of Navier-Stokes, it calls the function NSE).  In turn, the solver function calls LOWSTORAGERK which is the time-integration loop and a proxy for any time-integrator that will be included in CliMa in the future (e.g., Additive Runge-Kutta methods for 1D-IMEX and 3D-IMEX).
+The heart of all these kernels is in the LOWSTORAGERK function which looks as follows
+\begin{algorithm}
+\label{alg:Time-Stepper}
+\begin{algorithmic}
+\Function{LOWSTORAGERK}{}
+\For{$step=1:nsteps$} \Comment go over time-steps
+\For{$s=1:length(RKstages)$} \Comment go over multi-stages
+\State 1ST$\_$ORDER$\_$OPERATOR \Comment use Alg. \ref{alg:first_order_operators}
+\If{viscosity>0}
+\State 2ND$\_$ORDER$\_$OPERATOR \Comment use Alg. \ref{alg:second_order_operators}
+\EndIf
+\State UPDATESOLUTION!() \Comment update the solution field q
+\EndFor 
+\EndFor
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+where it builds the first order operators and then, if required, the second order operators.  The function UPDATESOLUTION    updates the solution for the next time-step.  
+
+The first order operators are described in Alg.\ \ref{alg:first_order_operators} below.
+\begin{algorithm}
+\label{alg:first_order_operators}
+\begin{algorithmic}
+\Function{1ST$\_$ORDER$\_$OPERATOR}{}
+\State SENDDATA$\_$Q() \Comment non-blocking send of the data
+\State VOLUMERHS!() \Comment compute volume integral contribution to RHS
+\State RECEIVEDATA$\_$Q() \Comment non-blocking receive - for latency hiding
+\State FLUXRHS!() \Comment compute flux integral contribution to RHS
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+The SENDDATA and RECEIVEDATA functions exchange the information on the CPU and/or GPU and need to be called separately in order to overlap communication with computation (we send the data and while it is being sorted out, we compute the volume integrals which require no neighbor data).  Once we finish with the volume integrals (VOLUMERHS), we then wait to receive all the data (RECEIVEDATA$\_$Q) before we compute the flux integrals (FLUXRHS), which do require neighbor data. The "!" at the end of some of the function calls denotes that the state vector $q$ or $RHS$ is modified by that function.
+
+If second order differential operators are required (say for diffusion), then this is done after the 1st order operators as follows
+\begin{algorithm}
+\label{alg:second_order_operators}
+\begin{algorithmic}
+\Function{2ND$\_$ORDER$\_$OPERATOR}{}
+\State VOLUMEGRAD!() \Comment compute volume integral contribution to $\nabla q$
+\State FLUXGRAD!() \Comment compute flux integral contribution to $\nabla q$
+\State UPDATEGRAD!() \Comment update the solution to compute gridpoint $\nabla q$
+\State SENDDATA$\_$GRADQ() \Comment non-blocking send - for latency hiding
+\State VOLUMEDIV!() \Comment compute volume integral contribution to $\nabla \cdot (\nabla q)$
+\State RECEIVEDATA$\_$GRADQ() \Comment non-blocking receive - for latency hiding
+\State FLUXDIV!() \Comment compute flux integral contribution to $\nabla \cdot (\nabla q)$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+Algorithm \ref{alg:second_order_operators} uses the local discontinuous Galerkin (LDG) method to construct 2nd order operators. We have used this approach for representing 2nd order operators because it is simpler to understand since it does so by first approximating the gradient of the function (VOLUMEGRAD and FLUXGRAD) and then computing the divergence of the gradient of the function (VOLUMEDIV AND FLUXDIV).  
 
 %-------Bibliography
 \bibliographystyle{agufull08}

@@ -249,7 +249,7 @@ The component models at the center of the ESM should function in a coupled confi
 \paragraph{Goals}
 \begin{itemize}
     \item Develop an atmosphere dynamical core that employs state-of-the art numerics, can exploit emerging computing architectures such as heterogenous many-core architectures, and can run embedded high-resolution simulations (LES) on demand.
-    \item Develop atmosphere parameterizations suitable for DA/ML approaches, first focusing on turbulence, convection, and clouds, and then expanding to gravity waves and (if needed) radiative transfer.
+    \item Develop atmosphere parameterizations suitable for DA/ML approaches, first focusing on turbulence, convection, and clouds, and then expanding to gravity waves \citep{Alexander10a} and (if needed) radiative transfer.
     \item Demonstrate automated learning about parameterizations from observational data and high-resolution simulations nested in the atmosphere model.
 \end{itemize}
 
@@ -348,28 +348,28 @@ The component models at the center of the ESM should function in a coupled confi
 %% Under GitHub (see  \texttt{https://github.com/climate-machine/Canary.jl} under examples), we are constructing prototype compute kernels using the Julia language for testing the feel, accuracy, and performance. Sample code will be made available for: (1) passive transport (advection), (2) shallow water equations, and (3) Euler equations.  
 
 
-\subsection{Parallel Communications/Services}
-
-%% The compute kernel examples stored at \texttt{https://github.com/climate-machine/Canary.jl} have been written with MPI (Message-Passing Interface) included.  This approach ensures that even the very readable (and not necessarily performant) compute kernels can be run in a multi-processor approach and provide a good tutorial for the Alliance to see how the kernels can be used on high-performance computing platforms.
-\paragraph{Concepts}
-\begin{itemize}
-  \item  There are many levels of parallelism in modern many-core based supercomputers.  This includes intra-node parallelzation such as vector instructions, multiple cores in a device, and multiple devices.
-  There is also inter-node parallelism where nodes are interconnected.
-  \item Access to memory is not uniform on modern supercomputers.  For example, both CPUs in a two-CPU node may be able to access all the memory but not at the same speeds.  Some memory is ``closer'' than others and thus faster to access.
-  \item Asynchronous communication allows for computation to be overlapped with communication.
-  Further, many times latency is high but bandwidth is also high for inter-node communication.  This is also true for communication between the host and compute device.
-  \item Using a common abstraction for parallelism for each component will ease the coupling of components and minimize costly data transfers.
-\end{itemize}
-
-\paragraph{Goals}
-\begin{itemize}
-  \item Exploit the parallelism available in current and emerging supercomputers.
-  \item To get good performance, allocate memory ``near'' the unit of parallelism that is going to use it.
-  \item To minimize communication costs, group asynchronous communication together and try to hide its cost (latency) by overlapping it with computation.
-  \item To ease the coupling of components, coordinate the selection of abstractions and implementations used for expressing parallelism in the code.
-\end{itemize}
- 
-\hl{The above are more like general guidelines than concrete goals for a discrete piece of code. Should we eliminate this section and work it into the general guidelines? Or will there some piece of code that can be associated with this section?}
+%\subsection{Parallel Communications/Services}
+%
+%%% The compute kernel examples stored at \texttt{https://github.com/climate-machine/Canary.jl} have been written with MPI (Message-Passing Interface) included.  This approach ensures that even the very readable (and not necessarily performant) compute kernels can be run in a multi-processor approach and provide a good tutorial for the Alliance to see how the kernels can be used on high-performance computing platforms.
+%\paragraph{Concepts}
+%\begin{itemize}
+%  \item  There are many levels of parallelism in modern many-core based supercomputers.  This includes intra-node parallelzation such as vector instructions, multiple cores in a device, and multiple devices.
+%  There is also inter-node parallelism where nodes are interconnected.
+%  \item Access to memory is not uniform on modern supercomputers.  For example, both CPUs in a two-CPU node may be able to access all the memory but not at the same speeds.  Some memory is ``closer'' than others and thus faster to access.
+%  \item Asynchronous communication allows for computation to be overlapped with communication.
+%  Further, many times latency is high but bandwidth is also high for inter-node communication.  This is also true for communication between the host and compute device.
+%  \item Using a common abstraction for parallelism for each component will ease the coupling of components and minimize costly data transfers.
+%\end{itemize}
+%
+%\paragraph{Goals}
+%\begin{itemize}
+%  \item Exploit the parallelism available in current and emerging supercomputers.
+%  \item To get good performance, allocate memory ``near'' the unit of parallelism that is going to use it.
+%  \item To minimize communication costs, group asynchronous communication together and try to hide its cost (latency) by overlapping it with computation.
+%  \item To ease the coupling of components, coordinate the selection of abstractions and implementations used for expressing parallelism in the code.
+%\end{itemize}
+% 
+%\hl{The above are more like general guidelines than concrete goals for a discrete piece of code. Should we eliminate this section and work it into the general guidelines? Or will there some piece of code that can be associated with this section?}
 
 \section{General Guidelines}
 
@@ -380,61 +380,60 @@ The component models at the center of the ESM should function in a coupled confi
             \item Use a build tool to automate workflows.
             \item Make incremental changes, with version control (GitHub).
             \item Modularize code rather than copying and pasting (DRY--Don't Repeat Yourself).
-            \item Integrate continuously and employ unit testing (try to develop tests before developing the code, and focus on short unit tests, which give more valuable information when they fail; make unit tests meaningful, e.g., check for conservation of properties that should be conserved).
+            \item Integrate continuously and employ unit testing (focus on short unit tests, which give more valuable information when they fail; make unit tests meaningful, e.g., check for conservation of properties that should be conserved).
             \item Make code correct first and fast second (then use profilers to identify bottlenecks).
             \item Document design and purpose (document interfaces and embed documentation in code).
             \item Collaborate (have code reviews pre-merge; use pair programming to bring new people up to speed or for tricky problems; use issue tracking on GitHub).
             \item Design APIs for the simplest cases first, add options for more flexible use.
             \item Shared code ownership is the goal; siloed knowledge is bad.
         \end{enumerate}
-    \item Confine external package dependencies as much as possible to common packages with a broad user base (e.g., MPI, NetCDF library).
+    \item Confine external package dependencies as much as possible to common packages with a broad user base (e.g., MPI).
     \item Collect \emph{all} parameters (e.g., physical constants, input data) in one central place, where they are easy to modify and are shared by all components of the code. \emph{No hard-coded parameters anywhere in the code} (except fixed coefficients, e.g., in interpolation or time-stepping schemes). 
     \item Input data should not be multiply defined for different code components. For example, there should be one and only one topography/bathymetry dataset that all model components (atmosphere, ocean, land) use. Depending on their resolution, some components (e.g., the atmosphere model) may need to smooth the input topography; but there should only be one input dataset, so topography can easily and consistently be changed for all model components.
-    \item Make use of Continuous Integration (CI) tools as much as possible.  For example, on GitHub we may use Travis as our CI tool to test 100\% of the code. Test the software across various platforms and operating systems (e.g., Linux, MacOS, and Windows).  Some CI testing may be required to be performed on specific hardware; examples include testing the software on specific GPU hardware on local computers (rather than what is available on the cloud via GitHub).  At NPS we may use Gitlab with either runners or interleaved with Jenkins CI.
+    \item Make use of Continuous Integration (CI) tools as much as possible.  For example, on GitHub we will use Travis as our CI tool to test the code. Test the software across various platforms and operating systems (e.g., Linux, MacOS, and Windows).  Some CI testing may be required to be performed on specific hardware; examples include testing the software on specific GPU hardware on local computers (rather than what is available on the cloud via GitHub).  At NPS we may use Gitlab with either runners or interleaved with Jenkins CI.
 \end{itemize}
 
-\section{Objectives and Key Results for Years 1--3 (2018--2021)}
+\section{Objectives and Key Results for 2018--2021}
 
-We will pursue several key objectives in years 1--3 (by 2021), and we will measure progress by achievement of the key results listed for each objective.\footnote{To read more about objectives and key results, or OKRs, for goal settings, see https://rework.withgoogle.com/guides/set-goals-with-okrs/steps/introduction/.} The key results listed are intentionally ambitious. Some may be a stretch to achieve. We can consider ourselves successful if we achieve about 70\% of the key results. 
+We will pursue several key objectives in years 1--3 (by Q2/2021), and we will measure progress by achievement of the key results listed for each objective.\footnote{To read more about objectives and key results, or OKRs, for goal settings, see https://rework.withgoogle.com/guides/set-goals-with-okrs/steps/introduction/.} The key results listed are intentionally ambitious. Some may be a stretch to achieve. We can consider ourselves successful if we achieve about 70\% of the key results. 
  
-Key results to be achieved in year 1 (by Q3/2019) are highlighted \duesoon{green}. Other key results are to be achieved by Q2/2021.    
+More detailed objectives and key results for the coming year are listed in a separate document. The overall OKRs for 2021 are as follows:    
 \begin{enumerate}
-    \item \textbf{Develop scalable atmosphere and ocean dynamical cores that exploit emerging computing architectures, can run high-resolution simulations on demand, and share numerical methods and computational architectures to the extent possible.}
+    \item \textbf{Demonstrate scalable atmosphere and ocean dynamical cores that exploit emerging computing architectures, can run high-resolution simulations on demand, and share numerical methods and computational architectures to the extent possible.}
         
     \emph{Key results:}
     \begin{enumerate}
-        \item \duesoon{Demonstrate well-tested compute kernels for common differential operators in 1, 2, and 3 dimensions, both for CPUs and GPUs, and to be shared by atmosphere and ocean dynamical cores.}
-        \item \duesoon{Demonstrate scalability and performance of the atmosphere dynamical core on CPUs and GPUs comparable to NUMA} \citep{abdi:2016b,abdi:2018,mueller:2016}. 
-        \item \duesoon{Demonstrate time-to-solution of global simulations in the  NGGPS benchmark comparable to (within factor 3) the best non-hydrostatic weather prediction models in the U.S. at a given nominal resolution.}\footnote{For the NGGPS benchmark results, see https://www.weather.gov/media/sti/nggps/AVEC\%20Level\%201\%20Benchmarking\%20Report\%2008\%2020150602.pdf} (Note that our effective resolution may be higher than the nominal resolution used by some models with lower-order numerics. So a factor 3 slower performance in the NGGPS is acceptable to us if it will be compensated by the computational savings that result if we achieve the same fidelity of a simulation at 30\% lower nominal resolution. See Fig.~\ref{f:DYCOMS-test} for an example.)
-        \item Demonstrate an ocean dynamical core that resembles the atmosphere core, has performance comparable with or superior to that of the MITgcm on CPUs, and can be run on GPUs.
+        \item Demonstrate well-tested compute kernels for common differential operators in 1, 2, and 3 dimensions, both for CPUs and GPUs, and to be shared by atmosphere and ocean dynamical cores.
+        \item Demonstrate scalability and performance of the atmosphere dynamical core on CPUs and GPUs comparable to NUMA \citep{abdi:2016b,abdi:2018,mueller:2016}. 
+        \item Demonstrate time-to-solution of global simulations in the  NGGPS benchmark comparable to (within factor 3) the best non-hydrostatic weather prediction models in the U.S. at a given nominal resolution.\footnote{For the NGGPS benchmark results, see https://www.weather.gov/media/sti/nggps/AVEC\%20Level\%201\%20Benchmarking\%20Report\%2008\%2020150602.pdf} (Note that our effective resolution may be higher than the nominal resolution used by some models with lower-order numerics. So a factor 3 slower performance in the NGGPS is acceptable to us if it will be compensated by the computational savings that result if we achieve the same fidelity of a simulation at 30\% lower nominal resolution. See Fig.~\ref{f:DYCOMS-test} for an example.)
+        \item Demonstrate an ocean dynamical core that resembles the atmosphere core, has performance comparable with or superior to that of the MITgcm on CPUs, and on achieves scalable performance on GPUs. 
     \end{enumerate}
  
  \item \textbf{Develop atmosphere LES that can be run in standalone mode or be nested in the global atmosphere model and that uses essentially the same code base as the global model (but possibly with differences, e.g., in time stepping).}
  
     \emph{Key results}:
     \begin{enumerate}
-        \item \duesoon{Implement fully 3D implicit-explicit (IMEX) methods with scalable iterative solvers and preconditioners, to replace the classical horizontally-explicit-vertical-implicit (HEVI) methods typically used in global nonhydrostatic models.}
-        \item \duesoon{Implement and test ``bullet proof'' stable methods, such as entropy-stable DG methods} \citep[e.g.,][]{Chan18a}.
-        \item \duesoon{Implement different choices of LES SGS models (e.g., Smagorinski-Lilly, dynamic models, implicit LES) and test them in canonical benchmark cases} (e.g., Fig.~\ref{f:DYCOMS-test}).
-        \item \duesoon{Demonstrate successful simulations of a stratocumulus-topped boundary layer in the atmosphere with standalone LES, with fidelity of simulations comparable with or superior to PyCLES with WENO schemes} (Fig.~\ref{f:DYCOMS-test}). 
-        \item Demonstrate at least 100 concurrent LES running alongside global atmosphere model and show that, if run with prescribed lower (and upper) boundary conditions, they locally match observations (e.g., of subtropical low clouds). Use the LES to establish database for training parameterizations.
+        \item Demonstrate successful simulations of a stratocumulus-topped boundary layer in the atmosphere with standalone LES, with fidelity of simulations comparable with or superior to PyCLES with WENO schemes (Fig.~\ref{f:DYCOMS-test}). 
+        \item Demonstrate at least 1,000 concurrent LES running alongside global atmosphere model in a distributed computing environment (on the cloud).
+        \item Establish an LES-based database for training parameterizations and make it public.
+        \item Show that, if run with prescribed lower (and upper) boundary conditions, the LES locally match observations, e.g., of subtropical low cloud cover. 
     \end{enumerate}
    
    \item \textbf{Develop ocean LES that can be run in standalone mode or be nested in the global ocean model and that uses as much of the code base of the global model as possible (but, e.g., the global model may be hydrostatic, whereas the LES will be non-hydrostatic).}
  
     \emph{Key results}: 
     \begin{enumerate}
-    \item \duesoon{Adopt the atmosphere LES to the ocean.}
-    \item \duesoon{Drive ocean LES by observed boundary conditions in regions were lateral fluxes can be neglected and demonstrate a successful simulation of seasonal ocean mixed-layer variations,  with fidelity of simulations comparable with or superior to Diablo and and NCAR LES models.}
-    \item \hl{Raf/John: more?}
+    \item Adopt the atmosphere LES to the ocean and demonstrate benchmark simulations, e.g., of stable boundary layers. 
+    \item Drive ocean LES by observed boundary conditions in regions were lateral fluxes can be neglected and demonstrate a successful simulation of seasonal ocean mixed-layer variations,  with fidelity of simulations comparable with or superior to Diablo and and NCAR LES models.
+    \item \hl{Raf: more?}
 \end{enumerate}
    
     \item \textbf{Develop atmosphere process models suitable for DA/ML approaches.}
     
     \emph{Key results:}
     \begin{enumerate}
-        \item \duesoon{Demonstrate, in single-column mode, physical skeleton of a unified parameterization for atmospheric turbulence, convection, and clouds (TCC) (including microphysics) that can at least qualitatively capture boundary layer and cloud regimes from stable boundary layers, over shallow convection and stratocumulus-topped boundary layers, to deep convection.}
-        \item \duesoon{Demonstrate, in a perfect-model setting, learning about parameters, parametric functions, and (possibly) non-parameteric functions in the unified TCC parameterization.}
+        \item Demonstrate, in single-column mode, physical skeleton of a unified parameterization for atmospheric turbulence, convection, and clouds (TCC) (including microphysics) that can qualitatively capture boundary layer and cloud regimes from stable boundary layers, over shallow convection and stratocumulus-topped boundary layers, to deep convection.
+        \item Demonstrate, in a perfect-model setting, learning about parameters, parametric functions, and (possibly) non-parameteric functions in the unified TCC parameterization.
         \item Implement TCC parameterization in atmosphere model and demonstrate learning about its parameters in a perfect-model setting with simulated global observations.
         \item Demonstrate a gravity-wave parameterization that can learn from observations and high-resolution simulations (e.g., along the lines of \citet{Garner18a, Zhao18a}).
     \end{enumerate}
@@ -443,7 +442,7 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \duesoon{green
     
     \emph{Key results:}
     \begin{enumerate}
-        \item \duesoon{Develop unified parameterization framework for mixed-layer turbulence, convection, and mesoscale and submesoscale eddies.}
+        \item Develop unified parameterization framework for mixed-layer turbulence, convection, and mesoscale and submesoscale eddies.
         \item Demonstrate that the unified ocean parameterization can reproduce the seasonal cycle of mixed layers in (1) the high-latitude North Atlantic (where restratification in spring is not captured by present models) and (2) in the Southern Ocean (where mixed layer deepening in winter due to inertial shear is not included in present parameterizations).
         \item Develop parameterizations for heat and salt fluxes under sea ice and test them against observations of seasonal extent/thickness of sea ice in the Artcic and Antarctic Oceans.
         \item Implement new parameterizations in ocean model and demonstrate learning about its parameters in a perfect-model setting with simulated global observations.
@@ -467,8 +466,8 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \duesoon{green
     
     \emph{Key Results:}
      \begin{enumerate}
-        \item \duesoon{Develop a derivative-free, ensemble-based optimization scheme, for learning parameters in SGS models of the atmosphere and oceans, requiring on the order of 1000 ESM runs. Demonstrate and test the method in a global model in a perfect-model setting.}
-        \item \duesoon{Develop and demonstrate machine learning surrogates for the ESM, trained on the output of the optimizer, and use them for Bayesian uncertainty quantification of parameters; develop appropriate optimal experimental design approaches for this purpose.}
+        \item Develop a derivative-free, ensemble-based optimization scheme, for learning parameters in SGS models of the atmosphere and oceans, requiring on the order of 1000 ESM runs. Demonstrate and test the method in a global model in a perfect-model setting.
+        \item Develop and demonstrate machine learning surrogates for the ESM, trained on the output of the optimizer, and use them for Bayesian uncertainty quantification of parameters; develop approaches that integrate the optimization and UQ, so that, e.g., ensembles used in optimization cover the support of the posterior.
         \item Investigate and exploit the trade-off between statistical information and computational tractability to develop mini-batch-type algorithms to learn parameters in a filtering approach.
         \item Demonstrate online optimal experimental design methods to help locate LES turbulence simulations to generate maximally informative small-scale data.
     \end{enumerate}
@@ -498,7 +497,7 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \duesoon{green
         
     \item \textbf{Demonstrate atmosphere and ocean models that learn from observational data (primarily reanalysis) and nested high-resolution simulations.}
     \begin{enumerate}
-        \item Demonstrate atmosphere-only simulations that learn automatically from observations (reanalysis data for the past decades) and nested high-resolution simulations, in two configurations: (i) driven by observed sea surface temperatures (SST), i.e., in Atmospheric Model Intercomparison Project (AMIP) mode, and (ii) coupled to a slab ocean with observed ocean energy fluxes. (Configuration (i) will allow direct comparison with other models and is a relatively straightforward-to-run benchmark; configuration (ii) will clearly expose biases in the surface energy balance resulting, e.g., from biases in cloud cover, which may remain hidden in configuration (i).)
+        \item Demonstrate atmosphere-only simulations that learn automatically from observations (reanalysis data for the past decades) and nested high-resolution simulations, in two configurations: (i) driven by observed sea surface temperatures (SST), i.e., in Atmospheric Model Intercomparison Project (AMIP) mode, and (ii) coupled to a slab ocean with observed ocean energy fluxes.\footnote{Configuration (i) will allow direct comparison with other models and is a relatively straightforward-to-run benchmark; configuration (ii) will clearly expose biases in the surface energy balance resulting, e.g., from biases in cloud cover, which may remain hidden in configuration (i).}
         \item Demonstrate a substantial reduction in errors over the climatological seasonal cycle relative to current (CMIP5) simulations. 
         \begin{enumerate}
             \item Reduce global rms error in precipitation in AMIP runs to below $0.8~\mathrm{mm~day^{-1}}$ in any season (more than factor 2 reduction relative to CMIP5 model median, see Fig.~\ref{f:CMIP-precip-error}).
@@ -506,7 +505,7 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \duesoon{green
             \item Reduce tropical low-cloud cover biases in coupled runs to less than 10\% (compare Fig.~\ref{f:Sc-bias} for current model biases, which are around 50\% and larger).
             \item Reduce polar temperature biases to less than 2~K and sea ice cover biases to less than $2\times 10^6~\mathrm{km^2}$ in coupled runs (compare Fig.~\ref{f:polar-bias} for CMIP5 model biases).
              \end{enumerate}
-                \item Demonstrate reproduction of the 20th-century changes with the atmosphere model, coupled to a slab ocean (without having used the entire 20th-century record, with the exception of data for recent decades, for training the model).
+                \item Demonstrate reproduction of the 20th-century changes with the atmosphere model, coupled to a slab ocean (after having used only data for recent decades for training the model).
         \item Demonstrate learning about parameterizations in ocean model from observations (ocean reanalysis and Argo floats) paired with LES.
         \item \hl{observational ocean targets? ML depth?}
     \end{enumerate}
@@ -533,6 +532,6 @@ Key results to be achieved in year 1 (by Q3/2019) are highlighted \duesoon{green
 
 \clearpage
 \bibliographystyle{agufull08}
-\bibliography{CLIMA-refs}
+\bibliography{Giraldo_refs,CLIMA-refs}
 
 \end{document}
