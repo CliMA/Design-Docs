@@ -1,0 +1,51 @@
+\documentclass{article}
+
+\include{CLIMA_Macros}
+
+\title{Design Document for the CLIMA Land Model} 
+\author{ }
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}\label{s:introduction}
+
+This document highlights the design specifications for the land model (CLIMA-land) that is part of the Climate Machine (CLIMA). The model will be designed to run both in standalone mode (e.g., driven by reanalysis data) and coupled to the atmosphere. Because it will be part of a climate model, conservation of energy and water is essential, both within the land model and for the exchanges with the atmosphere. We will also leave the treatment of atmospheric fluxes (e.g., even within canopies) to the atmosphere model, so that all turbulent fluxes are dealt with consistently within one model component, and that the land model can also be run at large-eddy simulation resolutions, where, e.g., trees and the air flow around them become explicitly resolved. 
+
+The individual components of the land model will be developed in a modular fashion, but with consistent interactions. For example, the canopy model will interact with the soil model through source/sink terms represents processes such as water uptake by roots, and it will interact with turbulent fluxes in the atmospheric near-surface layer, for example, through exchange of momentum, energy, and water. 
+
+The biophysical part of the land model consists principally of components for soil, snow, and plants.
+
+\section{Soil}
+
+\begin{itemize}
+\item From saturation excess, infiltration excess (when P > k), and base flow (-kappa gradient(hydrologic height)
+\item Runoff goes into CaMa flood model
+\item Dissolved organic carbon in runoff $\mathrm{= NBP = GPP - R_{eco} - fire - disturbance}$. So, DOC in runoff can constrain NBP
+\item Soil layers with soil matric potential
+\item Model CO2 in soil
+\item Need deep soil (tens of layers, extending over ~200 m)
+\end{itemize}
+
+\section{Snow}
+
+Model bulk snow water equivalent, close energy and water budgets
+
+\section{Plants}
+
+Multi-layer canopy model
+
+Include tracers such as 13C, OCS
+
+\subsection{Radiative transfer}
+
+Let radiation (spectrally resolved) interact with canopy.
+
+Use Monte-Carlo Independent Column Approximation (ICA) to sample from canopy/soil properties, at the same time as sampling from cloud properties (no marginal cost); need assumed distribution of leaf area index to sample
+
+\bibliographystyle{agufull08}
+\bibliography{CLIMA-refs}
+
+\end{document}
