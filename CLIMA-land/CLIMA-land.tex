@@ -18,13 +18,138 @@ The individual components of the land model will be developed in a modular fashi
 
 The biophysical part of the land model consists principally of components for soil, snow, and plants.
 
+
 \section{Soil}
 
+\subsection{Heat equation}
+In the soil heat will be diffused following a 1D vertical heat diffusion:
+\begin{equation}
+     \frac{\partial (\rho_s c_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z}
+\end{equation}
+the soil heat capacity $c_s$ and hydraulic conductivity $k_s$ are function of the soil moisture content $\theta$. Note that the diffusion coefficient $\lambda_s/(\rho_s c_s)$ has much less moisture dependence because of a compensation of the dependence between $\lambda_s$ and $c_s$. with 
+$\lambda_s =  3 \rm W  m^{-1}  K^{-1}$ is  the  thermal  conductivity  assumed  for  the  deep  ground  layers  (typical  of  saturated  granitic  rock;  Clauser  and  Huenges,  1995).
+For the conductivity we will first follow the CLM formulation:
+The thermal and hydraulic properties of the soil are assumed to be weighted combinations of a mineral and organic layers of the soil (Lawrence and Slater 2008). The soil layer organic matter fraction $f_{om}$ is 
+\begin{equation}
+    f_{om} = \rho_{om}/\rho_{om,{\rm max}}
+\end{equation}
+The thermal conductivity is then $\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}$, with $K_e$ is the Kersten number, a function of soil relative humidity $s$. Those functions are rather empirical. One example of which is $K_e = \exp \big( \gamma((1-s(\gamma-1.33))\big)$.
+
+The heat capacity of the soil is:
+$c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}$.
+The dry soil heat capacity is a weighted average of pure soil and organic matter heat capacity $c_{\rm dry} = (1-f_{om})c_{soil} + f_{om}c_{om}$ (Farouki, 1981).
+$c_{soil} = {\rm \frac{2.128 (sand)+ 2.385 (clay)}{(sand) + (clay)}}$, with sand and caly the sand, clay  percentage respectively.
+In the bedrock we take $c_{soil,bedrock} = 2 ×10^6 {\rm J m^{-1} K^{-1}}$ as the heat capacity of the bedrock and $c_{s,om} = 2.5 ×10^6 {\rm J m^{-1} K^{-1}}$ the heat capacity of organic matter (Farouki, 1981).
+
+\subsection{Moisture equation}
+Moisture conservation is usually divided into two steps: 1) the unsaturated zone where total water storage is related to the relative water content $\theta$ and 2) the saturated zone where water storage is related to changes in the water head through the storativity (porosity for an unconfined aquifer, and storativity for confined aquifer).
+Let us start with he 3D Richards' equation so we do not lose generality (1D flow is just an approximation similar to shallow water equation).
+For instance in the 1D Richards' equation, the storage is related to the water content $S=\theta$. Without loss of generality though we can write the storage as a (nonlinear) function of the head $h=z+\psi$, with $\psi$ the matric potential so that $dS = f(h)dh$. \\
+We therefore write the conservation of mass including sinks/sources (such as due to roots but also for instance non-local transport due to preferential flow). 
+So the generic 3D Richards' equation:
+\begin{equation}
+     \frac{\partial S}{\partial t} = f(h)\frac{\partial h}{\partial t} = -\nabla \cdot \bf{q} + S
+\label{Richards}
+\end{equation}
+with $\bf{q}$ Darcy's flow, with 
+\begin{equation}
+     \bf{q} = - \mathbf{K} \otimes \nabla h
+\end{equation}
+For simplicity we will assume that the flow is long the head gradient:
+\begin{equation}
+     \bf{q} = - K \ \nabla h
+\end{equation}
+
+In the unsaturated zone, the storage is simply $S=\theta$, yet we will keep a head-based approach for continuity. $\theta$ is related to $h$ though the so-called retention curves (assuming negligible hysteresis). We will use the van Genuchten's formulation which is better behaved in saturated conditions than the Brooks and Corey relationship 
+\begin{equation}
+     \theta(\psi) = \theta_r + \frac{\theta_s - \theta_r}{\left[ 1+(\alpha |\psi|)^n \right]^{1-1/n}}
+\end{equation}
+At saturation the change in storage is simply related to the effective porosity: $\theta_s - \theta_r$. Note that the derivative should be continuous at the water table but this needs to be checked. 
+In a confined aquifer, then we will simply change the storage change by a storativity (normalized by the aquifer depth):
+\begin{equation}
+     \frac{\partial S}{\partial t} = S_x \frac{\partial h}{\partial t}
+\end{equation}
+Equation (\ref{Richards}) written in head term will be continuous across saturation interfaces.
+
+\section{Boundary conditions}
+\subsection{Ground heat flux at depth}
+The bottom boundary condition for the soil will be assumed to be a vanishing ground heat flux $G=0$. This will avoid specifying a constant temperature which would generate an artificial ground heat flux.
+
+\subsection{Surface energy budget}
+The surface energy budget including the canopy air heat capacity can write:
+\begin{equation}
+    \int_0^h{C_{air}dz \frac{\partial T_{air}(z)}{\partial t}} = R_n - G_0 - H - L_vE - GPP 
+\end{equation}
+with $C_{air}$ the specific heat of the air, $h$ the vegetation height, $R_n$ the net radiation at the top of the canopy, $G_0$ the ground heat flux at $z$=0, $H$ the sensible heat flux at the top of the canopy, $L_vE$ the latent heat flux at the top of the canopy and $GPP$ gross primary productivity within the canopy (a small but non-negligible term).
+
+ The SEB will be solved for the skin temperature at the leaf/soil interface. To do so we will use a multi-layer canopy and a soil layer.
+The soil budget will simply read:
+\begin{equation}
+     R_{n,s} - G_0 - H_s - L_vE_s = 0  
+\end{equation}
+
+At the leaf surface in the canopy, we will use a multi-layer canopy budget
+\begin{equation}
+    \int_z^{z+\delta z}{C_v (LM_d+S_d) dz\frac{\partial T_v}{\partial t}} = R_{n,v}(z) -H_v(z)-L_vE(z)-GPP(z)
+\end{equation}
+with $LM_d$ the mass vertical density of leaves, related to the leaf mass area and therfore to the lead area index density $LAId$, and leaf specific mass $LM$. $S_d$ is the stem mass vertical density.
+(Note that the atmosphere will have to see the sensible and latent heat fluxes but we leave the atmosphere component as part of the atmospheric module). Note importantly that the canopy is like a porous medium so not all space can be filled up with air because of the stems and canopy volume. This will require some correction factor in the mass and energy conservation in the atmosphere at the top of the canopy for continuity.
+
+\subsection{Surface evapotranspiration}
+Surface evapotranspiration is composed of four terms: 1. open-water body evaporation (e.g. lakes), 2. soil evaporation, 3. Plant canopy transpiration and 4. Canopy interception
+\subsubsection{Open-water evaporation}
+The open water body evaporation will simply use the same formulation as the ocean model (including waves)
+\subsubsection{Soil evaporation}
+Soil evaporation modeling has typically been relatively empirical leading to systematic issues with soils either drying much too fast or too slowly (De Kauwe). We here use a recent formulation (Lehmann et al., 2019) informed by observations from either laboratory or in situ flux observations (Merlin et al. 2018). This formulation is aimed at modeling the evaporative front and its impact on soil evaporation. 
+Soil evaporation then is 
+\begin{equation}
+    E_s = \rho \frac{e_s(T_s)-e_{a,s}}{r_{a,s}+r_{\rm shell}+r_{\rm soil}}
+\end{equation}
+with $e_{a,s}$ the near surface air vapor pressure, $r_{a,s}$ the surface aerodynamic resistance between the surface and near surface level, composed of a viscous boundary layer resistance $\delta /D_{air}$, with $\delta$ the depth of the viscous boundary layer (note that reality is trickier with a buffer regime - matching the viscous and turbulent layers). It should not be a major issue as this resistance will typically not be the primary limitation. The vapor shell resistance $r_{\rm shell}$ is due to the configurational resistance to diffusion through vapor shells forming around evaporating pores (diffusion in 3-D from the evaporating pores across a hemisphere (Bange, 1953; Schlünder, 1988).
+\begin{equation}
+    r_{\rm shell} = \frac{1}{D_{\rm air}}\frac{\overline{r_{\rm pore}}(\pi-2\sqrt{\theta(z=0)})}{4\theta(z=0)}
+\end{equation}
+with mean pore size $\overline{r_{\rm pore}}$.
+The soil resistance is related to the evaporative font and Darcy's law of capillarity effects.
+\begin{equation}
+    r_{\rm soil} = \frac{1}{4 K_s(\theta(z=0))\frac{\Delta H}{\Delta Z}}\frac{e_s(T_s)-e_{a,s}}{\rho}
+\end{equation}
+with $\frac{\Delta H}{\Delta Z}$ the head across a layer $\Delta Z$ (surface acppilarity effects between the wet subsurface and dry surface). It can be shown that (Lehmann et al., 2008; 2019) that 
+\begin{equation}
+   \frac{\Delta H}{\Delta Z} = \frac{L_{\rm gravity}}{L_{\rm capillarity}} = 1+E_0/(4K_s(h_c))
+\end{equation}
+with $E_0$ is surface potential evaporation (i.e. in the absence of shell and soil resistances) “gravity length” $L_{\rm gravity}$ (difference between air entry value $h_b$ and critical capillary pressure head $h_c$ at which hydraulic flow paths become disconnected) with $h_c$ obtained from van Genuchten as:
+\begin{equation}
+   h_c = \frac{1}{\alpha}\left( \frac{n-1}{n} \right)^{\left( \frac{1-2n}{n} \right)}
+\end{equation}
+
+\subsubsection{Canopy reevaporation}
+Interception of rainwater by the canopy remains highly empirical and few parameterizations exist. Those parameterization are not physically based and were tested at only very few sites. We are currently developing a method that should be able to give much better estimates of rainfall interception using hybrid machine leaning approaches, showing a clear dependence on rainfall maximum and Leaf Area Index. FOR LATER
+
+\subsubsection{Transpiration}
+Transpiration will follow an approach based on optimal stomatal behavior, which assumes that stomata are maximizing carbon uptake while minimizing water losses through transpiration (see photosynthesis section). 
+Since we will use a multi-layer canopy we will always consider as the air reference value, the air in the vicinity of the leaves and thus at the same height $z$. WE note that the air resistance should not be defined based on Monin-Obukhov Similarity Theory (MOST) but is rather due to von Kármán vortex streets.
+The trasnpiration at level $z$ will be
+\begin{equation}
+    E_l = LAI_d \ \rho \frac{e_s(T_l(z))-e_{a}(z)}{r_{a,v}(z)+r_{\rm sto}(z)}
+\end{equation}
+Pierre: Note I placed $LAI_d$ in front of $E_l$ to emphasize that it is the density of leaves that is generating transpiration. Another choice would have been to have it dividing $r_{\rm sto}(z)$ but since turbulence is also due to the leaves it is more convenient to have it in font of everything as a density weigthing (easier to integrate).
+
+\subsection{Ground heat flux at depth}
+\subsubsection{Infiltration excess runoff}
+At the surface during high-rainfall events, the rate of precipitation can exceed that of infiltration. This is modeled very simply as an infiltration excess (i.e. Hortonian runoff). The excess rate $i_H = P_s-q(z=0)$ is then direclty assumed to run off into the streams. Note that it requires fine time stepping.
+
+\subsubsection{Saturation excess runoff}
+When the infiltration exceeds the saturation capacity, the residual is assumed to also run off (Dunne runoff). This is again quite simple: withing a time step if the storage exceeds saturation, the residual is assumed to run off into the stream. This mechanism generally occurs near the stream.
+
+\subsubsection{Groundwater baseflow}
+The horizontal gradient of water in the landscape is continuously feeding the stream and is related to the horizontal gradient of $\mathbf{q}$: $-\nabla_H \cdot \mathbf{q}$.
+
+\subsubsection{Streams}
+Runoff will be channeled into the CaMa Flood model.
+
 \begin{itemize}
-\item From saturation excess, infiltration excess (when P > k), and base flow (-kappa gradient(hydrologic height)
-\item Runoff goes into CaMa flood model
 \item Dissolved organic carbon in runoff $\mathrm{= NBP = GPP - R_{eco} - fire - disturbance}$. So, DOC in runoff can constrain NBP
-\item Soil layers with soil matric potential
 \item Model CO2 in soil
 \item Need deep soil (tens of layers, extending over ~200 m)
 \end{itemize}
@@ -33,7 +158,7 @@ The biophysical part of the land model consists principally of components for so
 
 Model bulk snow water equivalent, close energy and water budgets
 
-\section{Plants}
+\section{Vegetation}
 
 Multi-layer canopy model
 
@@ -44,6 +169,9 @@ Include tracers such as 13C, OCS
 Let radiation (spectrally resolved) interact with canopy.
 
 Use Monte-Carlo Independent Column Approximation (ICA) to sample from canopy/soil properties, at the same time as sampling from cloud properties (no marginal cost); need assumed distribution of leaf area index to sample
+
+\subsection{River network}
+https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2019WR024873
 
 \bibliographystyle{agufull08}
 \bibliography{CLIMA-refs}
