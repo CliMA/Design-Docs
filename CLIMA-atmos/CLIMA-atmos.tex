@@ -622,7 +622,7 @@ It is the moist static energy flux that is associated with evaporation, with the
     \\ -\rho C_h(z) \| \vec{u}(z) \| \left[ c_{pm} (T(z) - T_\mathrm{sfc}) + \Phi(z) - \Phi_\mathrm{sfc}
     - h_d (q_t(z) - q_{t, \mathrm{sfc}})  \right],
 \end{multline}
-where $h_d = c_{vd} (T - T_0) + R_d T$ is the specific enthalpy of dry air. It represents the part of the total moist static energy flux at the surface, Eq.~\eqref{e:sfc_energy_flux}, which is not already taken into account in the latent heat flux. The term $h_d (q_t(z) - q_{t, \mathrm{sfc}})$ arises from the diffusion of dry air, or the differential diffusion of water. The total specific humidity at the surface $q_{t, \mathrm{sfc}}$ is the sum of the component specific humidities, with the vapor specific humidity being the saturation specific humidity over a wet surface and the condensate specific humidities set to their values in the lowest model level, as above. In accordance with common practice, we call this energy flux the sensible heat flux. However, it differs in details from common empirical formulations for the sensible heat flux (e.g., in how moisture gradients enter). This form of the sensible heat flux stems from an exact decomposition of a moist static energy flux at the surface into latent and sensible components. 
+where $h_d = c_{vd} (T - T_0) + R_d T$ is the specific enthalpy of dry air. It represents the part of the total moist static energy flux at the surface, Eq.~\eqref{e:sfc_energy_flux}, which is not already taken into account in the latent heat flux. The term $h_d (q_t(z) - q_{t, \mathrm{sfc}})$ arises from the diffusion of dry air, or the differential diffusion of water. The total specific humidity at the surface $q_{t, \mathrm{sfc}}$ is the sum of the component {Boundaryspecific humidities, with the vapor specific humidity being the saturation specific humidity over a wet surface and the condensate specific humidities set to their values in the lowest model level, as above. In accordance with common practice, we call this energy flux the sensible heat flux. However, it differs in details from common empirical formulations for the sensible heat flux (e.g., in how moisture gradients enter). This form of the sensible heat flux stems from an exact decomposition of a moist static energy flux at the surface into latent and sensible components. 
 
 The total enthalpy flux at the surface \eqref{e:sfc_energy_flux} is the sum of the latent and sensible heat fluxes. Consistent with the diffusivities for total specific humidity and total enthalpy being taken to be equal, the exchange coefficients $C_q$ and $C_h$ in the moisture and energy fluxes should also be taken to be equal:
 \[
@@ -647,7 +647,31 @@ Lateral boundary conditions do not arise on the sphere. However, several forms o
     \item with absorbing horizontal boundary conditions (e.g., relaxation to a global-model state on a coarse grid). 
 \end{itemize}
 
+\subsection{Initial Conditions}\label{s:initial_conditions}
 
+\hl{[TODO in code: It would be good to provide a module that computes the hydrostatic density and pressure consistent with a given temperature profile $T(z)$ and fixed relative humidity RH. We need this often for initialization and for computation of reference states for the linearizations needed for implicit time steps.]}
+
+Initial conditions are usually case specific. But a situation that arises often is having an initial state that is at rest, hydrostatic, and has a specified temperature profile $T(z)$ that varies only with height $z$. To reduce spin-up times, for example, of a global model, we may also wish to specify an initial constant relative humidity (with $\mathrm{RH} < 1$ to avoid saturation in the initial state).
+
+We obtain the pressure $p(z)$ consistent with the temperature profile $T(z)$ by combining hydrostatic balance ($\partial_z p(z) = - \rho g$) with the ideal gas law ($p=\rho R_d T$, neglecting the effect of any moisture on the gas constant), giving
+\begin{equation}
+p(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right).
+\end{equation}
+Here,
+\begin{equation}
+H(z)  = \frac{R_d T(z)}{g}
+\end{equation}
+is the scale height, and we chose for the pressure $p(0)$ at height $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. (For the simple and commonly used choice of a constant initial temperature $T$, this reduces to $p(z) = \exp (-z/H)$, where the scale height $H = R_d T/g$ is constant.) \hl{[If we are not well setup for the vertical integration, just implementing the case for constant temperature would suffice for now.]} The reference density then follows from the ideal gas law as
+\begin{equation}
+    \rho(z) = \frac{p(z)}{R_d T(z)}.
+\end{equation}
+And the total specific humidity $q_t(z)$ for a given relative humidity, temperature $T(z)$, and density $\rho(z)$ is
+\begin{equation}
+    q_t(z) = \mathrm{RH} \, q_v^*\bigl( T(z), \rho(z) \bigr),
+\end{equation}
+where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}.
+
+It is common to add a small amount of random noise, e.g., to the initial density at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of $\rho(0)$.
 
 \section{Abstraction of Model Formulation}\label{s:abstract_model_formulation}
 
@@ -793,7 +817,7 @@ As a concrete example, consider precipitation and how it interacts with the rest
 \item The precipitation specific humidity $q_{p,i}$ enters various microphysical source/sink terms, for example, in the equations for suspended specific humidities $q_k$. As a result, these sources also evolve fast and need to be accumulated over the fast timesteps over which precipitation $q_{p.i}$ evolves.
 \item On the other hand, other terms in the equations for suspended specific humidities $q_k$ evolve on dynamical timescales and hence are slower than the microphysical terms.
 \end{enumerate}
-\hl{We need an abstract model formulation that allows different timesteps for different components, and we need a concrete timestepping strategy}(section~\ref{s:timestepping}).
+\hl{We need an abstract model formulation that allows different timesteps for different components. It would be helpful to come up with a way of labeling substepped terms by integer multiples of the dynamical timestep, indicating how often they are subcycled for every dynamical timestep, and similarly for superstepped (slower) terms. \textbf{Charlie?}}
 
 \subsection{Boundary Conditions}
 
@@ -807,17 +831,17 @@ Thus, generally, we want vanishing normal flux components at rigid boundaries, a
 \subsection{Spatial Discretization Methods}
 
 \subsubsection{Overview}
-For the spatial discretization methods, we use variants of the discontinuous Galerkin (DG) method with a tensor-product bases (see, e.g., \citealt{giraldo:2008a, abdi:2016}). That is, we use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
+For the spatial discretization methods, we use variants of the discontinuous Galerkin (DG) method with tensor-product bases (see, e.g., \citealt{giraldo:2008a, abdi:2016}). We use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
 
-In the numerical method the domain is assumed to be embedded in a Cartesian
+In the numerical method, the domain is assumed to be embedded in a Cartesian
 coordinate system. The vector $\vec{x}$ denotes a point in the Cartesian
 coordinate system and the three components are taken to be $(x_{1}, x_{2},
-x_{3})$. Each element will also have its own reference coordinate system defined
+x_{3})$. Each element will also have its own reference coordinate system, defined
 so that the element is a square (in two-dimensions) or cube (in
-three-dimensions). A point in the reference element is denoted as $\vec{\xi}$
-and the three components are taken to be $(\xi_{1}, \xi_{2}, \xi_{3})$.
-It is important to note that $x_{3} \ne z$ if $z$ is taken to be height or the
-direction that gravity acts.
+three-dimensions). A point in the reference element is denoted as $\vec{\xi}$,
+and the three element coordinates are taken to be $(\xi_{1}, \xi_{2}, \xi_{3})$.
+It is important to note that $x_{3} \ne z$ if $z$ is taken to be height (the
+direction in which gravity acts).
 
 \hl{[I have been through this to make a first pass at the change of notation to
 $(x_{1}, x_{2}, x_{3})$ and $(\xi_{1}, \xi_{2}, \xi_{3})$, but would be good to
@@ -856,8 +880,8 @@ constant in each direction, and so we can also write
 $N_p=(N_{\xi_{1}}+1)(N_{\xi_{2}}+1)$ in two dimensions or
 $N_p=(N_{\xi_{1}}+1)(N_{\xi_{2}}+1)(N_{\xi_{3}}+1)$ in three dimensions, where
 $\xi_{1}$ is along the horizontal direction, $\xi_{2}$ along the vertical, and
-$\xi_{3}$ coming out of the page. That said, the currently in CLIMA it is
-assumed that $N = N_{\xi_{1}} = N_{\xi_{2}} = N_{\xi_{3}}$.
+$\xi_{3}$ coming out of the page. That said, in CLIMA we currently 
+assume that $N = N_{\xi_{1}} = N_{\xi_{2}} = N_{\xi_{3}}$.
 
 The attraction of using basis functions $\psi$ to represent the solution $\vec{Y}$ is that computing the gradient of $\vec{Y}$ now only requires applying the gradient operator directly to Eq.~\eqref{eq:spatial_discretization/dg_method}, which yields
 \be
@@ -888,18 +912,22 @@ Invoking the divergence theorem for the second term yields
 \inte \psi_i \diff{\vec{Y}^{(e)}}{t} d\Omega_e + \intb \psi_i \nvector \cdot \vecFe_N d\Gamma_e - \inte \nabla \psi_i \cdot \vecFe_N d\Omega_e= 0,
 \label{eq:spatial_discretization/DG_divergence/conservation_law/discrete3}
 \ee
-where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its outward pointing normal vector. We now need to fix the inconsistency of the second term above because it says that the solution along each element boundary $\Gamma_e$ is different from its neighbor since $\vecFe_N$ is allowed to be discontinuous across element boundaries (i.e., if $\vecFe_N \in C^1$ then no such inconsistency would exist).  To fix this, we introduce a numerical flux such that what flows from element $\Omega_e$ to its neighbor $\Omega_k$ is the negative of what flows from $\Omega_k$ into $\Omega_e$.  We represent this fix as follows
+where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its outward pointing normal vector. We now need to fix the inconsistency of the second term above because it says that the solution along each element boundary $\Gamma_e$ is different from its neighbor since $\vecFe_N$ is allowed to be discontinuous across element boundaries (if $\vecFe_N \in C^1$ then no such inconsistency would exist).  To fix this, we introduce a numerical flux such that what flows from element $\Omega_e$ to its neighbor $\Omega_k$ is the negative of what flows from $\Omega_k$ into $\Omega_e$.  We represent this fix as follows
 \be
 \inte \psi_i \diff{\vec{Y}^{(e)}_N}{t} d\Omega_e + \intb \psi_i \nvector \cdot \Fvector^{(*,e)}_N d\Gamma_e - \inte \nabla \psi_i \cdot \vecFe_N d\Omega_e= 0,
 \label{eq:spatial_discretization/DG_divergence/conservation_law/discrete4}
 \ee
-where $\Fvector^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions, we will have 4 face neighbors and in three dimensions we will have 6 face neighbors.  At this point, one is free to choose their favorite numerical flux just as one would do in the finite-volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are completely local within the element.
+where $\Fvector^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions, we will have 4 face neighbors, and in three dimensions we will have 6 face neighbors.  At this point, one is free to choose their favorite numerical flux just as one would do in the finite-volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are completely local within the element.
 
 \subsubsection{Tensor Product Basis Functions}
 In Eq.\ \eqref{eq:spatial_discretization/dg_method}, we have said very little
 about the basis functions $\psi$ and have written the approximation in so-called
 monolithic form whereby all the degrees of freedom within an element are written
-as one long vector of length $N_p$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used.  In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as 
+as one long vector of length $N_p$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used.  
+
+\paragraph{Two Dimensions}
+
+In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as 
 \[
   \psi_i(\xi_{1},\xi_{2}) = h_j(\xi_{1}) \otimes h_k(\xi_{2}),
 \]
@@ -910,7 +938,7 @@ where $h$ are one-dimensional basis functions, $\otimes$ denotes the tensor (or 
 \ee
 where we have written the approximation in terms of the reference element coordinates $(\xi_{1},\xi_{2})$ instead of the physical coordinates $(x_{1},x_{2})$.  The advantage of doing this is that the reference element and its coordinates never change, which means that we can use one set of basis functions for all of the elements in the mesh.  
 
-Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields
+Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields \hl{Jeremy: do you want just $\vec{x}$ in the derivative here, rather than $\vec{x}_1$?}
 \be
 \diff{}{\vec{x_{1}}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \diff{}{\vec{x_{1}}} \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} h_i(\xi_{1}) h_j(\xi_{2}) \vec{Y}^{(e)}_{ij}(t)
 \label{eq:spatial_discretization/dg_method/tensor-product/gradient}
@@ -921,22 +949,25 @@ where $\vec{x}$ can represent either $x_{1}$ or $x_{2}$.  Let us look at each co
 \]
 and
 \[
-  \diff{}{x_{2}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{2}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{2}}
+  \diff{}{x_{2}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{2}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{2}},
 \]
 where the metric terms $\partial\vec{\xi}/\partial\vec{x}$ need to be computed for each element in the mesh.
 Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/gradient} for the $x_{1}$-derivative as 
-\be
-\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \left( \diff{h_i(\xi_{1})}{\xi_{1}}\diff{\xi_{1}}{x_{1}} h_j(\xi_{2}) + h_i(\xi_{1}) \diff{h_j(\xi_{2})}{\xi_{2}}\diff{\xi_{2}}{x_{1}} \right) \vec{Y}^{(e)}_{ij}(t).
+\begin{multline}
+\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \\
+\sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \left( \diff{h_i(\xi_{1})}{\xi_{1}}\diff{\xi_{1}}{x_{1}} h_j(\xi_{2}) + h_i(\xi_{1}) \diff{h_j(\xi_{2})}{\xi_{2}}\diff{\xi_{2}}{x_{1}} \right) \vec{Y}^{(e)}_{ij}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product/x-deriv}
-\ee
-If we use the same polynomial order along $\xi_{1}$ and $\xi_{2}$ (call it $N$) then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/x-deriv} to
+\end{multline}
+If we use the same polynomial order along $\xi_{1}$ and $\xi_{2}$ (call it $N$), then we can simplify Eq.~\eqref{eq:spatial_discretization/dg_method/tensor-product/x-deriv} to
 \be
 \diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \left( dh_i \xi_x h_j + h_i dh_j \eta_x \right) \vec{Y}^{(e)}_{ij}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product/x-deriv2}
 \ee
 where $h$ is the basis function and $dh$ is its derivative, which are the same functions used along both directions $\xi_{1}$ and $\xi_{2}$; the index $(i,j)$ will account for which direction we are referring to.
 
-This strategy readily extends to three-dimensions where we write the basis functions as 
+\paragraph{Three Dimensions}
+
+The same strategy readily extends to three-dimensions, where we write the basis functions as 
 \[
   \psi_i(\xi_{1},\xi_{2},\xi_{3}) = h_j(\xi_{1}) \otimes h_k(\xi_{2}) \otimes h_l(\xi_{3})
 \]
@@ -945,9 +976,7 @@ with $j=1,\ldots N_{\xi_{1}}+1$, $k=1,\ldots,N_{\xi_{2}}+1$, $l=1,\ldots,N_{\xi_
 \vec{Y}^{(e)}_N(\xi_{1},\xi_{2}, \xi_{3}, t) = \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} h_i(\xi_{1}) h_j(\xi_{2}) h_k(\xi_{3}) \vec{Y}^{(e)}_{ijk}(t),
 \label{eq:spatial_discretization/dg_method/tensor-product-3d}
 \ee
-where we have written the approximation in terms of the reference element coordinates $(\xi_{1},\xi_{2}, \xi_{3})$ instead of the physical coordinates $(x_{1},x_{2},x_{3})$. 
-
-Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d} yields
+where we have again written the approximation in terms of the reference element coordinates $(\xi_{1},\xi_{2}, \xi_{3})$ instead of the physical coordinates $(x_{1},x_{2},x_{3})$. Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d} yields
 \be
 \diff{}{\vec{x}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},\xi_{3},t) = \diff{}{\vec{x}} \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} h_i(\xi_{1}) h_j(\xi_{2}) h_k(\xi_{3}) \vec{Y}^{(e)}_{ijk}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product-3d/gradient}
@@ -963,19 +992,21 @@ and
 \[
   \diff{}{x_{3}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{3}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{3}} + \diff{}{\xi_{3}} \diff{\xi_{3}}{x_{3}},
 \]
-where the metric terms $\diff{\vec{\xi}}{\vec{x}}$ need to be computed for each element in the mesh.
+where the metric terms $\partial{\vec{\xi}}/\partial{\vec{x}}$ need to be computed for each element in the mesh.
 Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/gradient} for the $x_{1}$-derivative as follows
 \begin{multline}
-  \diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) =  \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} \\ 
-  \left( \diff{h_i(\xi_{1})}{\xi_{1}}\diff{\xi_{1}}{x_{1}} h_j(\xi_{2}) h_k(\xi_{3}) + h_i(\xi_{1}) \diff{h_j(\xi_{2})}{\xi_{2}}\diff{\xi_{2}}{x_{1}} h_k(\xi_{3}) 
+  \diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) =  \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} 
+  \left( \diff{h_i(\xi_{1})}{\xi_{1}}\diff{\xi_{1}}{x_{1}} h_j(\xi_{2}) h_k(\xi_{3}) \right. \\
+  + \left. h_i(\xi_{1}) \diff{h_j(\xi_{2})}{\xi_{2}}\diff{\xi_{2}}{x_{1}} h_k(\xi_{3}) 
   + h_i(\xi_{1}) h_j(\xi_{2}) \diff{h_k(\xi_{3})}{\xi_{3}}\diff{\xi_{3}}{x_{1}} \right) \vec{Y}^{(e)}_{ijk}(t) .
 \label{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv}
 \end{multline}
-If we use the same polynomial order along $\xi_{1}$, $\xi_{2}$, and $\xi_{3}$ then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv} as follows
-\be
-\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1}, \xi_{2}, \xi_{3}, t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \sum_{k=1}^{N+1} \left( dh_i \xi_x h_j h_k + h_i dh_j h_k \eta_x + h_i h_j dh_k \zeta_x\right) \vec{Y}^{(e)}_{ijk}(t).
+If we use the same polynomial order along $\xi_{1}$, $\xi_{2}$, and $\xi_{3}$, then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv} as follows
+\begin{multline}
+\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1}, \xi_{2}, \xi_{3}, t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \sum_{k=1}^{N+1} \\
+\left( dh_i \xi_x h_j h_k + h_i dh_j h_k \eta_x + h_i h_j dh_k \zeta_x\right) \vec{Y}^{(e)}_{ijk}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv2}
-\ee
+\end{multline}
 where the index $(i,j,k)$ will account for which direction we are referring to.
 
 \subsubsection{Implementation}
@@ -1467,10 +1498,10 @@ The initial state of all the quantities described above are plotted in Figure \r
 Bottom boundary conditions should be applied according to \S \ref{s:bottom_bc}. For the time being, in first approximation we are applying the following forcing instead:
 
 \begin{itemize}
-    \item Weakly imposed Dirichlet on bottom temperature: $T=SST=292.5\,{\rm K}$.\\
-    \item Weakly imposed Dirichlet on bottom $q_t$: $q_t=13.84e-3\,{\rm kg/kg}$.\\
-    \item Weakly imposed no-slip: ${\bf u}= 0$.\\
-    \item Weakly imposed $SHF = 15\,{\rm W/m^2}$ and $LHF = 115\,{\rm W/m^2}$.\\
+    \item Weakly imposed Dirichlet on bottom temperature: $T=SST=292.5\,{\rm K}$.
+    \item Weakly imposed Dirichlet on bottom $q_t$: $q_t=13.84e-3\,{\rm kg/kg}$.
+    \item Weakly imposed no-slip: ${\bf u}= 0$.
+    \item Weakly imposed $SHF = 15\,{\rm W/m^2}$ and $LHF = 115\,{\rm W/m^2}$.
 \end{itemize}
 
 \paragraph{Radiative cooling}
@@ -1480,14 +1511,14 @@ Radiative cooling is imposed by means of the simple model described by \cite{Ste
     \label{e:radiativeStevens05}
     F_{rad}({\bf x}, t}) = F_0{\rm e}^{-Q(z,\infty)} +
     F_1{\rm e}^{-Q(0, z)} +
-    \rho_i\,c_p\,D\,\alpha_z\[\frac{(z-z_i)^{4/3}}{4} + z_i(z - z_i)^{1/3} \],
+    \rho_i c_p D \alpha_z\[\frac{(z-z_i)^{4/3}}{4} + z_i(z - z_i)^{1/3} \]
 \end{equation}
 where 
 \begin{equation}
     Q(a,b) = \kappa\int_{a}^{b}\rho\,q_l\,dz.
 \end{equation}
 The following parameters are used:
-$F_0=70\,{\rm W\,m^{-2}}$, $F_1=22\,{\rm W\,m^{-2}}$, $\kappa=85\,{\rm m^2\,kg^{-1}}$, $\alpha_z=1\,{\rm m^{-4/3}}$. The large scale subsidence divergence is parameterized by $D=3.75\time 10^{-6}\,{\rm s^{-1}}$. This value is also used to calculate the subsidence velocity as $w=-Dz$.
+$F_0=70\,{\rm W\,m^{-2}}$, $F_1=22\,{\rm W\,m^{-2}}$, $\kappa=85\,{\rm m^2\,kg^{-1}}$, $\alpha_z=1\,{\rm m^{-4/3}}$. The large scale subsidence divergence is parameterized by $D=3.75\times 10^{-6}\,{\rm s^{-1}}$. This value is also used to calculate the subsidence velocity as $w=-Dz$.
 
 
 \subsection{3D squall line}
