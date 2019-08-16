@@ -938,9 +938,9 @@ where $h$ are one-dimensional basis functions, $\otimes$ denotes the tensor (or 
 \ee
 where we have written the approximation in terms of the reference element coordinates $(\xi_{1},\xi_{2})$ instead of the physical coordinates $(x_{1},x_{2})$.  The advantage of doing this is that the reference element and its coordinates never change, which means that we can use one set of basis functions for all of the elements in the mesh.  
 
-Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields \hl{Jeremy: do you want just $\vec{x}$ in the derivative here, rather than $\vec{x}_1$?}
+Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields
 \be
-\diff{}{\vec{x_{1}}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \diff{}{\vec{x_{1}}} \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} h_i(\xi_{1}) h_j(\xi_{2}) \vec{Y}^{(e)}_{ij}(t)
+\diff{}{\vec{x}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \diff{}{\vec{x}} \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} h_i(\xi_{1}) h_j(\xi_{2}) \vec{Y}^{(e)}_{ij}(t)
 \label{eq:spatial_discretization/dg_method/tensor-product/gradient}
 \ee
 where $\vec{x}$ can represent either $x_{1}$ or $x_{2}$.  Let us look at each component separately. Invoking the chain rule yields
