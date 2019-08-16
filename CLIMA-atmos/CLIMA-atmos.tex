@@ -1001,22 +1001,26 @@ We can solve this linear system using, e.g., Krylov subspace methods such as GCR
 
 \subsubsection{Reference State for Linearization}
 
-\hl{\textbf{Frank}: Is this what you actually implemented? Or did you use a different reference state. Note also that I changed to subscript $r$ for the reference state, to avoid confusion with thermodynamic reference state variables.}
-[\fxg{Tapio, it's up to the user what they want to use for the reference. In the Balance Law solver we introduced the reference state via the AUX variables.  We then perform the linearization based on these AUX variables.}]
+\hl{TODO in code: Implement the reference state calculation for an arbitrary $T_r(z)$; constant $T_r$ for now is fine.}
 
-Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. A simple and commonly used choice of reference state for the linearization is a dry isothermal atmosphere at rest in hydrostatic equilibrium. Given the reference state temperature $T_{r}$, the hydrostatically balanced pressure is
+Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates. We enforce hydrostatic balance, and assume the reference state is dry, so that the reference pressure is obtained by combining hydrostatic balance ($\partial_z p_r(z) = - \rho_r g$) with the ideal gas law ($p_r=R_d \rho_r T_r$), giving 
+\[
+p_r(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right),
+\]
+where
+\[
+H(z)  = \frac{R_d T_r(z)}{g}
+\]
+is the scale height and we chose for $p_r(0)$ the mean sea level pressure $p_{\mathrm{MSLP}}$. For the simple and commonly used choice of a constant reference temperature $T_r$, this reduces to
 \begin{equation}
-    p_r = p_{\mathrm{MSLP}} \exp (-z/H),
+    p_r = \exp (-z/H),
 \end{equation}
-where $p_{\mathrm{MSLP}}$ is the mean sea level pressure, and 
+where the scale height $H = R_d T_{r}/g$ is constant. The reference density then follows from the ideal gas law as
 \begin{equation}
-    H = \frac{R_d T_{r}}{g}
+    \rho_r = \frac{p_r}{R_d T_{r}}.
 \end{equation}
-is the scale height corresponding to the constant temperature $T_{r}$. The density then follows from the ideal gas law as
-\begin{equation}
-    \rho_r = \frac{p_r}{R_d T_{r}} = \frac{p_{\mathrm{MSLP}}}{R_d T_{r}} \exp (-z/H).
-\end{equation}
-The reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic and hydrostatic balance in this isothermal atmosphere. Because the reference state is assumed dry, so $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
+
+Because the reference temperature and thus the reference pressure are assumed to be constant in the horizontal, the reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic balance. Because the reference state is assumed dry, $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
 
 More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference state velocity in geostrophic and hydrostatic balance with this temperature field. 
  
@@ -1053,8 +1057,8 @@ p' \vec{I}_3 \\
 \right)
 \label{eq:fluxes_linear}
 \end{equation}
-And the linear component of the source term \hl{[So you are including external gravity waves and inertia-gravity waves in the implicit part. Do we really want to do that? It seems unusual for LES, and probably gives rise to dispersive errors for Rossby waves in GCMs.]}
-[\fxg{The way this section was initially written represented what we COULD do.  I am now modifying this section to reflect what is actually done in the code.}]
+And the linear component of the source term \hl{[So you are including external gravity waves  in the implicit part, too, in contrast to what is stated at the beginning of the section? Do we really want to do that? It seems unusual for LES.]}
+[\fxg{The way this section was initially written represented what we COULD do.  I am now modifying this section to reflect what is actually done in the code.}] \hl{[Well, we need to know what we actually should implement.]}
 is 
 \begin{equation}
 \mathcal{L}\left( \Source_{\mathrm{fastest}}\right) = \left( \begin{array}{c}
@@ -1067,19 +1071,23 @@ is
 \end{array}
 \right)
 \end{equation}
-which is linear with respect to $\rho'$. To obtain a system that is linear in state variables, we also need to express the perturbation  pressure $p'= p - p_r$ as a linear function of state variables, which we can obtain from the ideal gas law (neglecting moisture perturbations affecting the gas constant)
-\begin{equation}\label{eq:pressure_perturb}
-p' \approx R_d (\rho T)' 
-\end{equation}
-once we have $(\rho T)'$. The latter we get from the internal energy perturbation per unit volume,
+which is linear with respect to $\rho'$. To obtain a system that is linear in state variables, we also need to express the perturbation  pressure $p'= p - p_r$ as a linear function of state variables. We can do so by first computing the linearized internal energy perturbation per unit volume,
 \begin{equation}
 (\rho I)' \approx (\rho \etotal)'  -  \rho' \Phi,
 \end{equation}
-using a version of the temperature equation~\eqref{eq:temperature} that is linear in the state variables,
+assuming a reference state at rest, and computing from that the perturbation product of density and temperature
+using a version of the temperature equation~\eqref{eq:temperature} that is linear in the state variables:
 \begin{equation}\label{eq:temperature_perturb}
 (\rho T)' =  \frac{(\rho I)'  - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0})}{c_{vd}}.
 \end{equation}
-Combining \eqref{eq:pressure_perturb}--\eqref{eq:temperature_perturb} gives the perturbation pressure as a linear function of state variables. 
+The ideal gas law (neglecting moisture perturbations affecting the gas constant) then gives the perturbation pressure
+\begin{equation}\label{eq:pressure_perturb}
+\begin{split}
+p' & \approx R_d (\rho T)' \\
+   & \approx \frac{R_d}{c_{vd}} \bigl[ (\rho I)'  - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0}) \bigr].
+\end{split}
+\end{equation}
+This gives the perturbation pressure as a linear function of state variables. 
 
 Defining 
 \[
@@ -1089,8 +1097,7 @@ we obtain the nonlinear component of the fastest tendency as the residual
 \[
 \Tvector^N_{\mathrm{fastest}} = \Tvector_{\mathrm{fastest}} - \Tvector^L_{\mathrm{fastest}}.
 \] 
-This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{\mathrm{fastest}}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{\mathrm{fastest}}$) and  $\lambda^L_{\mathrm{fastest}} = c^L_s$ (corresponding to $\Tvector^L_{\mathrm{fastest}}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state} in the reference state and $c_s$ is the speed of sound with respect to the total variables. \hl{[What exactly is remainder here, and why does it include the sound speed? Note that for the linear part, the speed of sound is that relevant for the reference state, i.e., usually dry. For the residual, which contains the moist contributions, and what matters for CFL, it is the speed of sound in moist air. Important to distinguish these two in the code and probably here too.]}
-[\fxg{This should be much clearer now.}]
+This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{\mathrm{fastest}}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{\mathrm{fastest}}$) and  $\lambda^L_{\mathrm{fastest}} = c^L_s$ (corresponding to $\Tvector^L_{\mathrm{fastest}}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state. See discussion of sound waves and gravity waves, e.g., in Durran's book on numerical methods.} in the reference state and $c_s$ is the speed of sound with respect to the total variables. 
  
  \comment{
 \subsubsection{3D-IMEX Approach: Version 2}
@@ -1263,23 +1270,13 @@ An example of high order grid built on the topography of the Monterey bay in Cal
 The external topographic files are not incorporated into the CLIMA repository. 
 They are automatically downloaded via a call to {\tt wget} from the {\tt Julia} driver into the user's working directory {\tt \$CLIMA\_HOME/USERS/TEST/DIRECTORY}. As of now, the available topography files are hosted here \url{https://web.njit.edu/~smarras/TopographyFiles} (notice: this directory is not directly accessible from the browser).
 
-
-\section{Benchmarking the dynamical core (Dycore)}
-\hl{STILL INCOMPLETE}
-A set of benchmarks for dry and moist atmospheres are described in this section. The results presented in this document have been assessed against those presented in the literature. 
-
 \hl{The grid reader should be enhanced to map the grid onto the sphere. As of now, the grid is read and mapped into a closed box only.}
 
+\section{Benchmarking the dynamical core (Dycore)}
 
-\begin{enumerate}
-        \item 2D/3D rising thermal bubble in a dry, neutrally stratified atmosphere. \citep{robert1993}.
-        \item 2D density current \citep{strakaWilhelmson1993}.
-        %\item 2D rising thermal bubble in a saturated atmosphere \citep{kurowskiEtAl2013}.
-        \item pseudo 2D and 3D squall line \citep{gabersekGiraldoDoyle2012}
-        \item Dynamics and chemistry of marine stratocumulus: Dycoms \citep{Stevens05a}.
-\end{enumerate}
+\hl{STILL INCOMPLETE}
+Here we describe a set of benchmarks for dry and moist atmospheres. The results presented in this document have been assessed against those presented in the literature. 
 
-%%
 \subsection{2D rising thermal bubble by Robert 1993}
 \label{2dRTBtest}
 This test is described \cite{robert1993}. It consists of a flow that is triggered by the thermal perturbation of a neutrally stratified atmosphere at initially uniform potential temperature $\theta_0 = 303$ K
@@ -1366,24 +1363,21 @@ e^{\rm tot} &=& {\tt MoistThermodynamics.total\_energy(0.5\|{\bf u} \|^2, gz, T,
 
 %%
 \subsection{Dynamics and Chemistry of Marine Stratocumulus: DYCOMS RF01}
-\hl{@TS: please check all this. All we are given from Stevens are $q_{tot}, \theta_{liq}$, and $q_{liq}$; very important, however, is that Stevens says the following which we currently not considering in the saturation adjustment functions for this test case:
-
-``Modeling groups were also asked to \emph{standardize their thermodynamic calculations} so that the initial state corresponded to a cloud layer between 600 and 800 m with $q_{liq}$ =0.45 g/kg at cloud top.''}
 
 \cite{Stevens05a} provide the following initial distribution of liquid water potential temperature,
 \begin{equation}\label{eq:dycoms1}
 \theta_l(z) = 
     \begin{cases}
-    289.0\;{\rm K} & z\leq z_i,\\
-    297.5 + (z - z_i)^{1/3}\;{\rm K}& z > z_i,
+    289.0\;\mathrm{K} & z\leq z_i,\\
+    297.5 + (z - z_i)^{1/3}\;\mathrm{K}& z > z_i,
     \end{cases}
 \end{equation}
 and total specific humidity, 
 \begin{equation}\label{eq:dycoms2}
 q_t(z) = 
     \begin{cases}
-    9\;{\rm g/kg} & z\leq z_i,\\
-    1.5\;{\rm g/kg}& z > z_i.
+    q_{t,0} & z\leq z_i,\\
+    1.5\;\mathrm{g/kg} & z > z_i.
     \end{cases}
 \end{equation}
 Here, $z_i$ is the initial cloud top set to $z_i=840\,{\rm m}$. \cite{Stevens05a} state that ``modeling groups were also asked to standardize their thermodynamic calculations'' so that the initial state corresponds to a cloud layer between 600 and 800~m with liquid water specific humidity
@@ -1395,9 +1389,8 @@ q_l(z) =
     0 & z > z_i.\\
     \end{cases}
 \end{equation}
+With our thermodynamics and standard thermodynamical constants, we obtain such a cloud layer if we choose the initial total specific humidity in the mixed layer to be $q_{t,0} = 8.1\;\mathrm{g/kg}$, which is slightly lower than the DYCOMS default value of $9\;\mathrm{g/kg}$.
 
-%SM: corrected pressure and density calculation that returns the density as expected by Stevens: \rho(@0 m)=1.22 kg/m3  and \rho(@zi)=1.13 kg/m3:
-%
 To specify the thermodynamic state completely, we additionally need to specify an initial density. We do so by first specifying an initial pressure
 \[
 p_0(z) = p_{s} \exp(-z/H), \qquad H = \frac{R_m T_0}{g},
@@ -1419,47 +1412,9 @@ given $\theta_l(z)$, $q_l(z)$, and $\Pi(z)$. Density is then obtained from the i
 \[
 \rho(z) \approx \frac{p_0(z)}{R_m T(z)},
 \]
-thus completely specifiying the initial state. 
+thus completely specifying the initial state. 
 
-%
-%\hl{Simone: Try the above. It's easy and consistent with anelastic approximation.}
-%
-%We can do so by first computing a pressure associated with a neutral dry atmosphere at $\theta(z)= \theta_l(z=0)=289\,{\rm K}$ according to:
-%\begin{equation}
-%p_d(z) = p_0\left(1 - \frac{g\,z}{c_{pd}\,\theta_{l,z=0}} \right) 
-%\end{equation}.
-%
-%As per \citet{Stevens05a}, the following thermodynamic constants are used to initialize this state: $c_p = c_{p d}= 1 .015\,\mathrm{kJ\,kg^{-1}\,K^{-1}}$, $L_{v,0}=2.47\,\mathrm{MJ\,kg^{-1}}$, $R_d=0.287\,\mathrm{kJ\,kg^{-1}\,K^{-1}}$.
-%
-%By means of the equation of state for moist atmospheres, initial density is then found as
-%\begin{equation}
-%\rho(z) = \frac{p_0}{R_m\theta_l(z)}\left(\frac{p}{p_0})^{c_{pm}/R_m - 1}
-%\end{equation}
-%where 
-%\[
-%c_{pm} = c_{p d} + (c_{p v} - c_{p d})q_t + (c_{p l} - c_{p v})q_l\]
-%and 
-%\[R_m=R_d\left[1 + (\eps_{dv}-1)q_t - \eps_{dv} q_l\right]
-%\]
-%with moist constants $c_{p d} = 1 .015\,{\rm kJ\,kg^{-1}\,K^{-1}}$,  $c_{p v} = 1.859\,{\rm kJ\,kg^{-1}\,K^{-1}}$, $c_{p l} = 4.181\,{\rm kJ\,kg^{-1}\,K^{-1}}$, $p_0=1.0178e5\,{\rm Pa}$.
-%The calculated surface air density measures $\rho_0=1.22\,{kg\,m^{-3}}$ and measures $\rho_{zi}=1.13\,{kg\,m^{-3}}$ just below the cloud top as reported in \cite{Stevens05a}.
-%%%%
-%Other quantities that may be worth calculating are the virtual absolute and potential temperatures. 
-%
-%\[
-%T(z) = \theta(z) - \frac{gz}{c_p}.
-%\]
-%Eq. (\ref{eq:betts1973}) is non-linear so that the solution is found via a root finding algorithm.
-%
-The virtual temperature and potential temperature are given by equations (\ref{e:virtual_temp,e:virtual_pottemp}) rewritten below in absence of ice as
-\begin{equation}
-T_v = \left[1 + (\eps_{dv}-1)q_t - \eps_{dv} q_l\right] T,
-\end{equation}
-\begin{equation}
-\theta_v = \left[1 + (\eps_{dv}-1)q_t - \eps_{dv} q_l\right] \theta    
-\end{equation}
-where $\eps_{dv}\approx 1.61$. The initial state of all the quantities described above are plotted in Figure \ref{dycomsInitFig}
-
+The initial state of all the quantities described above are plotted in Figure \ref{dycomsInitFig}
 \begin{figure}
     \centering
 	\includegraphics[width=0.49\textwidth]{./figures/dy_tempe.eps}
@@ -1473,12 +1428,25 @@ where $\eps_{dv}\approx 1.61$. The initial state of all the quantities described
 \label{dycomsInitFig}
 \end{figure}
 
+\hl{[Specify forcing functions, e.g., radiation, surface fluxes]}
+\paragraph{Forcing functions and boundary conditions:}
 
 
-%%
+
 \subsection{3D squall line}
 \label{sq3D}
-\hl{ADD DESCRIPTION}
+The three-dimensional simulation of a squall line is defined in the domain 
+$80\times 80\times20\,{\rm km}^3$. 
+The initial background state is given by the sounding of \cite{gabersekGiraldoDoyle2012}.
+To initiate the vertical transport of water vapor to a level of condensation (and hence trigger a cloud formation, the initial background is forced by a temperature anomaly $\theta'$ $3$ K warmer than the surrounding environment. 
+
+A stretched grid along $z$ is used to make the resolution higher in the lower atmosphere where convection is triggered.
+The domain is crossed by a horizontal wind along the x-direction with a $12\,{\rm m\,s^{-1}}$ shear at $z=2000\,{\rm m}$.
+A no-slip condition is applied on the surface boundary while periodic boundaries are defined along $x$ and $y$. 
+To damp the vertically propagating gravity ways triggered by the cloud formation, a Rayleigh absorbing layer is applied at the higher layers of the atmosphere.
+The cloud first forms at approximately 500 s, and is fully develop after 4500 s. 
+An instantaneous view of the precipitating squall line is shown in Figure \ref{fig:benchmarks/squall1}. 
+
 \begin{figure}[htbp]
 \includegraphics[width=1.2\textwidth]{figures/squall_working_warm_rain_frontal_view0028.png}
 \caption{Front view of a fully developed squall line with precipitating rain. }
@@ -1487,13 +1455,13 @@ where $\eps_{dv}\approx 1.61$. The initial state of all the quantities described
 
 
 \subsection{External soundings}
-External soundings can be read into the code for initialization purposes. The sounding requires the following format:
+External soundings can be read into the code for initialization purposes. The sounding requires the format reported in Table \ref{tab:DeltaDefinitionsTable}.
 
 \begin{table*}[t]
 \centering
 {\footnotesize
 \caption[short]{Structure of sounding files for simulation initialization.}
-\label{DeltaDefinitionsTable}
+\label{tab:DeltaDefinitionsTable}
 \begin{tabular*}{\textwidth}{ @{\extracolsep{\fill}} llllll}
 \hline
 \hline
@@ -1508,88 +1476,8 @@ z (m) & $\theta_v$ (K) & $q_{tot}$ $\rm {kg/kg}$ & $u$ (m/s) & $v$ (m/s) & p (Pa
 }
 \end{table*}
 
+\subsection{Held-Suarez GCM benchmark}
 
-%\section{Tutorial of CliMa Kernels}
-%\label{sec:tutorial}
-%
-%In \texttt{https://github.com/climate-machine/Canary.jl/tree/master/examples} the following three folders
-%\begin{enumerate}
-%    \item 1d$\_$kernels
-%    \begin{itemize}
-%        \item LDG1d
-%        \item burger1d
-%        \item swe1d
-%    \end{itemize}
-%    \item 2d$\_$kernels
-%    \begin{itemize}
-%        \item LDG2d
-%        \item euler2d$\_$set3c
-%        \item nse2d
-%        \item nse2d$\_$sgs
-%        \item swe2d
-%    \end{itemize}
-%    \item 3d$\_$kernels
-%    \begin{itemize}
-%        \item LDG3d
-%        \item euler3d$\_$set3c
-%        \item nse3d
-%    \end{itemize}
-%\end{enumerate}
-%containing various sets of governing equations can be found. 
-%
-%In all the folders, the LDG files solve an elliptic equation (a Poisson equation) using the Local Discontinuous Galerkin (LDG) method.  The swe files solve the shallow water equations, the euler files solve the Euler equations using the conservation form with total energy, and the nse files solve the fully compressible Navier-Stokes equations (NSE) which are nothing more than the Euler equations with the viscous stresses solved via the LDG method.  All hyperbolic equations (burger, swe, and euler) use the discontinuous Galerkin (DG) method with a simple Rusanov flux with arbitrary order polynomial basis functions on tensor-product grids (1D line, 2D quads, and 3D hexahedra).
-%
-%All of these codes are structured in the same way.  Namely, at the bottom of each JL file there is a MAIN function that contains an initial condition and runs the program.  MAIN then calls the solver (e.g., in the case of Burgers equation, it calls the function BURGER, in the case of shallow water, it calls the SWE, in the case of Navier-Stokes, it calls the function NSE).  In turn, the solver function calls LOWSTORAGERK which is the time-integration loop and a proxy for any time-integrator that will be included in CliMa in the future (e.g., Additive Runge-Kutta methods for 1D-IMEX and 3D-IMEX).
-%The heart of all these kernels is in the LOWSTORAGERK function which looks as follows
-%\begin{algorithm}
-%\label{alg:Time-Stepper}
-%\begin{algorithmic}
-%\Function{LOWSTORAGERK}{}
-%\For{$step=1:nsteps$} \Comment go over time-steps
-%\For{$s=1:length(RKstages)$} \Comment go over multi-stages
-%\State 1ST$\_$ORDER$\_$OPERATOR \Comment use Alg. \ref{alg:first_order_operators}
-%\If{viscosity>0}
-%\State 2ND$\_$ORDER$\_$OPERATOR \Comment use Alg. \ref{alg:second_order_operators}
-%\EndIf
-%\State UPDATESOLUTION!() \Comment update the solution field q
-%\EndFor 
-%\EndFor
-%\EndFunction
-%\end{algorithmic}
-%\end{algorithm}
-%where it builds the first order operators and then, if required, the second order operators.  The function UPDATESOLUTION    updates the solution for the next time-step.  
-%
-%The first order operators are described in Alg.\ \ref{alg:first_order_operators} below.
-%\begin{algorithm}
-%\label{alg:first_order_operators}
-%\begin{algorithmic}
-%\Function{1ST$\_$ORDER$\_$OPERATOR}{}
-%\State SENDDATA$\_$Q() \Comment non-blocking send of the data
-%\State VOLUMERHS!() \Comment compute volume integral contribution to RHS
-%\State RECEIVEDATA$\_$Q() \Comment non-blocking receive - for latency hiding
-%\State FLUXRHS!() \Comment compute flux integral contribution to RHS
-%\EndFunction
-%\end{algorithmic}
-%\end{algorithm}
-%The SENDDATA and RECEIVEDATA functions exchange the information on the CPU and/or GPU and need to be called separately in order to overlap communication with computation (we send the data and while it is being sorted out, we compute the volume integrals which require no neighbor data).  Once we finish with the volume integrals (VOLUMERHS), we then wait to receive all the data (RECEIVEDATA$\_$Q) before we compute the flux integrals (FLUXRHS), which do require neighbor data. The "!" at the end of some of the function calls denotes that the state vector $q$ or $RHS$ is modified by that function.
-%
-%If second order differential operators are required (say for diffusion), then this is done after the 1st order operators as follows
-%\begin{algorithm}
-%\label{alg:second_order_operators}
-%\begin{algorithmic}
-%\Function{2ND$\_$ORDER$\_$OPERATOR}{}
-%\State VOLUMEGRAD!() \Comment compute volume integral contribution to $\nabla q$
-%\State FLUXGRAD!() \Comment compute flux integral contribution to $\nabla q$
-%\State UPDATEGRAD!() \Comment update the solution to compute gridpoint $\nabla q$
-%\State SENDDATA$\_$GRADQ() \Comment non-blocking send - for latency hiding
-%\State VOLUMEDIV!() \Comment compute volume integral contribution to $\nabla \cdot (\nabla q)$
-%\State RECEIVEDATA$\_$GRADQ() \Comment non-blocking receive - for latency hiding
-%\State FLUXDIV!() \Comment compute flux integral contribution to $\nabla \cdot (\nabla q)$
-%\EndFunction
-%\end{algorithmic}
-%\end{algorithm}
-%Algorithm \ref{alg:second_order_operators} uses the local discontinuous Galerkin (LDG) method to construct 2nd order operators. We have used this approach for representing 2nd order operators because it is simpler to understand since it does so by first approximating the gradient of the function (VOLUMEGRAD and FLUXGRAD) and then computing the divergence of the gradient of the function (VOLUMEDIV AND FLUXDIV).  
-%
 %-------Bibliography
 \bibliographystyle{agufull08}
 \bibliography{Giraldo_refs,CLIMA-refs}
