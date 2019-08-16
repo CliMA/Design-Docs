@@ -809,6 +809,21 @@ Thus, generally, we want vanishing normal flux components at rigid boundaries, a
 \subsubsection{Overview}
 For the spatial discretization methods, we use variants of the discontinuous Galerkin (DG) method with a tensor-product bases (see, e.g., \citealt{giraldo:2008a, abdi:2016}). That is, we use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
 
+In the numerical method the domain is assumed to be embedded in a Cartesian
+coordinate system. The vector $\vec{x}$ denotes a point in the Cartesian
+coordinate system and the three components are taken to be $(x_{1}, x_{2},
+x_{3})$. Each element will also have its own reference coordinate system defined
+so that the element is a square (in two-dimensions) or cube (in
+three-dimensions). A point in the reference element is denoted as $\vec{\xi}$
+and the three components are taken to be $(\xi_{1}, \xi_{2}, \xi_{3})$.
+It is important to note that $x_{3} \ne z$ if $z$ is taken to be height or the
+direction that gravity acts.
+
+\hl{[I have been through this to make a first pass at the change of notation to
+$(x_{1}, x_{2}, x_{3})$ and $(\xi_{1}, \xi_{2}, \xi_{3})$, but would be good to
+have a second set of eyes go over it too -- Jeremy]}
+
+
 \subsubsection{DG Basics}
 
 \begin{figure}[htbp]
@@ -824,14 +839,29 @@ For the spatial discretization methods, we use variants of the discontinuous Gal
 
 To construct discrete approximations of continuous differential operators (e.g., gradient, divergence, or curl) with the DG method, we first must represent the state vector $\vec{Y}$ using a polynomial representation.  That is, we represent the state vector inside of each element $\Omega_e$ as
 \be
-\vec{Y}^{(e)}_N(\vec{x},t) = \sum_{i=1}^{M_N} \psi_i(\vec{x}) \vec{Y}^{(e)}_i(t),
+\vec{Y}^{(e)}_N(\vec{x},t) = \sum_{i=1}^{N_p} \psi_i(\vec{x}) \vec{Y}^{(e)}_i(t),
 \label{eq:spatial_discretization/dg_method}
 \ee
-where $\psi(\vec{x})$ are the known basis functions and $\vec{Y}^{(e)}_i(t)$ is the solution at each degree of freedom, which is time-dependent. The superscript $(e)$ represents the specific element we are working with, and $i=1,\ldots,M_N$ labels degrees of freedom inside each element $\Omega_e$.  Figure \ref{fig:spatial_discretization/dg_domain} shows a sample global domain, with one specific element $\Omega_e$ identified.  We then map the element from its physical space to the reference element presented in Fig.\ \ref{fig:spatial_discretization/dg_element}; in this particular example $M_N=(N+1)^2$ where $N=3$, which means we are using 3rd-degree polynomials in each direction (yielding 4th-order accuracy).  In general, $N$ need not be constant in each direction, and so we can also write $M_N=(N_{\xi}+1)(N_{\eta}+1)$ in two dimensions or $M_N=(N_{\xi}+1)(N_{\eta}+1)(N_{\zeta}+1)$ in three dimensions, where $\xi$ is along the horizontal direction, $\eta$ along the vertical, and $\zeta$ coming out of the page. 
+where $\psi(\vec{x})$ are the known basis functions and $\vec{Y}^{(e)}_i(t)$ is
+the solution at each degree of freedom, which is time-dependent. The superscript
+$(e)$ represents the specific element we are working with, and $i=1,\ldots,N_p$
+labels degrees of freedom inside each element $\Omega_e$.  Figure
+\ref{fig:spatial_discretization/dg_domain} shows a sample global domain, with
+one specific element $\Omega_e$ identified.  We then map the element from its
+physical space to the reference element presented in Fig.\
+\ref{fig:spatial_discretization/dg_element}; in this particular example
+$N_p=(N+1)^2$ where $N=3$, which means we are using 3rd-degree polynomials in
+each direction (yielding 4th-order accuracy).  In general, $N$ need not be
+constant in each direction, and so we can also write
+$N_p=(N_{\xi_{1}}+1)(N_{\xi_{2}}+1)$ in two dimensions or
+$N_p=(N_{\xi_{1}}+1)(N_{\xi_{2}}+1)(N_{\xi_{3}}+1)$ in three dimensions, where
+$\xi_{1}$ is along the horizontal direction, $\xi_{2}$ along the vertical, and
+$\xi_{3}$ coming out of the page. That said, the currently in CLIMA it is
+assumed that $N = N_{\xi_{1}} = N_{\xi_{2}} = N_{\xi_{3}}$.
 
 The attraction of using basis functions $\psi$ to represent the solution $\vec{Y}$ is that computing the gradient of $\vec{Y}$ now only requires applying the gradient operator directly to Eq.~\eqref{eq:spatial_discretization/dg_method}, which yields
 \be
-\nabla \vec{Y}^{(e)}_N(\vec{x},t) = \sum_{i=1}^{M_N} \nabla \psi_i(\vec{x}) \vec{Y}^{(e)}_i(t),
+\nabla \vec{Y}^{(e)}_N(\vec{x},t) = \sum_{i=1}^{N_p} \nabla \psi_i(\vec{x}) \vec{Y}^{(e)}_i(t),
 \label{eq:spatial_discretization/dg_method/gradient}
 \ee
 where we are able to construct $\grad \psi$ \emph{a priori} since we have chosen the basis functions $\psi$ not to depend on time.
@@ -866,81 +896,84 @@ where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its
 where $\Fvector^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions, we will have 4 face neighbors and in three dimensions we will have 6 face neighbors.  At this point, one is free to choose their favorite numerical flux just as one would do in the finite-volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are completely local within the element.
 
 \subsubsection{Tensor Product Basis Functions}
-In Eq.\ \eqref{eq:spatial_discretization/dg_method}, we have said very little about the basis functions $\psi$ and have written the approximation in so-called monolithic form whereby all the degrees of freedom within an element are written as one long vector of length $M_N$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used.  In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as 
+In Eq.\ \eqref{eq:spatial_discretization/dg_method}, we have said very little
+about the basis functions $\psi$ and have written the approximation in so-called
+monolithic form whereby all the degrees of freedom within an element are written
+as one long vector of length $N_p$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used.  In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as 
 \[
-\psi_i(\xi,\eta) = h_j(\xi) \otimes h_k(\eta),
+  \psi_i(\xi_{1},\xi_{2}) = h_j(\xi_{1}) \otimes h_k(\xi_{2}),
 \]
-where $h$ are one-dimensional basis functions, $\otimes$ denotes the tensor (or Kronecker) product, and $j=1,\ldots N_{\xi}+1$, $k=1,\ldots,N_{\eta}+1$, and $i=j + (k-1) \left( N_{\xi}+1 \right)$. Using this strategy, we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method} as 
+where $h$ are one-dimensional basis functions, $\otimes$ denotes the tensor (or Kronecker) product, and $j=1,\ldots N_{\xi_{1}}+1$, $k=1,\ldots,N_{\xi_{2}}+1$, and $i=j + (k-1) \left( N_{\xi_{1}}+1 \right)$. Using this strategy, we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method} as 
 \be
-\vec{Y}^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} h_i(\xi) h_j(\eta) \vec{Y}^{(e)}_{ij}(t),
+\vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} h_i(\xi_{1}) h_j(\xi_{2}) \vec{Y}^{(e)}_{ij}(t),
 \label{eq:spatial_discretization/dg_method/tensor-product}
 \ee
-where we have written the approximation in terms of the reference element coordinates $(\xi,\eta)$ instead of the physical coordinates $(x,y)$.  The advantage of doing this is that the reference element and its coordinates never change, which means that we can use one set of basis functions for all of the elements in the mesh.  
+where we have written the approximation in terms of the reference element coordinates $(\xi_{1},\xi_{2})$ instead of the physical coordinates $(x_{1},x_{2})$.  The advantage of doing this is that the reference element and its coordinates never change, which means that we can use one set of basis functions for all of the elements in the mesh.  
 
 Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product} yields
 \be
-\diff{}{\vec{x}} \vec{Y}^{(e)}_N(\xi,\eta,t) = \diff{}{\vec{x}} \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} h_i(\xi) h_j(\eta) \vec{Y}^{(e)}_{ij}(t)
+\diff{}{\vec{x_{1}}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \diff{}{\vec{x_{1}}} \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} h_i(\xi_{1}) h_j(\xi_{2}) \vec{Y}^{(e)}_{ij}(t)
 \label{eq:spatial_discretization/dg_method/tensor-product/gradient}
 \ee
-where $\vec{x}$ can represent either $x$ or $y$.  Let us look at each component separately. Invoking the chain rule yields
+where $\vec{x}$ can represent either $x_{1}$ or $x_{2}$.  Let us look at each component separately. Invoking the chain rule yields
 \[
-\diff{}{x}=\diff{}{\xi} \diff{\xi}{x} + \diff{}{\eta} \diff{\eta}{x}
+  \diff{}{x_{1}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{1}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{1}}
 \]
 and
 \[
-\diff{}{y}=\diff{}{\xi} \diff{\xi}{y} + \diff{}{\eta} \diff{\eta}{y}
+  \diff{}{x_{2}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{2}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{2}}
 \]
 where the metric terms $\partial\vec{\xi}/\partial\vec{x}$ need to be computed for each element in the mesh.
-Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/gradient} for the $x$-derivative as 
+Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/gradient} for the $x_{1}$-derivative as 
 \be
-\diff{}{x} \vec{Y}^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \left( \diff{h_i(\xi)}{\xi}\diff{\xi}{x} h_j(\eta) + h_i(\xi) \diff{h_j(\eta)}{\eta}\diff{\eta}{x} \right) \vec{Y}^{(e)}_{ij}(t).
+\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \left( \diff{h_i(\xi_{1})}{\xi_{1}}\diff{\xi_{1}}{x_{1}} h_j(\xi_{2}) + h_i(\xi_{1}) \diff{h_j(\xi_{2})}{\xi_{2}}\diff{\xi_{2}}{x_{1}} \right) \vec{Y}^{(e)}_{ij}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product/x-deriv}
 \ee
-If we use the same polynomial order along $\xi$ and $\eta$ (call it $N$) then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/x-deriv} to
+If we use the same polynomial order along $\xi_{1}$ and $\xi_{2}$ (call it $N$) then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product/x-deriv} to
 \be
-\diff{}{x} \vec{Y}^{(e)}_N(\xi,\eta,t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \left( dh_i \xi_x h_j + h_i dh_j \eta_x \right) \vec{Y}^{(e)}_{ij}(t).
+\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \left( dh_i \xi_x h_j + h_i dh_j \eta_x \right) \vec{Y}^{(e)}_{ij}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product/x-deriv2}
 \ee
-where $h$ is the basis function and $dh$ is its derivative, which are the same functions used along both directions $\xi$ and $\eta$; the index $(i,j)$ will account for which direction we are referring to.
+where $h$ is the basis function and $dh$ is its derivative, which are the same functions used along both directions $\xi_{1}$ and $\xi_{2}$; the index $(i,j)$ will account for which direction we are referring to.
 
 This strategy readily extends to three-dimensions where we write the basis functions as 
 \[
-\psi_i(\xi,\eta,\zeta) = h_j(\xi) \otimes h_k(\eta) \otimes h_l(\zeta)
+  \psi_i(\xi_{1},\xi_{2},\xi_{3}) = h_j(\xi_{1}) \otimes h_k(\xi_{2}) \otimes h_l(\xi_{3})
 \]
-with $j=1,\ldots N_{\xi}+1$, $k=1,\ldots,N_{\eta}+1$, $l=1,\ldots,N_{\zeta}+1$, and $i=j + (k-1) \left( N_{\xi}+1 \right) + (j-1)(k-1) \left( N_{\xi}+1 \right)\left( N_{\eta}+1 \right)$. Using this strategy we can rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method} as 
+with $j=1,\ldots N_{\xi_{1}}+1$, $k=1,\ldots,N_{\xi_{2}}+1$, $l=1,\ldots,N_{\xi_{3}}+1$, and $i=j + (k-1) \left( N_{\xi_{1}}+1 \right) + (j-1)(k-1) \left( N_{\xi_{1}}+1 \right)\left( N_{\xi_{2}}+1 \right)$. Using this strategy we can rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method} as 
 \be
-\vec{Y}^{(e)}_N(\xi,\eta, \zeta, t) = \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \sum_{k=1}^{N_{\zeta}+1} h_i(\xi) h_j(\eta) h_k(\zeta) \vec{Y}^{(e)}_{ijk}(t),
+\vec{Y}^{(e)}_N(\xi_{1},\xi_{2}, \xi_{3}, t) = \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} h_i(\xi_{1}) h_j(\xi_{2}) h_k(\xi_{3}) \vec{Y}^{(e)}_{ijk}(t),
 \label{eq:spatial_discretization/dg_method/tensor-product-3d}
 \ee
-where we have written the approximation in terms of the reference element coordinates $(\xi,\eta, \zeta)$ instead of the physical coordinates $(x,y,z)$. 
+where we have written the approximation in terms of the reference element coordinates $(\xi_{1},\xi_{2}, \xi_{3})$ instead of the physical coordinates $(x_{1},x_{2},x_{3})$. 
 
 Taking the gradient of Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d} yields
 \be
-\diff{}{\vec{x}} \vec{Y}^{(e)}_N(\xi,\eta,\zeta,t) = \diff{}{\vec{x}} \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \sum_{k=1}^{N_{\zeta}+1} h_i(\xi) h_j(\eta) h_k(\zeta) \vec{Y}^{(e)}_{ijk}(t).
+\diff{}{\vec{x}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},\xi_{3},t) = \diff{}{\vec{x}} \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} h_i(\xi_{1}) h_j(\xi_{2}) h_k(\xi_{3}) \vec{Y}^{(e)}_{ijk}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product-3d/gradient}
 \ee
 Taking each component separately and invoking the chain rule yields
 \[
-\diff{}{x}=\diff{}{\xi} \diff{\xi}{x} + \diff{}{\eta} \diff{\eta}{x} + \diff{}{\zeta} \diff{\zeta}{x},
+  \diff{}{x_{1}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{1}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{1}} + \diff{}{\xi_{3}} \diff{\xi_{3}}{x_{1}},
 \]
 \[
-\diff{}{y}=\diff{}{\xi} \diff{\xi}{y} + \diff{}{\eta} \diff{\eta}{y} + \diff{}{\zeta} \diff{\zeta}{y},
+  \diff{}{x_{2}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{2}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{2}} + \diff{}{\xi_{3}} \diff{\xi_{3}}{x_{2}},
 \]
 and
 \[
-\diff{}{z}=\diff{}{\xi} \diff{\xi}{z} + \diff{}{\eta} \diff{\eta}{z} + \diff{}{\zeta} \diff{\zeta}{z},
+  \diff{}{x_{3}}=\diff{}{\xi_{1}} \diff{\xi_{1}}{x_{3}} + \diff{}{\xi_{2}} \diff{\xi_{2}}{x_{3}} + \diff{}{\xi_{3}} \diff{\xi_{3}}{x_{3}},
 \]
 where the metric terms $\diff{\vec{\xi}}{\vec{x}}$ need to be computed for each element in the mesh.
-Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/gradient} for the $x$-derivative as follows
+Using these we can now rewrite Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/gradient} for the $x_{1}$-derivative as follows
 \begin{multline}
- \diff{}{x} \vec{Y}^{(e)}_N(\xi,\eta,t) =  \sum_{i=1}^{N_{\xi}+1} \sum_{j=1}^{N_{\eta}+1} \sum_{k=1}^{N_{\zeta}+1} \\ 
- \left( \diff{h_i(\xi)}{\xi}\diff{\xi}{x} h_j(\eta) h_k(\zeta) + h_i(\xi) \diff{h_j(\eta)}{\eta}\diff{\eta}{x} h_k(\zeta) 
- + h_i(\xi) h_j(\eta) \diff{h_k(\zeta)}{\zeta}\diff{\zeta}{x} \right) \vec{Y}^{(e)}_{ijk}(t) .
+  \diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1},\xi_{2},t) =  \sum_{i=1}^{N_{\xi_{1}}+1} \sum_{j=1}^{N_{\xi_{2}}+1} \sum_{k=1}^{N_{\xi_{3}}+1} \\ 
+  \left( \diff{h_i(\xi_{1})}{\xi_{1}}\diff{\xi_{1}}{x_{1}} h_j(\xi_{2}) h_k(\xi_{3}) + h_i(\xi_{1}) \diff{h_j(\xi_{2})}{\xi_{2}}\diff{\xi_{2}}{x_{1}} h_k(\xi_{3}) 
+  + h_i(\xi_{1}) h_j(\xi_{2}) \diff{h_k(\xi_{3})}{\xi_{3}}\diff{\xi_{3}}{x_{1}} \right) \vec{Y}^{(e)}_{ijk}(t) .
 \label{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv}
 \end{multline}
-If we use the same polynomial order along $\xi$, $\eta$, and $\zeta$ then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv} as follows
+If we use the same polynomial order along $\xi_{1}$, $\xi_{2}$, and $\xi_{3}$ then we can simplify Eq.\ \eqref{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv} as follows
 \be
-\diff{}{x} \vec{Y}^{(e)}_N(\xi, \eta, \zeta, t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \sum_{k=1}^{N+1} \left( dh_i \xi_x h_j h_k + h_i dh_j h_k \eta_x + h_i h_j dh_k \zeta_x\right) \vec{Y}^{(e)}_{ijk}(t).
+\diff{}{x_{1}} \vec{Y}^{(e)}_N(\xi_{1}, \xi_{2}, \xi_{3}, t) = \sum_{i=1}^{N+1} \sum_{j=1}^{N+1} \sum_{k=1}^{N+1} \left( dh_i \xi_x h_j h_k + h_i dh_j h_k \eta_x + h_i h_j dh_k \zeta_x\right) \vec{Y}^{(e)}_{ijk}(t).
 \label{eq:spatial_discretization/dg_method/tensor-product-3d/x-deriv2}
 \ee
 where the index $(i,j,k)$ will account for which direction we are referring to.
@@ -1142,7 +1175,7 @@ For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations
  \[
  \Tvector_{\mathrm{fastest}}=- \diff{}{z} \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}} + \Fdiff_{\mathrm{fastest}} \right) + \Source_{\mathrm{fastest}}
  \]
- where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the z-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x \hat{i} + y \hat{j} + z \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
+ where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the $x_{3}$-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x_{1} \hat{i} + x_{2} \hat{j} + x_{3} \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
  \begin{equation}
  \Fadv_{\mathrm{fastest}}=\left( \begin{array}{c}
  \rho w \\
@@ -1182,7 +1215,7 @@ p_r w \\
 \[
  \Tvector_{\mathrm{fastest}}=- \diff{}{z} \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}} \right) + \Source_{\mathrm{fastest}}
  \]
- where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the z-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x \hat{i} + y \hat{j} + z \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
+ where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the $x_{3}$-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x_{1} \hat{i} + x_{2} \hat{j} + x_{3} \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
  \begin{equation}
  \mathcal{L} \left( \Fadv_{\mathrm{fastest}} \right)=\left( \begin{array}{c}
  \left( \rho w \right) \\
@@ -1221,7 +1254,7 @@ p' \\
 \end{equation}
 which are linear with respect to $\rho'$, $\rho w$, and 
 $p'=(\gamma-1)\left((\rho \etotal)' - \rho' \phi\right)$ where
-$(\rho \etotal)'=(\rho \etotal - \rho_r e_r)$.  The term $\rho w$ represents the momentum along the z-direction (for LES it is indeed the Cartesian component in the vertical but on the sphere it represents the radial momentum component $\frac{\vec{x}}{||\vec{x}||} \cdot \left(\rho \vec{u}\right)$).
+$(\rho \etotal)'=(\rho \etotal - \rho_r e_r)$.  The term $\rho w$ represents the momentum along the $x_{3}$-direction (for LES it is indeed the Cartesian component in the vertical but on the sphere it represents the radial momentum component $\frac{\vec{x}}{||\vec{x}||} \cdot \left(\rho \vec{u}\right)$).
 
 \comment{
 \begin{equation}
