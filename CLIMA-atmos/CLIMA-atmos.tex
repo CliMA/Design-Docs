@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass{report}
 
 \include{CLIMA_Macros}
 
@@ -10,10 +10,7 @@
 \maketitle
 \tableofcontents
 
-\section{Introduction}
-\label{sec:introduction}
-
-This document highlights the design specifications for the atmosphere model that is part of the Climate Machine (CLIMA). We refer to this atmosphere model as CLIMA-atmos. The model is designed to run both in a global configuration and in a large-eddy simulation (LES) configuration from the same code base.  
+\chapter{Governing Dynamics and Thermodynamics}
 
 \section{Thermodynamics of Moist Air}\label{s:thermodynamics}
 
@@ -80,7 +77,7 @@ Kirchoff's relation states that the specific latent enthalpy (heat) $L$ of a pha
 \begin{equation}
     \frac{dL}{dT} = \Delta c_p,
 \end{equation}
-where $\Delta c_p$ is the difference in isobaric specific heat capacities between the phase with the higher specific volume and that with the lower specific volume. For the constant isobaric specific heat capacities that we assume, this can be integrated to give
+where $\Delta c_p$ is the difference in isobaric specific heat capacities between the phase with the higher and lower specific volume. For the constant isobaric specific heat capacities that we assume, this can be integrated to give
 \begin{equation}
     L = L_0 + \Delta c_p (T-T_0),
     \label{eq:LH_temperature}
@@ -196,13 +193,13 @@ Using saturation adjustment makes it possibly to construct a moist dynamical cor
 
 Several auxiliary thermodynamic functions are commonly used. 
 
-\paragraph{Potential temperature.} The potential temperature $\theta$ is the temperature an air mass would have if brought adiabatically from pressure $p$ and temperature $T$ to some reference pressure $p_0$ (typically taken to be mean sea level pressure):
+\subsubsection{Potential temperature.} The potential temperature $\theta$ is the temperature an air mass would have if brought adiabatically from pressure $p$ and temperature $T$ to some reference pressure $p_0$ (typically taken to be mean sea level pressure):
 \begin{equation}\label{e:pot_temp_press_T}
 \theta = T \left( \frac{p_0}{p} \right)^\kappa \quad \text{with} \quad \kappa = \frac{R_m}{c_{pm}}.
 \end{equation}
 Note that the adiabatic exponent $\kappa$ takes the effect of  moisture on the effective gas ``constant'' and specific heat capacity of air into account.
 
-\paragraph{Virtual (potential) temperature.} The virtual or density temperature $T_v$ is the temperature dry air would need to have to have the same density as moist air at the same pressure. Using the ideal gas law $p/\rho = R_m T$, this implies $R_m T  = R_d T_v $, or
+\subsubsection{Virtual (potential) temperature.} The virtual or density temperature $T_v$ is the temperature dry air would need to have to have the same density as moist air at the same pressure. Using the ideal gas law $p/\rho = R_m T$, this implies $R_m T  = R_d T_v $, or
 \begin{equation}\label{e:virtual_temp}
 T_v = \frac{R_m}{R_d} T.
 \end{equation}
@@ -213,7 +210,7 @@ A virtual potential temperature can be defined analogously:
 \end{equation}
 Some texts distinguish virtual and density (potential) temperatures, where density (potential) temperatures take the mass of condensate into account, whereas virtual (potential) temperatures do not. We always take the mass of any condensate into account in the thermodynamics of moist air and do not make that distinction here. 
 
-\paragraph{Speed of sound.} The speed of sound in (moist) air is 
+\subsubsection{Speed of sound.} The speed of sound in (moist) air is 
 \begin{equation}\label{e:soundspeed}
  c_s = (\gamma R_m T)^{1/2}, \qquad \gamma = \frac{c_{pm}}{c_{vm}},
 \end{equation}
@@ -280,7 +277,7 @@ The vector invariant form of the momentum equation in a coordinate system rotati
 \diff{(\rho\vec{u})}{t} + \divergence \left( \rho\vec{u} \otimes \vec{u} + p \vec{I}_3\right) =  - \rho \grad\Phi - 2\vec{\Omega} \times \rho\vec{u} - \divergence (\rho \vec{\tau}) - \divergence\left( \vec{d}_{q_t} \otimes \rho\vec{u} \right) + \rho \vec{F}_u
 \label{eq:governing_equations/momentum}
 \end{equation}
-where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS momentum flux tensor (negative of viscous or SGS stress tensor); and $\vec{F}_u$ is any other body force that may be applied (e.g., a drag force). The tensor involving the diffusive flux of water, $\vec{d}_{q_t} \otimes \rho\vec{u}$, represents the momentum flux carried by water that is diffusing (it is usually very small). Mechanical interactions between falling precipitation and the fluid, giving rise to frictional drag on the fluid in shear zones around falling hydrometeors \citep{Pauluis00}, are taken to be included in the momentum flux tensor $\vec{\tau}$. Momentum and kinetic energy transport by precipitating hydrometeors is neglected; it is 3--4 orders of magnitude smaller than other terms in the budgets \citep{Romps08a}.
+where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS momentum flux tensor (negative of viscous or SGS stress tensor); and $\vec{F}_u$ (\emph{``momentum source''}) is any other body force that may be applied (e.g., a drag force). The tensor involving the diffusive flux of water, $\vec{d}_{q_t} \otimes \rho\vec{u}$, represents the momentum flux carried by water that is diffusing (it is usually very small). Mechanical interactions between falling precipitation and the fluid, giving rise to frictional drag on the fluid in shear zones around falling hydrometeors \citep{Pauluis00}, are taken to be included in the momentum flux tensor $\vec{\tau}$. Momentum and kinetic energy transport by precipitating hydrometeors is neglected; it is 3--4 orders of magnitude smaller than other terms in the budgets \citep{Romps08a}.
 
 These are the general, deep-atmosphere equations for a moist, nonhydrostatic atmosphere, without the thin-shell approximation traditionally made in climate models. (The thin-shell approximation assumes that in the formulation of the angular momentum, the distance from any point in the atmosphere to the barycenter of the planet is a constant and equal to the mean planetary radius.)
 
@@ -316,7 +313,7 @@ The total specific energy of each constituent consists of the kinetic energy per
 \end{equation}
 with the specific internal energy $I$ of the moist air \eqref{eq:total_internal_energy}.
 
-On the right-hand side of \eqref{eq:energy_balance}, the flux $\vec{F}_R$ is the radiative energy flux per unit mass, $\vec{J}$ is the conductive or SGS turbulent energy flux per unit mass, and $Q$ is any internal energy source (e.g., external diabatic heating). The flux 
+On the right-hand side of \eqref{eq:energy_balance}, the flux $\vec{F}_R$ is the radiative energy flux per unit mass, $\vec{J}$ is the conductive or SGS turbulent energy flux per unit mass, and $Q$ is any internal energy source (\emph{``heat source''}, e.g., external diabatic heating). The flux 
 \begin{equation}\label{eq:energy-flux-water}
 \vec{D} = (e_v^{\mathrm{tot}} + R_v T) \vec{d}_{q_v} + e_l^{\mathrm{tot}} \vec{d}_{q_l} +  e_i^{\mathrm{tot}} \vec{d}_{q_i}
 \end{equation}
@@ -407,7 +404,7 @@ where
 \[
 e^{\mathrm{tot}} + R_m T = \frac{1}{2} \| \vec{u} \|^2 + h + \Phi
 \]
-is what we call the total specific enthalpy: the sum of kinetic energy, enthalpy $I + R_m T$, and potential energy $\Phi$.\footnote{What is usually called the total specific enthalpy in fluid dynamics does not contain the potential energy $\Phi$. However, neither this nor our total specific enthalpy strictly are enthalpies in the thermodynamic sense. The sum of enthalpy and potential energy (without the kinetic energy term) is commonly referred to as the moist static energy. It is materially conserved in adiabatic, hydrostatic displacements.} We model the unresolved total enthalpy flux diffusively, so that the SGS flux of total enthalpy becomes
+is what we call the \emph{total specific enthalpy}: the sum of kinetic energy, enthalpy $I + R_m T$, and potential energy $\Phi$.\footnote{What is usually called the total specific enthalpy in fluid dynamics does not contain the potential energy $\Phi$. However, neither this nor our total specific enthalpy strictly are enthalpies in the thermodynamic sense. The sum of enthalpy and potential energy (without the kinetic energy term) is commonly referred to as the moist static energy. It is materially conserved in adiabatic, hydrostatic displacements.} We model the unresolved total enthalpy flux diffusively, so that the SGS flux of total enthalpy becomes
 \begin{equation}\label{e:SGS_energy_flux}
 \vec{J} + \vec{D} = - \vec{\mathcal{D}}_t \circ \nabla (e^{\mathrm{tot}} + R_m T).
 \end{equation}
@@ -491,7 +488,7 @@ f_a(a_1, a_2) &= 1+\frac{2}{27}\Big[\log(a_{1})^2 + \log(a_2)^2 -\log(a_1)\log(a
 \end{align}
 where  $a_1 =  \Delta_1/\Delta_{\max}$ and $a_2 = \Delta_2/\Delta_{\max}$ are the aspect ratios of the two smaller sides of the grid elements, $\Delta_1$ and $\Delta_2$, with $\Delta_{\max} = \max(\Delta x, \Delta y, \Delta_z)$. 
 
-\subsubsection{Smagorinsky-Lilly Model With Anisotropic Mixing}
+\subsubsection{Smagorinsky-Lilly Model With Anisotropic Mixing}\label{s:anisotropic_SGS_mixing}
 
 In strongly stratified (large-scale) turbulence in the atmosphere and oceans, the mixing itself is strongly anisotropic, confined primarily to approximately horizontal isentropic (or neutral density) surfaces. To model such anisotropic mixing in a way that heuristically also takes into account grid anisotropy, we can use 
 \begin{equation}
@@ -555,7 +552,7 @@ However, this simple formulation of a sponge layer suffers from a shortcoming th
     \item One may only damp fluctuations about the zonal-mean velocity.  
     \item One may use an extrapolation condition, whereby the Riemann solver is modified to let flow move out of the domain. This is what is typically used with Godunov methods. 
     \item One may use the approach recently proposed by Benacchio and Bonaventura: they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
-    \item Another option is the simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
+    \item Another option is the simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[From Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
 \end{itemize}
     
 We will also need to keep in mind that the choice of upper boundary condition can affect energy conservation \citep[e.g.,][]{Staniforth03a}; however, this likely disappears as an issue with total energy as prognostic variable.
@@ -610,13 +607,13 @@ q_{l, \mathrm{sfc}} = q_l(z) \quad \text{and} \quad q_{i, \mathrm{sfc}} = q_i(z)
 
 While these relations suffice to specify the energy flux boundary condition at the surface, it is again helpful to consider the two component $\vec{D}$ and $\vec{J}$ separately. 
 
-\paragraph{Latent heat flux.} Because the condensate fluxes are assumed to vanish at the surface, the energy flux $\vec{n} \cdot (\rho \vec{D}_{\mathrm{sfc}})$ is the total enthalpy flux \eqref{eq:energy-flux-water} carried by evaporation from the surface:
+\subsubsection{Latent heat flux} Because the condensate fluxes are assumed to vanish at the surface, the energy flux $\vec{n} \cdot (\rho \vec{D}_{\mathrm{sfc}})$ is the total enthalpy flux \eqref{eq:energy-flux-water} carried by evaporation from the surface:
 \begin{equation}\label{e:sfc_LHF}
      \mathrm{LHF} = \vec{n} \cdot (\rho \vec{D}_{\mathrm{sfc}})   = (h_{v, \mathrm{sfc}} + \Phi_\mathrm{sfc}) E.
 \end{equation}
 It is the moist static energy flux that is associated with evaporation, with the enthalpy of water vapor $h_{v, \mathrm{sfc}} = c_{pv} (T_\mathrm{sfc}-T_0) + L_{v,0}$. At Earth's surface, the latent heat term $L_{v,0}$ is about 2 orders of magnitude larger than the other terms in this energy flux. So we will call this the latent heat flux. However, strictly this is not only the latent heat flux but the total flux of enthalpy and potential energy carried by water vapor.
 
-\paragraph{Sensible heat flux.} The energy flux $\vec{n} \cdot (\rho \vec{J}_{\mathrm{sfc}})$ is the residual between the total enthalpy flux at the surface \eqref{e:sfc_energy_flux} and the moist static energy flux $\vec{D}$ associated with evaporation. From the expression \eqref{e:sgs_heat_flux} for the SGS flux $\vec{J}$, it follows that the normal component at the surface is given by 
+\subsubsection{Sensible heat flux} The energy flux $\vec{n} \cdot (\rho \vec{J}_{\mathrm{sfc}})$ is the residual between the total enthalpy flux at the surface \eqref{e:sfc_energy_flux} and the moist static energy flux $\vec{D}$ associated with evaporation. From the expression \eqref{e:sgs_heat_flux} for the SGS flux $\vec{J}$, it follows that the normal component at the surface is given by 
 \begin{multline}\label{e:sfc_SHF}
     \mathrm{SHF} = \vec{n} \cdot (\rho \vec{J}_{\mathrm{sfc}}) =
     \\ -\rho C_h(z) \| \vec{u}(z) \| \left[ c_{pm} (T(z) - T_\mathrm{sfc}) + \Phi(z) - \Phi_\mathrm{sfc}
@@ -649,27 +646,38 @@ Lateral boundary conditions do not arise on the sphere. However, several forms o
 
 \subsection{Initial Conditions}\label{s:initial_conditions}
 
-\hl{[TODO in code: It would be good to provide a module that computes the hydrostatic density and pressure consistent with a given temperature profile $T(z)$ and fixed relative humidity RH. We need this often for initialization and for computation of reference states for the linearizations needed for implicit time steps.]}
+\hl{[TODO in code: It would be good to provide a module (called \texttt{hydrostatic\_state} or something similar) that computes the hydrostatic density, pressure, and total specific energy consistent with a given temperature profile $T(z)$ and fixed relative humidity RH. We need this often for initialization and for computation of reference states for the linearizations needed for implicit time steps.]}
 
 Initial conditions are usually case specific. But a situation that arises often is having an initial state that is at rest, hydrostatic, and has a specified temperature profile $T(z)$ that varies only with height $z$. To reduce spin-up times, for example, of a global model, we may also wish to specify an initial constant relative humidity (with $\mathrm{RH} < 1$ to avoid saturation in the initial state).
 
 We obtain the pressure $p(z)$ consistent with the temperature profile $T(z)$ by combining hydrostatic balance ($\partial_z p(z) = - \rho g$) with the ideal gas law ($p=\rho R_d T$, neglecting the effect of any moisture on the gas constant), giving
-\begin{equation}
+\begin{equation}\label{eq:hydro_pressure}
 p(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right).
 \end{equation}
 Here,
 \begin{equation}
 H(z)  = \frac{R_d T(z)}{g}
 \end{equation}
-is the scale height, and we chose for the pressure $p(0)$ at height $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. (For the simple and commonly used choice of a constant initial temperature $T$, this reduces to $p(z) = \exp (-z/H)$, where the scale height $H = R_d T/g$ is constant.) \hl{[If we are not well setup for the vertical integration, just implementing the case for constant temperature would suffice for now.]} The reference density then follows from the ideal gas law as
-\begin{equation}
+is the scale height, and we chose for the pressure $p(0)$ at height $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. (For the simple and commonly used choice of a constant initial temperature $T$, this reduces to $p(z) = \exp (-z/H)$, where the scale height $H = R_d T/g$ is constant.)
+
+Given a temperature profile $T(z) = \max(T_s-\Gamma z, T_{\min})$, with surface temperature $T_s$, lapse rate $\Gamma$, and a minimum temperature $T_{min}$, integrating eq. \ref{eq:hydro_pressure} yields
+\begin{equation}\label{eq:reftemperature}
+p(z) = p_{\mathrm{MSLP}} \exp
+\left[
+-\frac{g}{R_d\Gamma} \left( \log(T_s) - \log(T_{\min}) + \Gamma z - T_s + T_{\min} \right)
+\right], z>\frac{T_s - T_{\min}}{\Gamma}
+\end{equation}
+
+
+\hl{[If we are not well setup for the vertical integration, just implementing the case for constant temperature would suffice for now.]} The reference density then follows from the ideal gas law as
+\begin{equation}\label{eq:hydro_density}
     \rho(z) = \frac{p(z)}{R_d T(z)}.
 \end{equation}
 And the total specific humidity $q_t(z)$ for a given relative humidity, temperature $T(z)$, and density $\rho(z)$ is
 \begin{equation}
     q_t(z) = \mathrm{RH} \, q_v^*\bigl( T(z), \rho(z) \bigr),
 \end{equation}
-where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}.
+where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}. Computing the specific internal energy $I$ from these quantities using Eq.~\eqref{eq:total_internal_energy} (with $q_l = q_i = 0$) and with that the total specific energy $e^{\mathrm{tot}} = I + \Phi$ corresponding to state of rest ($\vec{u}=0$) then completes the specification of the model state.
 
 It is common to add a small amount of random noise, e.g., to the initial density at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of $\rho(0)$.
 
@@ -697,7 +705,7 @@ The state vector consists of components
 \end{equation}
 Here, $q_k$ represents the suspended water specific humidities $q_t$, $q_l$, and/or $q_i$ (total water and cloud condensate, if used); $q_{p,i}$ are the precipitation specific humidities, with the index $i$ labeling different precipitation species (rain, snow, graupel etc.); and $\chi_j$ are the scalar concentrations (e.g., mass of different aerosol species, chemical constituents etc.\ per unit mass of moist air). In some model configurations (e.g., when we include atmospheric chemistry), we may want to have $O(100)$ of these scalars, meaning that the state vector can consist of hundreds of components.
 
-In what follows, we further decompose each component of the state vector, fluxes, and sources into 4 speeds: fastest (e.g., acoustic modes), faster (e.g., falling rain), dynamical (the standard dynamical evolution, e.g., advection), and slow (e.g., radiation). In the state vector, the precipitation variables $q_{p,i}$ evolve fast relatively to the dynamical variables. When subgrid scale terms characterizing updrafts are included, there evolution generally also is fast. All other components evolve on dynamical timescales.  
+In what follows, we further decompose each component of the state vector, fluxes, and sources into 4 speeds: fastest (e.g., acoustic modes), faster (e.g., falling rain), dynamical (the standard dynamical evolution, e.g., advection), and slow (e.g., radiation). In the state vector, the precipitation variables $q_{p,i}$ evolve fast relatively to the dynamical variables. When subgrid scale terms characterizing updrafts are included, there evolution generally also is fast. All other components evolve on dynamical timescales.  \hl{We need an abstract model formulation that allows different timesteps for different components. It would be helpful to come up with a way of labeling substepped terms by integer multiples of the dynamical timestep, indicating how often they are subcycled for every dynamical timestep, and similarly for superstepped (slower) terms. \textbf{Charlie?}}
 
 \subsection{Fluxes}
 
@@ -760,7 +768,7 @@ Other non-diffusive fluxes include source terms (e.g., radiation) that can be wr
 \right)_{\mathrm{slow}}.
 \label{eq:ndf_flux}
 \end{equation}
-Here, $\vec{k}$ is the vertical unit vector.  The term $-\rho q_{p,i} w_{p, i} \vec{k}$ denotes the falling precipitate flux, which is not as fast as the acoustic mode but faster than the advection terms and therefore must be evolved forward in time with a different method than the acoustic and advective terms. (The fall velocity $w_{p, i}$ is a point-wise function of the specific humidity $q_{p,i}$, the environmental density $\rho$, and possibly of other microphysical parameters that determine the size distribution of falling hydrometeors.) The radiative energy flux $\vec{F}_R$ is included here because it is not diffusive in character. It evolves on longer timescales than the advective fluxes and hence, because it is expensive to evaluate, usually is evolved forward in time with longer timesteps than the advective fluxes. In climate models, it generally is approximated as vertical and hence is one-dimensional, like the precipitation flux. Therefore, \emph{the divergence of these two fluxes is a one-dimensional (vertical) divergence}.
+Here, $\vec{k}$ is the vertical unit vector.  The term $-\rho q_{p,i} w_{p, i} \vec{k}$ denotes the falling precipitate flux, which is not as fast as the acoustic mode but faster than the advection terms and therefore must be evolved forward in time with a different method than the acoustic and advective terms. (The fall velocity $w_{p, i}$ is a point-wise function of the specific humidity $q_{p,i}$, the environmental density $\rho$, and possibly of other microphysical parameters that determine the size distribution of falling hydrometeors.) The radiative energy flux $\vec{F}_R$ is included here because it is not diffusive in character. It evolves on longer timescales than the advective fluxes and hence, because it is expensive to evaluate, usually is evolved forward in time with longer timesteps than the advective fluxes. In climate models, it generally is approximated as vertical and hence is one-dimensional, like the precipitation flux. Therefore, \emph{the divergence of these two fluxes is a one-dimensional (vertical) divergence}. \hl{[TODO in code: Do we have this implemented as a vertical divergence only?]}
 
 \subsubsection{Diffusive Fluxes}
 
@@ -817,7 +825,6 @@ As a concrete example, consider precipitation and how it interacts with the rest
 \item The precipitation specific humidity $q_{p,i}$ enters various microphysical source/sink terms, for example, in the equations for suspended specific humidities $q_k$. As a result, these sources also evolve fast and need to be accumulated over the fast timesteps over which precipitation $q_{p.i}$ evolves.
 \item On the other hand, other terms in the equations for suspended specific humidities $q_k$ evolve on dynamical timescales and hence are slower than the microphysical terms.
 \end{enumerate}
-\hl{We need an abstract model formulation that allows different timesteps for different components. It would be helpful to come up with a way of labeling substepped terms by integer multiples of the dynamical timestep, indicating how often they are subcycled for every dynamical timestep, and similarly for superstepped (slower) terms. \textbf{Charlie?}}
 
 \subsection{Boundary Conditions}
 
@@ -825,30 +832,23 @@ At rigid boundaries with normal $\vec{n}$, the normal component of the advective
 
 Thus, generally, we want vanishing normal flux components at rigid boundaries, and Dirichlet conditions on state variables and/or Neumann conditions on diffusive flux components.
 
-\section{Numerical Methods}
-\label{sec:numerical_methods}
+\chapter{Numerical Methods}\label{sec:numerical_methods}
 
-\subsection{Spatial Discretization Methods}
+\section{Spatial Discretization Methods}
 
-\subsubsection{Overview}
+\subsection{Overview}
 For the spatial discretization methods, we use variants of the discontinuous Galerkin (DG) method with tensor-product bases (see, e.g., \citealt{giraldo:2008a, abdi:2016}). We use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
 
-In the numerical method, the domain is assumed to be embedded in a Cartesian
+The domain is assumed to be embedded in a Cartesian
 coordinate system. The vector $\vec{x}$ denotes a point in the Cartesian
-coordinate system and the three components are taken to be $(x_{1}, x_{2},
-x_{3})$. Each element will also have its own reference coordinate system, defined
-so that the element is a square (in two-dimensions) or cube (in
-three-dimensions). A point in the reference element is denoted as $\vec{\xi}$,
-and the three element coordinates are taken to be $(\xi_{1}, \xi_{2}, \xi_{3})$.
+coordinate system with components $(x_{1}, x_{2},
+x_{3})$. Each element has its own reference coordinate system, defined
+so that the element is a square (in 2D) or cube (in
+3D). A point in the reference element is denoted as $\vec{\xi}$ with components $(\xi_{1}, \xi_{2}, \xi_{3})$.
 It is important to note that $x_{3} \ne z$ if $z$ is taken to be height (the
-direction in which gravity acts).
+direction opposite to the gravitational acceleration).
 
-\hl{[I have been through this to make a first pass at the change of notation to
-$(x_{1}, x_{2}, x_{3})$ and $(\xi_{1}, \xi_{2}, \xi_{3})$, but would be good to
-have a second set of eyes go over it too -- Jeremy]}
-
-
-\subsubsection{DG Basics}
+\subsection{DG Basics}
 
 \begin{figure}[htbp]
 \begin{center}
@@ -890,7 +890,7 @@ The attraction of using basis functions $\psi$ to represent the solution $\vec{Y
 \ee
 where we are able to construct $\grad \psi$ \emph{a priori} since we have chosen the basis functions $\psi$ not to depend on time.
 
-\subsubsection{DG Representation of Conservation Laws}
+\subsection{DG Representation of Conservation Laws}
 To describe the DG method, let us describe how one would represent the divergence operator for the conservation law
 \be
 \diff{\vec{Y}}{t} + \nabla \cdot \Fvector = 0,
@@ -919,13 +919,13 @@ where $\Gamma_e$ is the boundary of the element $\Omega_e$ and $\nvector$ is its
 \ee
 where $\Fvector^{(*,e)}_N$ is the numerical flux that takes into account the solution at $\Omega_e$ and all its neighbors $\Omega_k$ represented by $\Gamma_e$.  In two dimensions, we will have 4 face neighbors, and in three dimensions we will have 6 face neighbors.  At this point, one is free to choose their favorite numerical flux just as one would do in the finite-volume method (e.g., Rusanov, Roe, HLL, HLLC, etc.).  Note that it is the numerical flux term that couples all of the equations together; the rest of the terms are completely local within the element.
 
-\subsubsection{Tensor Product Basis Functions}
+\subsection{Tensor Product Basis Functions}
 In Eq.\ \eqref{eq:spatial_discretization/dg_method}, we have said very little
 about the basis functions $\psi$ and have written the approximation in so-called
 monolithic form whereby all the degrees of freedom within an element are written
 as one long vector of length $N_p$.  This way of representing Eq.\ \eqref{eq:spatial_discretization/dg_method} allows for a quick explanation of the DG method but does not illustrate how the method is constructed when tensor product basis functions are used.  
 
-\paragraph{Two Dimensions}
+\subsubsection{Two dimensions}
 
 In the case of tensor product basis functions, we rewrite $\psi$ (in 2D) as 
 \[
@@ -965,7 +965,7 @@ If we use the same polynomial order along $\xi_{1}$ and $\xi_{2}$ (call it $N$),
 \ee
 where $h$ is the basis function and $dh$ is its derivative, which are the same functions used along both directions $\xi_{1}$ and $\xi_{2}$; the index $(i,j)$ will account for which direction we are referring to.
 
-\paragraph{Three Dimensions}
+\subsubsection{Three dimensions}
 
 The same strategy readily extends to three-dimensions, where we write the basis functions as 
 \[
@@ -1009,95 +1009,84 @@ If we use the same polynomial order along $\xi_{1}$, $\xi_{2}$, and $\xi_{3}$, t
 \end{multline}
 where the index $(i,j,k)$ will account for which direction we are referring to.
 
-\subsubsection{Implementation}
+\hl{Frank/Lucas/Jeremy: Can you write a little more about:}
+\begin{itemize}
+    \item \hl{Diffusion terms (second derivatives)}
+    \item \hl{Boundary conditions (how are they implemented?)}
+    \item \hl{How do we get higher-order derivatives (e.g., $\nabla^4$ for hyperdiffusion)? (It would be helpful for GCM, but clearly is a challenge with DG.)}
+\end{itemize}
+\hl{This does not need to be very detailed, just for others to be able to understand the code and what is and is not possible in DG.}
 
-\hl{[Frank/Lucas/Jeremy: Can we write a little here about the implementation, to make it easier for people to connect the code with what is written above? For example, how are boundary conditions implemented?]} 
-[\fxg{Tapio, perhaps we can discuss this on Friday to understand what you are looking for exactly here.}]
+\section{Time-Discretization Methods}\label{s:timestepping}
 
-\subsection{Time-Discretization Methods}\label{s:timestepping}
+\subsection{Additive Runge-Kutta IMEX Methods}
 
-\subsubsection{Additive Runge-Kutta IMEX Methods}
+To circumvent the time-step restriction due to the fast acoustic waves, using implicit-explicit (IMEX) methods is one option. For the LES model, if the aspect ratio of the horizontal to vertical grid spacing is near unity, it may be beneficial to use fully 3D-IMEX methods.  For LES models with aspect ratios of grid elements greater than one, and certainly for global atmospheric models, which generally have large aspect ratios, we use 1D-IMEX methods in which the time-integrator is fully explicit in the horizontal direction (HE) and implicit in the vertical direction (so-called HEVI schemes). IMEX methods require a linear solve at each time step. This
+is global in 3D. This may limit scalability of IMEX methods in a multi-node setting. In that case, split-explicit methods may be a more scalable option to deal with the timestep restrictions. For HEVI schemes, the linear solves are restricted to independent atmospheric columns, which are usually represented on a single node (if the domain decomposition is done in the horizontal). So their scalability across nodes is less restricted.
 
-To circumvent the time-step restriction due to the fast acoustic waves, we rely on implicit-explicit (IMEX) methods. For the LES model, if the aspect ratio of the horizontal to vertical grid spacing is near unity, it is beneficial to use fully 3D-IMEX methods.  For the global atmospheric model with large aspect ratios of grid elements, we use 1D-IMEX methods in which the time-integrator is fully explicit in the horizontal direction (HE) and implicit in the vertical direction (so-called HEVI schemes).
-
-We use a general family of additive Runge-Kutta methods (ARK) methods for both the 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013}). Note that adding fully-implicit Runge-Kutta (IRK) methods to the 3D-IMEX approach is quite trivial, so this can be included as an option. Fully-implicit methods have no time-step restriction with respect to stability.
-
-To get a sense of how the ARK approach works, let us describe a general abstract model here that will be used in later sections to describe specific formulations. To describe the abstract IMEX formulation, let us partition the total tendency $\vec{\mathcal{T}}$ on the right-hand side of Eq.~\eqref{e:eom_compact} into four process speeds,
+We use a general family of additive Runge-Kutta methods (ARK) methods for both the 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013}). %Note that adding fully-implicit Runge-Kutta (IRK) methods to the 3D-IMEX approach is quite trivial, so this can be included as an option. Fully-implicit methods have no time-step restriction with respect to stability.
+To get a sense of how the ARK approach works, let us describe a general abstract model here that will be used in later sections to describe specific formulations. To describe the abstract IMEX formulation, let us partition the total tendency $\vec{\mathcal{T}}$ on the right-hand side of Eq.~\eqref{e:eom_compact} into four process speeds: \hl{[label process speeds by integers indicating sub- and supercycling rates]}
+%with the fastest labeled by subscript $I$ (for implicit), with fast terms that need to be subcycled $p$ times for each dynamical timestep labeled by the subscript $+p$, and slow terms that need to be cycled every $q$ dynamical timestep by the index $-q$.
 \[
 \frac{\partial \vec{Y}}{\partial t} = \Tvector = - \nabla \cdot \Fvector + \vec{\mathcal{S}} = \Tvector_{\mathrm{fastest}} + \Tvector_{\mathrm{fast}} + \Tvector_{\mathrm{dynamical}} + \Tvector_{\mathrm{slow}}.
 \]
-Let us further partition the tendency $\Tvector_\mathrm{fastest}$ containing the fastest waves in the system into a component linear in state variables and a residual nonlinear component,
+Let us further partition the tendency $\Tvector_\mathrm{fastest}$ containing the fastest waves in the system into a component linear in state variables and a residual nonlinear component \hl{[if we distinguish the terms by integer labels, we should make clear where the nonlinear part of the fastest term goes, whose linear component is treated implicitly; default would be with the dynamical terms?]}
 \[
-\Tvector_\mathrm{fastest} =  \Tvector^L_\mathrm{fastest} \qvector + \Tvector^N_\mathrm{fastest}(\qvector).
+\Tvector_\mathrm{fastest}(\statevec) =  \Tvector^L_\mathrm{fastest} \statevec + \Tvector^N_\mathrm{fastest}(\statevec).
 \]
 This then allows us to write the semi-discrete form (in space) as follows
 \begin{equation}\label{eq:IMEX}
-\difft{\qvector}{t} =  \Tvector^L_\mathrm{fastest} \qvector + \Tvector_\mathrm{fast} + 
-\Tvector_\mathrm{dynamical} + \Tvector^N_\mathrm{fastest}(\qvector) + \Tvector_\mathrm{slow}.
+\difft{\statevec}{t} =  \Tvector^L_\mathrm{fastest} \statevec + \Tvector_\mathrm{fast}(\statevec) + 
+\Tvector_\mathrm{dynamical}(\statevec) + \Tvector^N_\mathrm{fastest}(\statevec) + \Tvector_\mathrm{slow}(\statevec).
 \end{equation}
 To discretize the equations in time, we first compute the stage values
 \begin{multline}\label{eq:IMEX/stages}
-\qstage^{(i)}= \qvector^n + \Delta t \sum_{j=0}^{i} \left( a^{\mathrm{fastest}}_{ij} \Tvector_{\mathrm{fastest}}^L \qstage^{(j)} \right) + \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{fast}}_{ij} \Tvector_{\mathrm{fast}}(\qstage^{(j)}) \right)  \\
-+  \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{dynamical}}_{ij} \bigl(\Tvector_{\mathrm{dynamical}}(\qstage^{(j)}) + \Tvector^N_\mathrm{fastest}(\qstage^{(j)})\bigr)\right) \\
-+ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{slow}}_{ij} \Tvector_{\mathrm{slow}}(\qstage^{(j)}) \right)
+\statestage^{(i)}= \statevec^n + \Delta t \sum_{j=0}^{i} \left( a^{\mathrm{fastest}}_{ij} \Tvector_{\mathrm{fastest}}^L \statestage^{(j)} \right) + \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{fast}}_{ij} \Tvector_{\mathrm{fast}}(\statestage^{(j)}) \right)  \\
++  \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{dynamical}}_{ij} \bigl(\Tvector_{\mathrm{dynamical}}(\statestage^{(j)}) + \Tvector^N_\mathrm{fastest}(\statestage^{(j)})\bigr)\right) \\
++ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{slow}}_{ij} \Tvector_{\mathrm{slow}}(\statestage^{(j)}) \right)
 \end{multline}
-with $i=1,\ldots,s$ representing the $s$ stages, $\qstage^{(0)}=\qvector^n$ (where $\qvector^n$ is the solution vector at the current time), and $a$ are the coefficients of the partitioned Butcher tableau (see, e.g., \citet{constantinescu:2007, constantinescu:2007}). Here, the nonlinear component of the fastest term was assumed to evolve with other terms on dynamical timescales. Some rows of the coefficient matrices $a$ for the slower component will be zero. \hl{\textbf{Frank}: We need to write this in a way that facilitates implementation, potentially with more subdivisions of a timestep. It makes sense to me to subcycle the faster components by an integer multiple of the dynamical timestep, and correspondingly to superstep the slow components by another integer multiple. Can we write this out explicitly now, even without having the Butcher tableaus worked out? As I mentioned, we need this immediately once IMEX works and need to work on the implementation aspects now.} 
-[\fxg{I have a call scheduled with Mark Taylor next week. We have been discussing what they are doing in E3SM and has sent me new papers on this.  Right now, they are using explicit time-integration only but are moving to semi-Lagrangian with a fixer for the mass.}]
+with $i=1,\ldots,s$ representing the $s$ stages, $\statestage^{(0)}=\statevec^n$ (where $\statevec^n$ is the solution vector at the current time), and $a$ are the coefficients of the partitioned Butcher tableau (see, e.g., \citet{constantinescu:2007, constantinescu:2010c}). Here, the nonlinear component of the fastest term was assumed to evolve with other terms on dynamical timescales. Some rows of the coefficient matrices $a$ for the slower component will be zero. \hl{We need to write this in a way that facilitates implementation, potentially with more subdivisions of a timestep. It makes sense to me to subcycle the faster components by an integer multiple of the dynamical timestep, and correspondingly to superstep the slow components by another integer multiple. Can we write this out explicitly now, even without having the Butcher tableaus worked out? We need this immediately once IMEX works and need to work on the implementation aspects now. We also need a split-explicit implementation as a fallback if 3D IMEX does not give us the performance increase we need.} 
 The solution at time $n+1$ is obtained from
 \be
-\qvector^{n+1}=\qvector^n + \Delta t \sum_{i=0}^{s} \left( b_i \vec{\mathcal{T}}(\qstage^{(i)}) \right).
+\statevec^{n+1}=\statevec^n + \Delta t \sum_{i=0}^{s} \left( b_i \vec{\mathcal{T}}(\statestage^{(i)}) \right).
 \label{eq:IMEX/update}
 \ee
-So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \citep{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we impose the restriction that all diagonal values $\wt{a}_{ii}$ are constant. This allows one construction of the matrix problem that does not change across stage values.  This we now refer to as singly-diagonally-implicit Runge-Kutta (SDIRK).
+So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \citep{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we impose the restriction that all diagonal values $\wt{a}_{ii}$ are constant \hl{[the same?]}. This allows one construction of the matrix problem that does not change across stage values.  This we now refer to as singly-diagonally-implicit Runge-Kutta (SDIRK).
 
-Rearranging Eq.\ \eqref{eq:IMEX/stages} as follows
+Rearranging Eq.\ \eqref{eq:IMEX/stages} as follows \hl{[what happened to the off-diagonal elements involving $\Tvector^L_{\mathrm{fastest}}$? it seems DIRK assume $a_{jl} = 0$ for $j>l$, right?]}
 \begin{multline}\label{eq:IMEX/stages2}
-\left( \vec{I} - {a}^{\mathrm{fastest}}_{ii}\Tvector^L_{\mathrm{fastest}} \right)  \qstage^{(i)}  =  \qvector^n + 
-\Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{fast}}_{ij} \Tvector_{\mathrm{fast}}(\qstage^{(j)}) \right)   \\
-+ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{dynamical}}_{ij} \bigl(\Tvector_{\mathrm{dynamical}}(\qstage^{(j)}) + \Tvector^N_\mathrm{fastest}(\qstage^{(j)})\bigr) \right) \\
-+ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{slow}}_{ij} \Tvector_{\mathrm{slow}}(\qstage^{(j)}) \right) 
+\left( \vec{I} - {a}^{\mathrm{fastest}}_{ii}\Tvector^L_{\mathrm{fastest}} \right)  \statestage^{(i)}  =  \statevec^n + 
+\Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{fast}}_{ij} \Tvector_{\mathrm{fast}}(\statestage^{(j)}) \right)   \\
++ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{dynamical}}_{ij} \bigl(\Tvector_{\mathrm{dynamical}}(\statestage^{(j)}) + \Tvector^N_\mathrm{fastest}(\statestage^{(j)})\bigr) \right) \\
++ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{slow}}_{ij} \Tvector_{\mathrm{slow}}(\statestage^{(j)}) \right) 
 \end{multline}
-reveals the implicit nature of the problem. Letting $\vec{A}=\vec{I} - {a}^{\mathrm{fastest}}_{ii} \Tvector^L_{\mathrm{fastest}}$, $\vec{X}=\qstage^{(i)}$, and denoting the right-hand side of Eq.~\eqref{eq:IMEX/stages2} by $\mathcal{B}$, we obtain the linear system 
+reveals the implicit nature of the problem. Letting $\vec{A}=\vec{I} - {a}^{\mathrm{fastest}}_{ii} \Tvector^L_{\mathrm{fastest}}$, $\vec{X}=\statestage^{(i)}$, and denoting the right-hand side of Eq.~\eqref{eq:IMEX/stages2} by $\mathcal{B}$, we obtain the linear system 
 \[
 \vec{A} \vec{X} = \mathcal{B}.
 \]
 We can solve this linear system using, e.g., Krylov subspace methods such as GCR or GMRES (we cannot use conjugate gradient since the system is hyperbolic and therefore is not symmetric positive-definite in the current form). ARK of order $\order(\Delta ^k)$ for $k=2,\ldots,5$ are planned (which are roughly of order $k=s-1$ where $s$ denotes the number of stages.
 
-\subsubsection{Reference State for Linearization}
+\subsection{Reference State for Linearization}
 
 \hl{TODO in code: Implement the reference state calculation for an arbitrary $T_r(z)$; constant $T_r$ for now is fine.}
 
-Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates. We enforce hydrostatic balance, and assume the reference state is dry, so that the reference pressure is obtained by combining hydrostatic balance ($\partial_z p_r(z) = - \rho_r g$) with the ideal gas law ($p_r=R_d \rho_r T_r$), giving 
-\[
-p_r(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right),
-\]
-where
-\[
-H(z)  = \frac{R_d T_r(z)}{g}
-\]
-is the scale height and we chose for $p_r(0)$ the mean sea level pressure $p_{\mathrm{MSLP}}$. For the simple and commonly used choice of a constant reference temperature $T_r$, this reduces to
-\begin{equation}
-    p_r = \exp (-z/H),
-\end{equation}
-where the scale height $H = R_d T_{r}/g$ is constant. The reference density then follows from the ideal gas law as
-\begin{equation}
-    \rho_r = \frac{p_r}{R_d T_{r}}.
-\end{equation}
+Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates. We enforce hydrostatic balance, and assume the reference state is dry, so that the reference state variables are obtained as described in section~\ref{s:initial_conditions} with zero relative humidity, $\mathrm{RH}=0$: the pressure is obtained from \eqref{eq:hydro_pressure}, the density from \eqref{eq:hydro_density}, and the total specific humidity is set to zero, $q_{t,r}=0$.
 
 Because the reference temperature and thus the reference pressure are assumed to be constant in the horizontal, the reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic balance. Because the reference state is assumed dry, $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
 
 More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference state velocity in geostrophic and hydrostatic balance with this temperature field. 
  
- \subsubsection{3D-IMEX Approach}
+ \subsection{3D-IMEX Approach}
  \label{sec:3D-IMEX/v1}
 If the grid aspect ratio between the horizontal $\Delta_h$ and the vertical $\Delta_v$ is near unity, $\Delta_h/\Delta_v \approx 1$, the stiffness of the equations arises from the acoustic modes (i.e., sound waves), which travel along all three spatial dimensions. In this case, we must extract the acoustic waves in all three spatial dimensions and treat them implicitly.  
 
 To linearize, we introduce the following splitting: $\rho(\vec{x},t)=\rho_r(\vec{x}) + \rho'(\vec{x},t)$,  $p(\vec{x},t)=p_r(\vec{x}) + p'(\vec{x},t)$, and $(\rho \etotal)'=\rho \etotal - \rho_r e_r$, where the terms $\vec{Y}'(\vec{x},t)=\vec{Y}(\vec{x},t)-\vec{Y}_r(\vec{x})$ denote perturbation variables from the reference state  $\vec{Y}_r$, assumed to be at rest with $\vec{u}_r = 0$.
  
-Let us assume the fastest tendency terms $\Tvector_{\mathrm{fastest}}$ contain contributions from advection, pressure terms, some source terms, so that sound waves are captured:
- \[
- \Tvector_{\mathrm{fastest}}=-\nabla \cdot \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}}\right) + \Source_{\mathrm{fastest}}.
- \]
+Let us assume the fastest tendency terms $\Tvector_{\mathrm{fastest}}$ contain contributions from advection and pressure terms so that sound waves are captured:
+ \begin{equation}
+ \Tvector_{\mathrm{fastest}}=-\nabla \cdot \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}}\right).
+ \label{eq:3d-imex/linear_operator}
+ \end{equation}
 The linear components of the relevant flux terms in Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} can be written as follows (with $\mathcal{L}(\cdot)$ denoting the linear component): 
  \begin{equation}
  \mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right)=\left( \begin{array}{c}
@@ -1119,10 +1108,10 @@ p' \vec{I}_3 \\
 \vec{0} 
 \end{array}
 \right)
-\label{eq:fluxes_linear}
+\label{eq:3d-imex/linear_fluxes}
 \end{equation}
-And the linear component of the source term \hl{[So you are including external gravity waves  in the implicit part, too, in contrast to what is stated at the beginning of the section? Do we really want to do that? It seems unusual for LES.]}
-[\fxg{The way this section was initially written represented what we COULD do.  I am now modifying this section to reflect what is actually done in the code.}] \hl{[Well, we need to know what we actually should implement.]}
+\comment{
+And the linear component of the source term  \hl{[TS: I would remove the gravity wave (buoyancy) terms. Gravity waves are not rate limiting in LES settings and are usually treated explicitly. That way you can also use the standard Euler Schur complements. Note that if the buoyancy term is omitted, this affects how the pressure gradient term is implemented: if the buoyancy term is omitted, the hydrostatic reference state contribution in the pressure terms needs to be kept, since the reference state part included in the total (nonlinear) buoyancy term also remains.]}
 is 
 \begin{equation}
 \mathcal{L}\left( \Source_{\mathrm{fastest}}\right) = \left( \begin{array}{c}
@@ -1133,18 +1122,18 @@ is
 0 \\
 0
 \end{array}
-\right)
+\right).
 \end{equation}
-which is linear with respect to $\rho'$. To obtain a system that is linear in state variables, we also need to express the perturbation  pressure $p'= p - p_r$ as a linear function of state variables. We can do so by first computing the linearized internal energy perturbation per unit volume,
+}
+This is linear with respect to $\rho'$, $\rho \vec{u}$, and $p'$, which is linear in state variables provided we express the perturbation  pressure $p'= p - p_r$ as a linear function of state variables. We can do this by first computing the linearized internal energy perturbation per unit volume,
 \begin{equation}
 (\rho I)' \approx (\rho \etotal)'  -  \rho' \Phi,
 \end{equation}
-assuming a reference state at rest, and computing from that the perturbation product of density and temperature
-using a version of the temperature equation~\eqref{eq:temperature} that is linear in the state variables:
+assuming a reference state at rest, and computing from that $(\rho T)'$ using a version of the temperature equation~\eqref{eq:temperature} that is linear in the state variables:
 \begin{equation}\label{eq:temperature_perturb}
 (\rho T)' =  \frac{(\rho I)'  - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0})}{c_{vd}}.
 \end{equation}
-The ideal gas law (neglecting moisture perturbations affecting the gas constant) then gives the perturbation pressure
+The ideal gas law (neglecting moisture perturbations affecting the gas constant) then gives the perturbation pressure \hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure perturbation. We'll need it in all IMEX variants. \textbf{Charlie?}]}
 \begin{equation}\label{eq:pressure_perturb}
 \begin{split}
 p' & \approx R_d (\rho T)' \\
@@ -1155,22 +1144,22 @@ This gives the perturbation pressure as a linear function of state variables.
 
 Defining 
 \[
-\Tvector^L_{\mathrm{fastest}}  = - \nabla \cdot \left( \mathcal{L} \bigl(\Fadv_{\mathrm{fastest}}\bigr) + \mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right) \right) + \mathcal{L}\left( \Source_{\mathrm{fastest}}\right),
+\Tvector^L_{\mathrm{fastest}} \statevec  = - \nabla \cdot \left( \mathcal{L} \bigl(\Fadv_{\mathrm{fastest}}\bigr) + \mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right) \right) ,
 \]
 we obtain the nonlinear component of the fastest tendency as the residual 
-\[
-\Tvector^N_{\mathrm{fastest}} = \Tvector_{\mathrm{fastest}} - \Tvector^L_{\mathrm{fastest}}.
-\] 
+\begin{equation}\label{e:nonlinear_residual}
+\Tvector^N_{\mathrm{fastest}}(\statevec) = \Tvector_{\mathrm{fastest}}(\statevec) - \Tvector^L_{\mathrm{fastest}} \statevec.
+\end{equation}
 This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{\mathrm{fastest}}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{\mathrm{fastest}}$) and  $\lambda^L_{\mathrm{fastest}} = c^L_s$ (corresponding to $\Tvector^L_{\mathrm{fastest}}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state. See discussion of sound waves and gravity waves, e.g., in Durran's book on numerical methods.} in the reference state and $c_s$ is the speed of sound with respect to the total variables. 
  
  \comment{
-\subsubsection{3D-IMEX Approach: Version 2}
+\subsection{3D-IMEX Approach: Version 2}
 \label{sec:3D-IMEX/v2}
 The advantage of using version 1 presented in Sec.\ \ref{sec:3D-IMEX/v1} is that we can construct the explicit solution of the governing equations and then view the implicit portion of the IMEX method as a correction to the explicit solution.  However, following this approach may cause the discrete form of the equations to lose hyperbolicity (see \cite{bispen:2017}).
 
 To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into a linear and nonlinear part:
 \begin{equation}
- \vec{\mathcal{T}}(\qvector)=- \left( \begin{array}{c}
+ \vec{\mathcal{T}}(\statevec)=- \left( \begin{array}{c}
  0 \\
  \nabla \cdot (\rho \vec{u} \otimes \vec{u}) \\
  \nabla \cdot ( (E' + p') \vec{u} )
@@ -1189,48 +1178,68 @@ To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into
  $\lambda^{(L)}_{\max}= c_s$, where the superscripts (N) and (L) denote the operator that the eigenvalue is associated with.
 }
 
-\subsubsection{1D-IMEX Approach}
+\subsubsection{3D-IMEX Linear Operator in the Reference Coordinate}
+ Although not strictly necessary to understand the application of the 3D-IMEX approach given by Eqs.\ \eqref{eq:3d-imex/linear_operator} and \eqref{eq:3d-imex/linear_fluxes} let us describe the approximation of the spatial derivatives in terms of the reference element coordinates; note that this will assist us in understanding the 1D-IMEX approach described below. Let us first rewrite the 3D-IMEX linear operator 
+ $\Tvector_{\mathrm{fastest}}$ as follows:
+ \begin{equation}
+ \Tvector_{\mathrm{fastest}}= \nabla \cdot \left( \begin{array}{c}
+ \rho \vec{u} \\
+ p' \vec{I}_3 \\
+ \left( e_r + \frac{p_r}{\rho_r} \right) \rho \vec{u} \\
+\vec{0}\\
+\vec{0} \\
+\vec{0}
+\end{array}
+\right), 
+\label{eq:3d-imex/linear_operator_v2}
+\end{equation}
+ where we can now replace the differential operator $\nabla=\diff{}{x_1} \hat{\vec{x}}_1 + \diff{}{x_2} \hat{\vec{x}}_2 + \diff{}{x_3} \hat{\vec{x}}_3$
+ by the following
+ \[
+ \nabla \cdot \vec{f} = \frac{1}{J} \nabla_{\vec{\xi}} \cdot \left(J \vec{f}^{\vec{\xi}} \right)
+ \]
+ where $\vec{f}=f_{x_1} \hat{\vec{x}}_1 + f_{x_2} \hat{\vec{x}}_2 + f_{x_3} \hat{\vec{x}}_3$ denotes the (covariant) vector in the model coordinate system, 
+ $\vec{f}^{\vec{\xi}}=f^{\xi_1} \hat{\vec{\xi}}_1 + f^{\xi_2} \hat{\vec{\xi}}_2 + f^{\xi_3} \hat{\vec{\xi}}_3$ denotes the (contravariant) vector in the element reference coordinate system with the components defined as follows:
+ $\vec{f}^{\xi_i}=\vec{f} \cdot \nabla \xi_i$, where $J$ is the determinant of the map Jacobian, and 
+ $\nabla_{\vec{\xi}}=\diff{}{\xi_1} \hat{\vec{\xi}}_1 + \diff{}{\xi_2} \hat{\vec{\xi}}_2 + \diff{}{\xi_3} \hat{\vec{\xi}}_3$. The covariant vector $\vec{f}$ can now take the place of any of the rows in Eq.\ \eqref{eq:3d-imex/linear_operator_v2}.
+ 
+\subsection{1D-IMEX Approach}
 \label{sec:1D-IMEX}
 
-\hl{[NEED TO FIX THIS SECTION WHEN 3D IS DONE.]}
-
-For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations will arise from the vertically propagating acoustic modes if the explicit CFL number will not be violated in the horizontal. For this situation, we only need to extract acoustic waves along the vertical direction and treat them implicitly.  Following a similar approach for the 3D-IMEX method given in Sec.\ \ref{sec:3D-IMEX/v1}, we write
- \[
-\Tvector= \Tvector_{\mathrm{fastest}} + \Tvector_{\mathrm{fast}} + \Tvector_{\mathrm{dynamical}} + \Tvector_{\mathrm{slow}}
-\]
-%where $\Tvector_{\mathrm{fastest}}=-\nabla \cdot \left( \Fvector_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}}\right)+ \Source_{\mathrm{fastest}}$
- which must be linear with respect to $\qvector'$. 
- As a first approach, let us define this operator as follows:
- 
- \comment{
+For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations arises principally from vertically propagating sound and gravity waves; vertical diffusion terms may also add stiffness. For this situation, we only need to extract sound and gravity waves, plus possibly diffusion terms, along the vertical direction and treat them implicitly.  Following an approach similar to that for the 3D-IMEX method given in Sec.\ \ref{sec:3D-IMEX/v1}, we write the fastest tendency term, involving only vertical flux divergences, as
  \[
  \Tvector_{\mathrm{fastest}}=- \diff{}{z} \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}} + \Fdiff_{\mathrm{fastest}} \right) + \Source_{\mathrm{fastest}}
  \]
- where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the $x_{3}$-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x_{1} \hat{i} + x_{2} \hat{j} + x_{3} \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
+ where $z$ again denotes the vertical coordinate.  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear components as follows: \hl{[the vector components do not match up here. First, it's odd to have the vertical coordinate in the first position of the velocity vector, third is common. Second, the entries for the momentum fluxes are to be understood as vector valued but are not indicated as such. Third, the diffusion terms do not match]}
  \begin{equation}
- \Fadv_{\mathrm{fastest}}=\left( \begin{array}{c}
+\mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right)
+=\left( \begin{array}{c}
  \rho w \\
  0 \\
  0 \\
  0 \\
- \rho_r e_r w\\
+ e_r (\rho w)\\
 0 \\
 0 \\
 0
 \end{array}
-\right), 
-\Pvector_{\mathrm{fastest}}= \left( \begin{array}{c}
+\right), \qquad
+\mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right)
+= \left( \begin{array}{c}
 0 \\
 0 \\
 0 \\
 p' \\
-p_r w \\
+\frac{p_r}{\rho_r} (\rho w) \\
 0 \\
 0 \\
 0 
 \end{array}
 \right),
-\Fdiff_{\mathrm{fastest}}=\left( \begin{array}{c}
+\end{equation}
+and
+\begin{equation}
+\mathcal{L}\left(\Fdiff_{\mathrm{fastest}}\right)=\left( \begin{array}{c}
  \rho_r \vec{d}_{q_t} \cdot \vec{k} \\
  \rho_r \vec{\tau} \cdot \vec{k} \\
  \rho_r \vec{J} + \rho_r \vec{D} \cdot \vec{k}\\
@@ -1243,9 +1252,10 @@ p_r w \\
 \end{equation}
 }
 
-\[
+\begin{equation}
  \Tvector_{\mathrm{fastest}}=- \diff{}{z} \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}} \right) + \Source_{\mathrm{fastest}}
- \]
+ \label{eq:1d-imex/linear_operator}
+ \end{equation}
  where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the $x_{3}$-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x_{1} \hat{i} + x_{2} \hat{j} + x_{3} \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
  \begin{equation}
  \mathcal{L} \left( \Fadv_{\mathrm{fastest}} \right)=\left( \begin{array}{c}
@@ -1258,7 +1268,7 @@ p_r w \\
 0 \\
 0
 \end{array}
-\right), 
+\right), \qquad
 \mathcal{L} \left( \Pvector_{\mathrm{fastest}} \right) = \left( \begin{array}{c}
 0 \\
 0 \\
@@ -1270,46 +1280,69 @@ p' \\
 0 
 \end{array}
 \right),
+\label{eq:1d-imex/linear_fluxes}
+\end{equation}
+and similarly for the source
+\begin{equation}
 \mathcal{L} \left( \Source_{\mathrm{fastest}} \right) = \left( \begin{array}{c}
 0 \\
 0 \\
 0 \\
-\rho' \diff{\phi}{z} \\
+-\rho' \diff{\Phi}{z} \\
+0 \\
+0 \\
+0 \\
+0 
+\end{array}
+\right).
+\label{eq:1d-imex/linear_sources}
+\end{equation}
+All of these are linear with respect to $\rho'$, $\rho w$, and the linearized pressure $p'$ obtained from Eq.~\eqref{eq:pressure_perturb}. The term $\rho w$ represents the momentum along the vertical ($z$) direction. The source term includes the geopotential responsible for gravity waves. It makes sense to include them in the implicit part in 1D IMEX, because we usually are not interested in an accurate representation of gravity waves in a global model.
+
+With the linear operator
+\[
+\Tvector^L_{\mathrm{fastest}} \statevec  = - \diff{}{z} \left( \mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right) + \mathcal{L}\bigl(\Pvector_{\mathrm{fastest}}\bigr)
++\mathcal{L}\bigl(\Fdiff_{\mathrm{fastest}}\bigr)\right) + \mathcal{L}\bigl( \Source_{\mathrm{fastest}}\bigr)
+\]
+defined, we can then define the remaining nonlinear operator as the residual \eqref{e:nonlinear_residual} and otherwise follow the procedure outlined in section~\ref{sec:3D-IMEX/v1}. 
+
+\subsubsection{1D-IMEX Linear Operator in the Reference Coordinate}
+ Although Eqs. \eqref{eq:1d-imex/linear_operator} -  \eqref{eq:1d-imex/linear_sources} are written with respect to the z-coordinate (direction along which gravity acts) it does not necessarily mean that the model spatial coordinates are aligned in such a fashion (e.g., unless spherical coordinates are used). However, we can construct the grids of the model in a stacked approach such that one reference coordinate is indeed aligned along the z-coordinate. 
+ Replacing the divergence operator acting on a (covariant) vector $\vec{f}$ as follows
+ \[
+ \nabla \cdot \vec{f} = \frac{1}{J} \nabla_{\vec{\xi}} \cdot \left(J \vec{f}^{\vec{\xi}} \right)
+ \]
+ where $\vec{f}^{\vec{\xi}}=f^{\xi_1} \hat{\vec{\xi}}_1 + f^{\xi_2} \hat{\vec{\xi}}_2 + f^{\xi_3} \hat{\vec{\xi}}_3$ denotes the (contravariant) vector in the element reference coordinate system with components defined as follows:
+ $\vec{f}^{\xi_i}=\vec{f} \cdot \nabla \xi_i$, where $J$ is the determinant of the map Jacobian, and 
+ $\nabla_{\vec{\xi}}=\diff{}{\xi_1} \hat{\vec{\xi}}_1 + \diff{}{\xi_2} \hat{\vec{\xi}}_2 + \diff{}{\xi_3} \hat{\vec{\xi}}_3$. 
+ 
+ Let us rewrite Eqs.\ \eqref{eq:1d-imex/linear_operator}-\eqref{eq:1d-imex/linear_sources} as follows
+ \begin{equation}
+ \mathcal{T}^{3D}_{\mathrm{fastest}} = \nabla \cdot \left( \begin{array}{c}
+ \left( \rho \vec{u} \right) \\
+ p'  \\
+ \left( e_r + \frac{p_r}{\rho_r} \right) \rho \vec{u} \\
+ 0 \\
+0 \\
+0
+\end{array}
+\right)
++
+\left( \begin{array}{c}
+0 \\
+\rho' \nabla \Phi \\
 0 \\
 0 \\
 0 \\
 0 
 \end{array}
 \right),
-\label{eq:fluxes_linear_1d}
+\label{eq:1d-imex/linear_operator_3d}
 \end{equation}
-which are linear with respect to $\rho'$, $\rho w$, and 
-$p'=(\gamma-1)\left((\rho \etotal)' - \rho' \phi\right)$ where
-$(\rho \etotal)'=(\rho \etotal - \rho_r e_r)$.  The term $\rho w$ represents the momentum along the $x_{3}$-direction (for LES it is indeed the Cartesian component in the vertical but on the sphere it represents the radial momentum component $\frac{\vec{x}}{||\vec{x}||} \cdot \left(\rho \vec{u}\right)$).
+where we are now considering the fastest waves linear operator in three-dimensional space.
+[\fxg{To Do: separate in terms of reference coordinate to isolate the radial coordinate}]
 
-\comment{
-\begin{equation}
- \Tvector_{\mathrm{fastest}} =- \left( \begin{array}{c}
- \diff{}{z} (\rho w) \\
- \vec{0} \\
- \vec{0} \\
- \diff{p'}{z}  + \rho' \diff{\Phi}{z} \\
- \diff{}{z}\left(  (\rho_r e_r + p_r) w \right) \\
- \vec{0}
-\end{array}
-\right)
-\label{eq:1d-IMEX/L_operator}
-\end{equation}
-}
-With the linear operator
-\[
-\Tvector^L_{\mathrm{fastest}} = - \diff{}{z} \left( \mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right) + \mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right) \right) + \mathcal{L}\left( \Source_{\mathrm{fastest}}\right)
-\]
-defined, we can then define the remaining nonlinear operator as 
-\[
-\Tvector^N_{\mathrm{fastest}} =\Tvector_{\mathrm{fastest}} - \Tvector^L_{\mathrm{fastest}}
-\]
-and follow the procedure outlined in Sec.\ \ref{sec:3D-IMEX/v1}. 
+\hl{[Important points to keep in mind here: (1) For a global model, we usually use domain decompositions that leave atmospheric columns on one node. This means there is no sizable inter-node communication overhead for 1D-IMEX. The problem for 3D IMEX is that the linear solve can involve states distributed across nodes, and hence involves inter-node communication. This may not scale well, and split-explicit schemes may be preferable in that case. We need to test to find out. We should implement all of this such that it is relatively straightforward to go from 3D-IMEX to some form of split-explicit (or multirate), and make it part of the model configuration what to choose here. (2) It would be good to start working on an implementation of a split-explicit method as alternative to IMEX very soon. We'll need multirate explicit methods in the end anyway. (3) We'll need 1D balance law solvers, for example, for the land and sea ice models. So implementing them for 1D IMEX makes sense.]}
 
 \section{Topography}
 Topography can be either built analytical or by reading an external topography file. The topography data are taken from the NOAA ETOPO-1 database \cite{etopo1}. As of now, only {\bf XYZ files are being read}. If necessary, a NetCFD topograpjhy reader can be easily added.
@@ -1336,12 +1369,86 @@ They are automatically downloaded via a call to {\tt wget} from the {\tt Julia} 
 
 \hl{The grid reader should be enhanced to map the grid onto the sphere. As of now, the grid is read and mapped into a closed box only.}
 
-\section{Benchmarking the dynamical core (Dycore)}
+\chapter{Benchmark Cases}
+
+Here we describe a suite of test cases for dry and moist atmospheres, and for coarse-resolution global and higher-resolution limited-area model configurations. 
 
 \hl{STILL INCOMPLETE}
-Here we describe a set of benchmarks for dry and moist atmospheres. The results presented in this document have been assessed against those presented in the literature. 
 
-\subsection{2D rising thermal bubble by Robert 1993}
+\section{Held-Suarez (1994) Dry GCM Benchmark}
+
+\citet{Held94} describe a simple and widely used setup for testing dry dynamical cores of GCMs. This setup is usually used to focus on statistically steady states (reached after about 100--400~days of spinup) but also lends itself to the study of the time-dependent evolution of Rossby waves and baroclinic instability. In this benchmark calculation, vertical SGS fluxes are usually set to zero; however, horizontal diffusion (or hyperdiffusion) is needed to damp the enstrophy cascade. 
+
+\subsection{Initial Condition}
+
+The initial condition for the Held-Suarez benchmark is an isothermal atmosphere at rest, with $T(t=0) = 300~\mathrm{K}$. Hydrostatically balanced initial density and pressure fields are calculated from the initial temperature according to section~\ref{s:initial_conditions}, and some small random perturbations are added to the density field to break the symmetry of the initial state and allow 3D baroclinic waves to develop. Baroclinic waves develop within a few simulated days in this benchmark calculation, and they begin to equilibrate after around 20--30~days. 
+
+\subsection{Boundary Conditions}
+
+The lower boundary condition is free-slip and thermally insulating, with no evaporation. That is, \emph{all} diffusive fluxes at the lower boundary (see section~\ref{s:bottom_bc}) are taken to be zero (if they are not already taken to be zero throughout the atmosphere, which is common in the Held-Suarez benchmark). With the vanishing surface fluxes, there is no need to specify a surface temperature.
+
+\subsection{Sources}
+
+\subsubsection{Momentum} 
+
+Bottom drag in this benchmark calculation is modeled as a momentum sink in the lower part of the atmosphere, which is a function of velocity $\vec{u}$ and pressure $p$. The momentum sink takes the form of linear Rayleigh drag
+\begin{equation}
+    \vec{F}_u = -k_v(\sigma) \vec{u},
+\end{equation}
+where the drag coefficient decays away from the surface:
+\begin{equation}
+    k_v(\sigma) = k_f \max \left( 0, \frac{\sigma - \sigma_b}{1-\sigma_b} \right).
+\end{equation}
+Here,
+\[
+\sigma = \frac{p}{p_{\mathrm{MSLP}}}
+\]
+is a normalized pressure. (Usually, $\sigma$ is taken to be normalized by the temporally and spatially varying surface pressure $p_s$. But we can simplify this to a constant pressure.) \hl{[It would be good at some point to change this to the actual surface pressure, but this is not important now.]} The two parameters are
+\begin{itemize}
+    \item $\sigma_b = 0.7$: vertical extent of drag layer
+    \item $k_f = 1~\mathrm{day^{-1}}$: drag coefficient at the surface
+\end{itemize}.
+
+\hl{Note that the momentum source appears in the momentum and energy equations. In hydrostatic models, the Rayleigh drag only acts on the horizontal velocity components and is zero in the vertical. Would that be easy to implement for us? Otherwise, also damping vertical velocities is ok for now, but it may need to strongly distorted upwelling and subsidence.}
+
+\subsubsection{Heating/cooling}
+
+Radiative heating/cooling is represented by linear relaxation of temperatures toward a radiative-equilibrium state with temperature \hl{[Note that here $p/p_{\mathrm{MSLP}}$ should be this, with a constant pressure for normalization. So generally, this is not equal to $\sigma$ above; it is only with the simplified $\sigma$ above.]}
+\begin{multline}
+    T_{\mathrm{eq}} = \max \\
+    \left\{ T_{\mathrm{top}}, \left[ T_{\max} - (\Delta T)_y \sin^2 \phi - (\Delta \theta)_z \log\left(\frac{p}{p_{\mathrm{MSLP}}}\right) \cos^2 \phi \right]
+    \left( \frac{p}{p_{\mathrm{MSLP}}} \right)^{\kappa} \right\}.
+\end{multline}
+Here, $\phi$ is latitude, $\kappa = R_d/c_{pd}$ is the adiabatic exponent, and the default values of the parameters are:
+\begin{itemize}
+    \item $T_{\mathrm{top}} = 200~\mathrm{K}$: temperature at model top
+    \item $T_{\max} = 315~\mathrm{K}$: near-surface temperature at equator
+    \item $(\Delta T)_y = 60~\mathrm{K}$: pole-equator temperature difference in radiative equilibrium
+    \item $(\Delta \theta)_z = 10~\mathrm{K}$: static stability in background state.
+\end{itemize}
+
+Relaxation of temperatures toward the background state on a timescale $k_T^{-1}$ implies a source in the energy equation that is a function of latitude $\phi$, pressure $p$, and temperature $T$:
+\begin{equation}
+    Q =  - c_{vd} k_T(\phi, p) (T - T_{\mathrm{eq}}).
+\end{equation} 
+The relaxation coefficient $k_T$ is taken to vary with latitude and normalized pressure $\sigma$ as
+\begin{equation}
+k_T(\phi, p) = k_a + (k_s - k_a) \max\left(0, \frac{\sigma - \sigma_b}{1-\sigma_b}\right) \cos^4 \phi ,
+\end{equation}
+where 
+\begin{itemize}
+    \item $k_a = (40~\mathrm{day})^{-1}$: relaxation coefficient in interior atmosphere
+    \item $k_s = (4~\mathrm{day})^{-1}$: relaxation coefficient  at equator near the surface.
+\end{itemize}
+The interior relaxation timescale $k_a^{-1}$ controls the timescale over which they flow equilibrates to a statistically steady state
+
+\subsection{SGS Fluxes}
+
+In global models with a stratified atmosphere, large-scale turbulence with Rossby waves usually dominates the kinetic energy of the flow. The large-scale flow is primarily rotational and horizontal. SGS dissipation primarily needs to absorb the cascade of enstrophy (vorticity variance) to small scales. This is usually accomplished by horizontal hyperdiffusion.
+
+Hence, the SGS mixing needs to be strongly anisotropic, e.g., as outlined in section~\ref{s:anisotropic_SGS_mixing}.
+
+\section{2D Rising Thermal Bubble (Robert 1993)}
 \label{2dRTBtest}
 This test is described \cite{robert1993}. It consists of a flow that is triggered by the thermal perturbation of a neutrally stratified atmosphere at initially uniform potential temperature $\theta_0 = 303$ K
 and in hydrostatic equilibrium such that the pressure decreases with $z$ as:
@@ -1349,7 +1456,7 @@ and in hydrostatic equilibrium such that the pressure decreases with $z$ as:
 \label{pressureDistrib}
 p = p_{0}\left(1-\frac{g}{c_p{\theta_{0}}}z\right)^{c_p/R}.
 \end{equation}
-The domain $\Omega=[-5000,5000]\times[0,10000]\,{\rm m}^2$.
+The domain $\Omega=[-5000,5000]\times[0,10000]\,\mathrm{m}^2$.
 The perturbation is linear and defined as
 \begin{equation}
  \Delta\theta = \left\{ \begin{array}{ll}
@@ -1358,22 +1465,22 @@ The perturbation is linear and defined as
 \end{array} \right.
 \label{eq:robertIni}
 \end{equation}
-where $r = \sqrt[]{(x-x_{c})^{2} + (z-z_{c})^{2}}$, $(x_c,z_c) = (500,260)\,{\rm m}$, $\sigma = 100$, and $\theta_c=0.5$ K.
+where $r = \sqrt[]{(x-x_{c})^{2} + (z-z_{c})^{2}}$, $(x_c,z_c) = (500,260)\,\mathrm{m}$, $\sigma = 100$, and $\theta_c=0.5$ K.
 
 \begin{figure}[htbp]
 \includegraphics[width=\textwidth]{figures/RTB-Robert--smgo-5mX5m-1080s0000.png}
-\caption{2D rising thermal bubble (Robert, 1993) stabilized via a constant coefficient Smagorinsky-Lilly SGS: Potential temperature, $\theta$, at $t=1080\,{\rm s}$. Grid resolution: $\Delta x = \Delta z = 5\,{\rm m}$.}
+\caption{2D rising thermal bubble (Robert, 1993) stabilized via a constant coefficient Smagorinsky-Lilly SGS: Potential temperature, $\theta$, at $t=1080\,\mathrm{s}$. Grid resolution: $\Delta x = \Delta z = 5\,\mathrm{m}$.}
 \label{fig:benchmarks/robert5msmago}
 \end{figure}
 
-\subsection{2D density current}
+\section{2D Density Current}
 This test is described in \cite{strakaWilhelmson1993}. It consists of a flow that is triggered by the cold perturbation of a neutrally stratified atmosphere at initially uniform potential temperature $\theta_0 = 300$ K
 and in hydrostatic equilibrium such that the pressure decreases with $z$ as:
 \begin{equation}
 \label{pressureDistrib2}
 p = p_{0}\left(1-\frac{g}{c_p{\theta_{0}}}z\right)^{c_p/R}.
 \end{equation}
-The domain $\Omega=[-25600,25600]\times[0,6400]\,{\rm m}^2$.
+The domain $\Omega=[-25600,25600]\times[0,6400]\,\mathrm{m}^2$.
 The perturbation is linear and defined as
 \begin{equation}
  \Delta\theta = \left\{ \begin{array}{ll}
@@ -1382,25 +1489,25 @@ The perturbation is linear and defined as
 \end{array} \right.
 \label{eq:robertIni2}
 \end{equation}
-where $r = \sqrt[]{(x-x_{c})^2/r_x^{2} + (z-z_{c})^{2}/r_z^2}$, $(x_c,z_c) = (0,4000)\,{\rm m}$, $(r_x, r_z) = (4000, 2000)\,{\rm m}$ and $\theta_c=-15$ K. The fully developed density current at $t=900\,{\rm s}$ simulated with a grid effective resolution of $25$ m in both spatial directions is shown in Figure \ref{fig:benchmarks/dc25msmago}.
+where $r = \sqrt[]{(x-x_{c})^2/r_x^{2} + (z-z_{c})^{2}/r_z^2}$, $(x_c,z_c) = (0,4000)\,\mathrm{m}$, $(r_x, r_z) = (4000, 2000)\,\mathrm{m}$ and $\theta_c=-15$ K. The fully developed density current at $t=900\,\mathrm{s}$ simulated with a grid effective resolution of $25$ m in both spatial directions is shown in Figure \ref{fig:benchmarks/dc25msmago}.
 
 \begin{figure}[htbp]
 \includegraphics[width=1.2\textwidth]{figures/DC-smgo-25mx25m-900s0000.png}
-\caption{2D density current stabilized via a constant coefficient Smagorinsky-Lilly SGS. Potential temperature, $\theta$, at $t=900\,{\rm s}$ (top) and at $t=1200\,{\rm s}$ (bottom). Grid resolution: $\Delta x = \Delta z = 25\,{\rm m}$.
+\caption{2D density current stabilized via a constant coefficient Smagorinsky-Lilly SGS. Potential temperature, $\theta$, at $t=900\,\mathrm{s}$ (top) and at $t=1200\,\mathrm{s}$ (bottom). Grid resolution: $\Delta x = \Delta z = 25\,\mathrm{m}$.
 }
 \label{fig:benchmarks/dc25msmago}
 \end{figure}
 
 
 %%
-\subsection{Rising thermal bubble in a saturated atmosphere}
+\section{Rising Thermal Bubble in a Saturated Atmosphere}
 \label{rtb3D}
 The moist dynamics is tested by means of the saturated rising bubble test described in \cite{Pressel15a}. The initial conditions are setup as follows:
 
 \begin{itemize}
 \item Initialize dry atmosphere with uniform background $\theta_{ref} = 320$ K
 \item Add thermal perturbation $\Delta \theta$ of radius $r=2$ km
-\item Set a uniform total mixing ratio $q_t = 0.0192 \,{\rm kg/kg}$ and $q_l = q_i = 0.0\,{\rm kg/kg}$
+\item Set a uniform total mixing ratio $q_t = 0.0192 \,\mathrm{kg/kg}$ and $q_l = q_i = 0.0\,\mathrm{kg/kg}$
 \item Calculate the gas constants for moist air: 
 \[\begin{array}{lcl}
 R_{gas} &=& {\tt MoistThermodynamics.gas\_constant\_air(q_t, q_l, q_i)}\\
@@ -1426,9 +1533,11 @@ e^{\rm tot} &=& {\tt MoistThermodynamics.total\_energy(0.5\|{\bf u} \|^2, gz, T,
 \end{itemize}
 
 %%
-\subsection{Dynamics and Chemistry of Marine Stratocumulus: DYCOMS RF01}
+\section{Dynamics and Chemistry of Marine Stratocumulus: DYCOMS RF01}
 
-\cite{Stevens05a} provide the following initial distribution of liquid water potential temperature,
+\subsection{Initial Condition}
+
+\cite{Stevens05a} provide the following initial distributions of liquid water potential temperature,
 \begin{equation}\label{eq:dycoms1}
 \theta_l(z) = 
     \begin{cases}
@@ -1444,8 +1553,8 @@ q_t(z) =
     1.5\;\mathrm{g/kg} & z > z_i.
     \end{cases}
 \end{equation}
-Here, $z_i$ is the initial cloud top set to $z_i=840\,{\rm m}$. \cite{Stevens05a} state that ``modeling groups were also asked to standardize their thermodynamic calculations'' so that the initial state corresponds to a cloud layer between 600 and 800~m with liquid water specific humidity
-\begin{equation}\label{eq:dycoms2}
+Here, $z_i$ is the initial cloud top set to $z_i=840\,\mathrm{m}$. \cite{Stevens05a} state that ``modeling groups were also asked to standardize their thermodynamic calculations'' so that the initial state corresponds to a cloud layer between 600 and 800~m with liquid water specific humidity
+\begin{equation}\label{eq:dycoms3}
 q_l(z) = 
     \begin{cases}
     0 & z\leq 600~\mathrm{m},\\
@@ -1453,13 +1562,13 @@ q_l(z) =
     0 & z > z_i.\\
     \end{cases}
 \end{equation}
-With our thermodynamics and standard thermodynamical constants, we obtain such a cloud layer if we choose the initial total specific humidity in the mixed layer to be $q_{t,0} = 8.1\;\mathrm{g/kg}$, which is slightly lower than the DYCOMS default value of $9\;\mathrm{g/kg}$.
+With our thermodynamics and standard thermodynamical constants, we obtain such a cloud layer if we choose the initial total specific humidity in the mixed layer to be $q_{t,0} = 8.1\;\mathrm{g/kg}$, which is slightly lower than the DYCOMS default value of $9\;\mathrm{g/kg}$. (An alternative to modifying the initial $q_{t,0}$ would be to adjust, e.g., the latent heat of vaporization or the vapor pressure at the triple point to obtain the desired cloud layer with $q_{t,0} = 9\;\mathrm{g/kg}$.)
 
 To specify the thermodynamic state completely, we additionally need to specify an initial density. We do so by first specifying an initial pressure
 \[
-p_0(z) = p_{s} \exp(-z/H), \qquad H = \frac{R_m T_0}{g},
+p_0(z) = p_{s} \exp(-z/H), \qquad H = \frac{R_m T_{BL}}{g},
 \]
-where $R_m = R_m(q_t, q_l)$ is the gas constant for moist air, $T_0 = 285.0~\mathrm{K}$ is an average boundary-layer temperature, and $p_s = 1.0178\times 10^{5}~\mathrm{Pa}$ is the surface pressure, with surface density $\rho_s = 1.22~\mathrm{kg/m^3}$ and surface temperature $T_s = p_s/(\rho_s R_{m,s})$. Consistent with the Boussinesq or anelastic approximation used in most DYCOMS simulations, we calculate thermodynamic quantities with this reference pressure $p_0(z)$. We use the linearized expression for the liquid-water potential temperature,
+where $R_m = R_m(q_t, q_l)$ is the gas constant for moist air, $T_{BL} = 285.0~\mathrm{K}$ is an average boundary-layer temperature, and $p_s = 1.0178\times 10^{5}~\mathrm{Pa}$ is the surface pressure, with surface density $\rho_s = 1.22~\mathrm{kg/m^3}$ and surface temperature $T_s = p_s/(\rho_s R_{m,s})$. Consistent with the Boussinesq or anelastic approximation used in most DYCOMS simulations, we calculate thermodynamic quantities with this reference pressure $p_0(z)$. We use the linearized expression for the liquid-water potential temperature,
 \begin{equation}
     \label{eq:betts1973}
     \theta_l = \theta \left(1 - \frac{L_{v,0} q_l}{c_{pm} T} \right) = \theta - \frac{L_{v,0} q_l}{c_{pm} \Pi_0},
@@ -1492,44 +1601,50 @@ The initial state of all the quantities described above are plotted in Figure \r
 \label{dycomsInitFig}
 \end{figure}
 
-\hl{[Specify forcing functions, e.g., radiation, surface fluxes]}
-\paragraph{Forcing functions and boundary conditions:}
+\subsection{Boundary Conditions}
 
-Bottom boundary conditions should be applied according to \S \ref{s:bottom_bc}. For the time being, in first approximation we are applying the following forcing instead:
-
-\begin{itemize}
-    \item Weakly imposed Dirichlet on bottom temperature: $T=SST=292.5\,{\rm K}$.
-    \item Weakly imposed Dirichlet on bottom $q_t$: $q_t=13.84e-3\,{\rm kg/kg}$.
-    \item Weakly imposed no-slip: ${\bf u}= 0$.
-    \item Weakly imposed $SHF = 15\,{\rm W/m^2}$ and $LHF = 115\,{\rm W/m^2}$.
+The bottom boundary conditions for DYCOMS are prescribed energy and water fluxes and a drag law for momentum, as described in section~\ref{s:bottom_bc}. The prescribed fluxes at the surfaces are
+\begin{itemize} 
+\item Sensible heat flux $\mathrm{SHF} = \vec{n} \cdot (\rho \vec{J}_{\mathrm{sfc}}) = 15\,\mathrm{W/m^2}$
+\item Latent heat flux $\mathrm{LHF} = \vec{n} \cdot (\rho \vec{D}_{\mathrm{sfc}}) = 115\,\mathrm{W/m^2}$
+\item Energy flux $\vec{n} \cdot \rho (\vec{J}_{\mathrm{sfc}} + \vec{D}_{\mathrm{sfc}}) = \mathrm{LHF + SHF} = 130\,\mathrm{W/m^2}$
+\item Evaporation $E \approx \mathrm{LHF}/L_{v,0}$
 \end{itemize}
 
-\paragraph{Radiative cooling}
-Radiative cooling is imposed by means of the simple model described by \cite{Stevens05a} which is added to the non-viscous flux of the energy equation. this radiative flux, based on the $\delta$-four stream model \citep{fuLiu1993} is given as the column-wise integral:
+\subsection{Sources}
 
+\subsubsection{Radiative cooling}
+Radiative cooling is imposed through the simple model described by \cite{Stevens05a}. It specifies the vertical radiative energy flux $\vec{F}_R = F_R \vec{k}$ (part of the non-diffusive energy flux \eqref{eq:ndf_flux}) as
 \begin{equation}
     \label{e:radiativeStevens05}
-    F_{rad}({\bf x}, t) = F_0{\rm e}^{-Q(z,\infty)} +
+    F_{R}({\bf x}, t) = F_0{\rm e}^{-Q(z,\infty)} +
     F_1{\rm e}^{-Q(0, z)} +
-    \rho_i c_p D \alpha_z\frac{(z-z_i)^{4/3}}{4} + z_i(z - z_i)^{1/3}
+    \rho_i c_{pd} D \alpha_z\frac{(z-z_i)^{4/3}}{4} + z_i(z - z_i)^{1/3}
 \end{equation}
 where 
 \begin{equation}
     Q(a,b) = \kappa\int_{a}^{b}\rho\,q_l\,dz.
 \end{equation}
 The following parameters are used:
-$F_0=70\,{\rm W\,m^{-2}}$, $F_1=22\,{\rm W\,m^{-2}}$, $\kappa=85\,{\rm m^2\,kg^{-1}}$, $\alpha_z=1\,{\rm m^{-4/3}}$. The large scale subsidence divergence is parameterized by $D=3.75\times 10^{-6}\,{\rm s^{-1}}$. This value is also used to calculate the subsidence velocity as $w=-Dz$.
+$F_0=70\,\mathrm{W\,m^{-2}}$, $F_1=22\,\mathrm{W\,m^{-2}}$, $\kappa=85\,\mathrm{m^2\,kg^{-1}}$, $\alpha_z=1\,\mathrm{m^{-4/3}}$. The parameter $D=3.75\times 10^{-6}\,\mathrm{s^{-1}}$ gives the large-scale divergence, which also enters the dynamical equations as an additional advection term.  
 
+\subsubsection{Large-scale subsidence}
 
-\subsection{3D squall line}
+A large-scale subsidence velocity $W=-Dz$ is imposed and is added to the internally generated vertical velocity $w$ in all governing equations. 
+
+\subsection{SGS Fluxes}
+
+The interaction of the resolved flow with SGS fluxes is crucial for a successful simulation of stratocumulus \citep{Pressel17a}. If there is too much spurious mixing across the sharp inversion interface, the clouds dissipate because too much dry air from above the clouds is mixed into the clouds. Hence, it is important to use SGS schemes that limit mixing near the stable inversion interface.
+
+\section{3D Squall Line}
 \label{sq3D}
 The three-dimensional simulation of a squall line is defined in the domain 
-$80\times 80\times20\,{\rm km}^3$. 
+$80\times 80\times20\,\mathrm{km}^3$. 
 The initial background state is given by the sounding of \cite{gabersekGiraldoDoyle2012}.
 To initiate the vertical transport of water vapor to a level of condensation (and hence trigger a cloud formation, the initial background is forced by a temperature anomaly $\theta'$ $3$ K warmer than the surrounding environment. 
 
 A stretched grid along $z$ is used to make the resolution higher in the lower atmosphere where convection is triggered.
-The domain is crossed by a horizontal wind along the x-direction with a $12\,{\rm m\,s^{-1}}$ shear at $z=2000\,{\rm m}$.
+The domain is crossed by a horizontal wind along the x-direction with a $12\,\mathrm{m\,s^{-1}}$ shear at $z=2000\,\mathrm{m}$.
 A no-slip condition is applied on the surface boundary while periodic boundaries are defined along $x$ and $y$. 
 To damp the vertically propagating gravity ways triggered by the cloud formation, a Rayleigh absorbing layer is applied at the higher layers of the atmosphere.
 The cloud first forms at approximately 500 s, and is fully develop after 4500 s. 
@@ -1542,7 +1657,7 @@ An instantaneous view of the precipitating squall line is shown in Figure \ref{f
 \end{figure}
 
 
-\subsection{External soundings}
+\section{External Soundings}
 External soundings can be read into the code for initialization purposes. The sounding requires the format reported in Table \ref{tab:DeltaDefinitionsTable}.
 
 \begin{table*}[t]
@@ -1564,7 +1679,7 @@ z (m) & $\theta_v$ (K) & $q_{tot}$ $\rm {kg/kg}$ & $u$ (m/s) & $v$ (m/s) & p (Pa
 }
 \end{table*}
 
-\subsection{Held-Suarez GCM benchmark}
+
 
 %-------Bibliography
 \bibliographystyle{agufull08}
