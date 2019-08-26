@@ -193,13 +193,13 @@ Using saturation adjustment makes it possibly to construct a moist dynamical cor
 
 Several auxiliary thermodynamic functions are commonly used. 
 
-\subsubsection{Potential temperature.} The potential temperature $\theta$ is the temperature an air mass would have if brought adiabatically from pressure $p$ and temperature $T$ to some reference pressure $p_0$ (typically taken to be mean sea level pressure):
+\subsubsection{Potential temperature} The potential temperature $\theta$ is the temperature an air mass would have if brought adiabatically from pressure $p$ and temperature $T$ to some reference pressure $p_0$ (typically taken to be mean sea level pressure):
 \begin{equation}\label{e:pot_temp_press_T}
 \theta = T \left( \frac{p_0}{p} \right)^\kappa \quad \text{with} \quad \kappa = \frac{R_m}{c_{pm}}.
 \end{equation}
 Note that the adiabatic exponent $\kappa$ takes the effect of  moisture on the effective gas ``constant'' and specific heat capacity of air into account.
 
-\subsubsection{Virtual (potential) temperature.} The virtual or density temperature $T_v$ is the temperature dry air would need to have to have the same density as moist air at the same pressure. Using the ideal gas law $p/\rho = R_m T$, this implies $R_m T  = R_d T_v $, or
+\subsubsection{Virtual (potential) temperature} The virtual or density temperature $T_v$ is the temperature dry air would need to have to have the same density as moist air at the same pressure. Using the ideal gas law $p/\rho = R_m T$, this implies $R_m T  = R_d T_v $, or
 \begin{equation}\label{e:virtual_temp}
 T_v = \frac{R_m}{R_d} T.
 \end{equation}
@@ -210,7 +210,7 @@ A virtual potential temperature can be defined analogously:
 \end{equation}
 Some texts distinguish virtual and density (potential) temperatures, where density (potential) temperatures take the mass of condensate into account, whereas virtual (potential) temperatures do not. We always take the mass of any condensate into account in the thermodynamics of moist air and do not make that distinction here. 
 
-\subsubsection{Speed of sound.} The speed of sound in (moist) air is 
+\subsubsection{Speed of sound} The speed of sound in (moist) air is 
 \begin{equation}\label{e:soundspeed}
  c_s = (\gamma R_m T)^{1/2}, \qquad \gamma = \frac{c_{pm}}{c_{vm}},
 \end{equation}
@@ -432,13 +432,21 @@ This reduces to the conductive heat flux from Fourier's law ($\propto -\nabla T$
 
 The separate formulations of $\vec{D}$ and $\vec{J}$ are revealing about their physical interpretation. For implementation, however, calculating their sum \eqref{e:SGS_energy_flux} directly is preferable, because it leads to less cancellation between individually large terms (e.g., opposing SGS fluxes of vapor and condensate at cloud boundaries).
 
+\subsubsection{Precipitation}
+
+We also model SGS fluxes of the different precipitation species diffusively,
+\begin{equation}\label{eq:sgs-precip-flux}
+\vec{d}_{q_{p, i}} = - \vec{\mathcal{D}}_t \circ \nabla q_{p, i},
+\end{equation}
+generally with the same turbulent diffusivity $\vec{\mathcal{D}}_t$ as other tracers. This is a modeling choice made for simplicity, as some diffusion is typically needed for numerical stability. However, it is questionable to what degree SGS fluxes of inertial particles, which fall relative to the fluid, can be modeled diffusively.
+
 \subsubsection{Tracers}
 
 SGS fluxes of other tracers $\chi_i$ are likewise modeled diffusively,
 \begin{equation}\label{eq:sgs-tracer-flux}
 \vec{d}_{\chi_i} = - \vec{\mathcal{D}}_t \circ \nabla \chi_i,
 \end{equation}
-generally with the same turbulent diffusivity $\vec{\mathcal{D}}_t$ as other tracers.
+with the same turbulent diffusivity $\vec{\mathcal{D}}_t$ as other tracers.
 
 \subsection{Smagorinsky Models}
 
@@ -646,9 +654,33 @@ Lateral boundary conditions do not arise on the sphere. However, several forms o
 
 \subsection{Initial Conditions}\label{s:initial_conditions}
 
-\hl{[TODO in code: It would be good to provide a module (called \texttt{hydrostatic\_state} or something similar) that computes the hydrostatic density, pressure, and total specific energy consistent with a given temperature profile $T(z)$ and fixed relative humidity RH. We need this often for initialization and for computation of reference states for the linearizations needed for implicit time steps.]}
-
 Initial conditions are usually case specific. But a situation that arises often is having an initial state that is at rest, hydrostatic, and has a specified temperature profile $T(z)$ that varies only with height $z$. To reduce spin-up times, for example, of a global model, we may also wish to specify an initial constant relative humidity (with $\mathrm{RH} < 1$ to avoid saturation in the initial state).
+
+\subsubsection{Temperature}
+
+A simple temperature profile that covers many cases is
+\begin{equation}\label{e:ref_temperature}
+    T(z) = \max \left( T_{\mathrm{sfc}} - \Gamma z, T_{\min} \right),
+\end{equation}
+with parameters
+\begin{itemize}
+    \item $T_{\mathrm{sfc}}$: surface temperature, 
+    \item $\Gamma$: temperature lapse rate at temperatures below $T_{\min}$,
+    \item $T_{\min}$: minimum temperature.
+\end{itemize}
+This temperature decreases linearly in $z$ at a lapse rate $\Gamma$ from the surface temperature $T_{\mathrm{sfc}}$ to the minimum temperature $T_{\min}$, attained at 
+\begin{equation}\label{e:z_t}
+z_{t} = \frac{T_{\mathrm{sfc}} - T_{\min}}{\Gamma}.
+\end{equation}
+\begin{figure}
+    \centering
+    \includegraphics{CLIMA-atmos/hydrostatic_state.pdf}
+    \caption{(a) An isothermal temperature profile (blue) and a temperature profile \eqref{e:ref_temperature} (red) with surface temperature $T_{\mathrm{sfc}} = 300~\mathrm{K}$, ``stratospheric'' temperature $T_{\min} = 200~\mathrm{K}$, and ``tropospheric'' temperature lapse rate $\Gamma = 6.5~\mathrm{K~km^{-1}}$---values roughly representative of Earth's tropical atmosphere. (b) The corresponding hydrostatically balanced pressure profiles \eqref{eq:hydro_pressure_iso} and \eqref{eq:hydro_pressure_lapse}, with $p_{\mathrm{MSLP}} = 10^5~\mathrm{Pa}$.}
+    \label{f:hydrostatic_state}
+\end{figure}
+The temperature is constant and equal to $T_{\min}$ above $z_t$. See Fig.~\ref{f:hydrostatic_state}a for an example. The resulting temperature profile is a rough approximation of a tropospheric temperature profile with lapse rate $\Gamma$ and a ``tropopause'' at height $z_t$, overlain by a ``stratosphere'' with constant temperature $T_{\min}$. For $\Gamma = g/c_{pd}$, the ``tropospheric'' temperature profile is dry adiabatic. 
+
+\subsubsection{Pressure}
 
 We obtain the pressure $p(z)$ consistent with the temperature profile $T(z)$ by combining hydrostatic balance ($\partial_z p(z) = - \rho g$) with the ideal gas law ($p=\rho R_d T$, neglecting the effect of any moisture on the gas constant), giving
 \begin{equation}\label{eq:hydro_pressure}
@@ -658,26 +690,54 @@ Here,
 \begin{equation}
 H(z)  = \frac{R_d T(z)}{g}
 \end{equation}
-is the scale height, and we chose for the pressure $p(0)$ at height $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. (For the simple and commonly used choice of a constant initial temperature $T$, this reduces to $p(z) = \exp (-z/H)$, where the scale height $H = R_d T/g$ is constant.)
+is the scale height, and we chose for the pressure $p(0)$ at height $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. 
 
-Given a temperature profile $T(z) = \max(T_s-\Gamma z, T_{\min})$, with surface temperature $T_s$, lapse rate $\Gamma$, and a minimum temperature $T_{min}$, integrating eq. \ref{eq:hydro_pressure} yields
-\begin{equation}\label{eq:reftemperature}
-p(z) = p_{\mathrm{MSLP}} \exp
-\left[
--\frac{g}{R_d\Gamma} \left( \log(T_s) - \log(T_{\min}) + \Gamma z - T_s + T_{\min} \right)
-\right], z>\frac{T_s - T_{\min}}{\Gamma}
+It helps here to distinguish the cases of an isothermal atmosphere and of an atmosphere with nonzero lapse rate:
+\begin{itemize}
+\item \textbf{Isothermal Atmosphere ($\Gamma = 0$, $T_{\mathrm{sfc}} \ge T_{\min}$).} 
+In this case, the pressure becomes 
+\begin{equation}\label{eq:hydro_pressure_iso}
+    p(z) = p_{\mathrm{MSLP}} \exp \left(-\frac{z}{H_{\mathrm{sfc}}} \right), \qquad H_{\mathrm{sfc}} = \frac{R_d T_{\mathrm{sfc}}}{g} = \mathrm{const}.
 \end{equation}
+See See Fig.~\ref{f:hydrostatic_state}b (blue line) for an example.
 
+\item \textbf{Nonzero Lapse Rate ($\Gamma \ge 0$, $T_{\mathrm{sfc}} \ge T_{\min}$).}
+Integrating the general expression \eqref{eq:hydro_pressure} for the hydrostatic pressure for a temperature profile \eqref{e:ref_temperature} with nonzero lapse rate yields
+\begin{equation}\label{eq:hydro_pressure_lapse}
+p(z) = p_{\mathrm{MSLP}} \times
+\begin{cases}
+\left(1 - \frac{\Gamma z}{T_{\mathrm{sfc}}} \right)^{g/(R_d \Gamma)} & \text{for } z \le z_t, \\[1.5ex]
+  \left(\frac{T_{\min}}{T_{\mathrm{sfc}}} \right)^{g/(R_d \Gamma)}
+ \exp  \left(-\frac{z - z_t}{H_{\min}} \right) & \text{for } z\ge z_t, 
+\end{cases}
+\end{equation}
+where 
+\begin{equation}
+H_{\min} = \frac{R_d T_{\min}}{g}
+\end{equation}
+is the ``stratospheric'' scale height. See See Fig.~\ref{f:hydrostatic_state}b (red line) for an example. (The expression \eqref{eq:hydro_pressure_lapse} for nonzero lapse rate converges to the expression \eqref{eq:hydro_pressure_iso} for zero lapse rate in the limit $\Gamma \to 0$, as can be verified by L'H{\^o}pital's rule.)
+\end{itemize}
 
-\hl{[If we are not well setup for the vertical integration, just implementing the case for constant temperature would suffice for now.]} The reference density then follows from the ideal gas law as
+\subsubsection{Density}
+ 
+Given the temperature $T(z)$ and hydrostatic pressure $p(z)$, the reference density $\rho(z)$ follows from the ideal gas law as
 \begin{equation}\label{eq:hydro_density}
     \rho(z) = \frac{p(z)}{R_d T(z)}.
 \end{equation}
+
+\subsubsection{Specific Humidity}
+
 And the total specific humidity $q_t(z)$ for a given relative humidity, temperature $T(z)$, and density $\rho(z)$ is
 \begin{equation}
     q_t(z) = \mathrm{RH} \, q_v^*\bigl( T(z), \rho(z) \bigr),
 \end{equation}
-where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}. Computing the specific internal energy $I$ from these quantities using Eq.~\eqref{eq:total_internal_energy} (with $q_l = q_i = 0$) and with that the total specific energy $e^{\mathrm{tot}} = I + \Phi$ corresponding to state of rest ($\vec{u}=0$) then completes the specification of the model state.
+where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}. Corresponding to $\mathrm{RH} < 1$, we set the condensate specific humidities to zero ($q_l = q_i = 0$).
+
+\subsubsection{Energy}
+
+From the above quantities, we can compute the specific internal energy $I$ using Eq.~\eqref{eq:total_internal_energy} and with that the total specific energy $e^{\mathrm{tot}} = I + \Phi$ corresponding to a state of rest ($\vec{u}=0$). This completes the specification of the model state.
+
+\subsubsection{Noise}
 
 It is common to add a small amount of random noise, e.g., to the initial density at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of $\rho(0)$.
 
@@ -705,8 +765,6 @@ The state vector consists of components
 \end{equation}
 Here, $q_k$ represents the suspended water specific humidities $q_t$, $q_l$, and/or $q_i$ (total water and cloud condensate, if used); $q_{p,i}$ are the precipitation specific humidities, with the index $i$ labeling different precipitation species (rain, snow, graupel etc.); and $\chi_j$ are the scalar concentrations (e.g., mass of different aerosol species, chemical constituents etc.\ per unit mass of moist air). In some model configurations (e.g., when we include atmospheric chemistry), we may want to have $O(100)$ of these scalars, meaning that the state vector can consist of hundreds of components.
 
-In what follows, we further decompose each component of the state vector, fluxes, and sources into 4 speeds: fastest (e.g., acoustic modes), faster (e.g., falling rain), dynamical (the standard dynamical evolution, e.g., advection), and slow (e.g., radiation). In the state vector, the precipitation variables $q_{p,i}$ evolve fast relatively to the dynamical variables. When subgrid scale terms characterizing updrafts are included, there evolution generally also is fast. All other components evolve on dynamical timescales.  \hl{We need an abstract model formulation that allows different timesteps for different components. It would be helpful to come up with a way of labeling substepped terms by integer multiples of the dynamical timestep, indicating how often they are subcycled for every dynamical timestep, and similarly for superstepped (slower) terms. \textbf{Charlie?}}
-
 \subsection{Fluxes}
 
 The flux $\Fvector=\Fadv + \Pvector + \Fndf + \Fdiff$ consists of advective fluxes, pressure terms, other non-diffusive fluxes, and diffusive fluxes. The diffusive components $\Fdiff$ are proportional to gradients of state variables, so that $\nabla \cdot \Fdiff$ contains elliptic operators. These are treated separately numerically from the non-diffusive fluxes, which do not contain gradients. Because the boundary conditions on advective and other non-diffusive fluxes generally differ, it is also useful to distinguish advective fluxes $\Fadv$, pressure terms $\Pvector$, and other non-diffusive fluxes $\Fndf$. 
@@ -724,7 +782,7 @@ q_k \vec{u}\\
 q_{p,i} \vec{u} \\
 \chi_j \vec{u}
 \end{array}
-\right)_{\mathrm{dynamical}}.
+\right).
  \end{equation}
 
 \subsubsection{Pressure Terms}
@@ -739,36 +797,27 @@ p \vec{u} \\
 \vec{0} \\
 \vec{0} 
 \end{array}
-\right)_{\mathrm{fastest}}.
+\right).
 \end{equation}
 Because pressure in a fluid is adjusted by sound waves, which are the fastest modes, the pressure terms are associated with the fastest time scales. 
 
 \subsubsection{Other Non-diffusive Fluxes}
 
-Other non-diffusive fluxes include source terms (e.g., radiation) that can be written in flux form but that are not proportional to gradients of state variables, as well as the fall velocity $w_p$ (approximately terminal velocity) of falling precipitate, which is faster than vertical fluid velocities:
+Other non-diffusive fluxes include source terms (e.g., radiation) that can be written in flux form but that are not proportional to gradients of state variables, as well as the fall velocity $w_p$ (approximately terminal velocity) of falling precipitate:
 \begin{equation}
 \Fndf = 
 \left( \begin{array}{c}
 \vec{0} \\
 \vec{0} \\
-\vec{0} \\
+\rho \vec{F}_R \\
 \vec{0} \\
 -\rho q_{p,i} w_{p, i} \vec{k} \\
 \vec{0} 
 \end{array}
-\right)_{\mathrm{fast}} + 
-\left( \begin{array}{c}
-\vec{0} \\
-\vec{0} \\
-\rho \vec{F}_R\\
-\vec{0} \\
-\vec{0} \\
-\vec{0} 
-\end{array}
-\right)_{\mathrm{slow}}.
+\right).
 \label{eq:ndf_flux}
 \end{equation}
-Here, $\vec{k}$ is the vertical unit vector.  The term $-\rho q_{p,i} w_{p, i} \vec{k}$ denotes the falling precipitate flux, which is not as fast as the acoustic mode but faster than the advection terms and therefore must be evolved forward in time with a different method than the acoustic and advective terms. (The fall velocity $w_{p, i}$ is a point-wise function of the specific humidity $q_{p,i}$, the environmental density $\rho$, and possibly of other microphysical parameters that determine the size distribution of falling hydrometeors.) The radiative energy flux $\vec{F}_R$ is included here because it is not diffusive in character. It evolves on longer timescales than the advective fluxes and hence, because it is expensive to evaluate, usually is evolved forward in time with longer timesteps than the advective fluxes. In climate models, it generally is approximated as vertical and hence is one-dimensional, like the precipitation flux. Therefore, \emph{the divergence of these two fluxes is a one-dimensional (vertical) divergence}. \hl{[TODO in code: Do we have this implemented as a vertical divergence only?]}
+Here, $\vec{k}$ is the vertical unit vector.  The term $-\rho q_{p,i} w_{p, i} \vec{k}$ denotes the falling precipitate flux. (The fall velocity $w_{p, i}$ is a point-wise function of the specific humidity $q_{p,i}$, the environmental density $\rho$, and possibly of other microphysical parameters that determine the size distribution of falling hydrometeors.) The radiative energy flux $\vec{F}_R$ is included here because it is not diffusive in character. In climate models, it generally is approximated as vertical and hence is one-dimensional, like the precipitation flux. Therefore, \emph{the divergence of these two fluxes is a one-dimensional (vertical) divergence}. \hl{[TODO in code: Do we have this implemented as a vertical divergence only?]}
 
 \subsubsection{Diffusive Fluxes}
 
@@ -785,26 +834,16 @@ Here, $\vec{k}$ is the vertical unit vector.  The term $-\rho q_{p,i} w_{p, i} \
 \right).
 \label{eq:diff_flux}
 \end{equation}
-where $\vec{d}_{q_t}$ is defined in \eqref{eq:sgs-shum-flux}, $\vec{\tau}$ in \eqref{e:sgs_momentum_flux}, and $\vec{D}$ in \eqref{eq:energy-flux-water}.
+where the water flux $\vec{d}_{q_t}$ is defined in \eqref{eq:sgs-shum-flux}, the momentum flux $\vec{\tau}$ in \eqref{e:sgs_momentum_flux}, the total enthalpy flux $\vec{J} + \vec{D}$ in \eqref{e:SGS_energy_flux}, the fluxes of the water components $\vec{d}_{q_k}$ are defined in \eqref{e:water_diffusion}, the fluxes $\vec{d}_{q_{p, i}}$ of the precipitation components in \eqref{eq:sgs-precip-flux}, and the fluxes $\vec{d}_{\chi_j}$ of tracers in \eqref{eq:sgs-tracer-flux}.
 
-Depending on the magnitude of the fluxes, some of the terms evolve on dynamical timescales, while others (e.g., diffusion of precipitation) evolve on faster timescales. They may also be included with the fastest terms and be solved implicitly.
 \subsection{Sources}
 
 The right-hand side of the balance law \eqref{e:eom_compact} has the source-sink terms
 \begin{multline}
-\Source(\vec{Y})=  \left( 
-\begin{array}{c}
- \vec{0} \\
-  -\rho \nabla\Phi \\
- \vec{0} \\
-\vec{0} \\
-\vec{0} \\
-\vec{0}
-\end{array}
-\right)_{\mathrm{fastest}} \\
-+ \left( \begin{array}{c}
+\Source(\vec{Y})= 
+ \left( \begin{array}{c}
  -\rho C(q_t \rightarrow q_p) \\
- - 2 \vec{\Omega} \times \rho\vec{u}  + \rho \vec{F}_u \\
+  -\rho \nabla\Phi - 2 \vec{\Omega} \times \rho\vec{u}  + \rho \vec{F}_u \\
  \rho Q - \sum_{j\in\{v,l,i\}} (I_j + \Phi)  \rho C(q_j \rightarrow q_p) + \rho \vec{u} \cdot \vec{F}_u - M \\
 \rho C(q_p \rightarrow q_k) + \rho \sum_j \rho C(q_j \rightarrow q_k) \\
 \rho \sum_k C(q_k \rightarrow q_{p, i}) - \rho \sum_j C(q_{p, i} \rightarrow q_{p, j})\\
@@ -813,18 +852,7 @@ The right-hand side of the balance law \eqref{e:eom_compact} has the source-sink
 \right)
 \label{eq:source}
 \end{multline}
-where $C(q_j \rightarrow q_k)$ represents the conversion of the generic specific humidity $q_j$ to $q_k$ ($k, j \in \{v, l, i\}$), $C(q_p \rightarrow q_k)$ represents the conversion of all precipitation specific humidities $q_p$ to $q_k$, and $C(q_{p, i} \rightarrow q_{p, j})$ represents conversion among precipitation species $q_{p, i}$ and $q_{p, j}$. Some of the microphysical conversion terms may need to be included with the fast terms or may be treated implicitly to the extent they can be linearized.
-
-\subsection{Time Stepping Considerations}
-
-We need a stable time discretization strategy that allows some state vector components to be substepped (e.g., $q_{p,i}$) and allows different timesteps for different components of fluxes and sources. The fastest terms will be linearized and solved for implicitly. Other components will need substeps. Generally, we want to allow substepping and superstepping by fixed multiples of the dynamical timestep, with the possibility of adjusting the dynamical timestep based on the maximum Courant number of the dynamical or faster components. 
-
-As a concrete example, consider precipitation and how it interacts with the rest of the flow:
-\begin{enumerate}
-\item Fall velocities of precipitation $w_{p. i}$ are large, as a result of which the precipitation specific humidity (part of the state vector) $q_{p,i}$ evolves fast.
-\item The precipitation specific humidity $q_{p,i}$ enters various microphysical source/sink terms, for example, in the equations for suspended specific humidities $q_k$. As a result, these sources also evolve fast and need to be accumulated over the fast timesteps over which precipitation $q_{p.i}$ evolves.
-\item On the other hand, other terms in the equations for suspended specific humidities $q_k$ evolve on dynamical timescales and hence are slower than the microphysical terms.
-\end{enumerate}
+where $C(q_j \rightarrow q_k)$ represents the conversion of the generic specific humidity $q_j$ to $q_k$ ($k, j \in \{v, l, i\}$), $C(q_p \rightarrow q_k)$ represents the conversion of all precipitation specific humidities $q_p$ to $q_k$, and $C(q_{p, i} \rightarrow q_{p, j})$ represents conversion among precipitation species $q_{p, i}$ and $q_{p, j}$. 
 
 \subsection{Boundary Conditions}
 
@@ -834,10 +862,10 @@ Thus, generally, we want vanishing normal flux components at rigid boundaries, a
 
 \chapter{Numerical Methods}\label{sec:numerical_methods}
 
-\section{Spatial Discretization Methods}
+\section{Spatial Discretization}
 
 \subsection{Overview}
-For the spatial discretization methods, we use variants of the discontinuous Galerkin (DG) method with tensor-product bases (see, e.g., \citealt{giraldo:2008a, abdi:2016}). We use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
+For the spatial discretization, we use variants of the discontinuous Galerkin (DG) method with tensor-product bases (see, e.g., \citealt{giraldo:2008a, abdi:2016}). We use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
 
 The domain is assumed to be embedded in a Cartesian
 coordinate system. The vector $\vec{x}$ denotes a point in the Cartesian
@@ -1009,58 +1037,90 @@ If we use the same polynomial order along $\xi_{1}$, $\xi_{2}$, and $\xi_{3}$, t
 \end{multline}
 where the index $(i,j,k)$ will account for which direction we are referring to.
 
-\hl{Frank/Lucas/Jeremy: Can you write a little more about:}
+\hl{\textbf{Frank/Lucas/Jeremy}: Can you write a little more about:}
 \begin{itemize}
-    \item \hl{Diffusion terms (second derivatives)}
+    \item \hl{Diffusion terms (second derivatives). How are they computed?}
     \item \hl{Boundary conditions (how are they implemented?)}
-    \item \hl{How do we get higher-order derivatives (e.g., $\nabla^4$ for hyperdiffusion)? (It would be helpful for GCM, but clearly is a challenge with DG.)}
+    \item \hl{How do we get higher-order derivatives (e.g., $\nabla^4$ for hyperdiffusion)? (This would be helpful for GCM configurations.)}
 \end{itemize}
 \hl{This does not need to be very detailed, just for others to be able to understand the code and what is and is not possible in DG.}
 
 \section{Time-Discretization Methods}\label{s:timestepping}
 
+The general, compressible equations of motion we use permit a variety of wave modes with different characteristic speeds. Additionally, the equations contain sources that can add stiffness, for example, from microphysical processes that occur on timescales of seconds or less.
+
+The equations permit the following wave modes:
+\begin{itemize}
+    \item Acoustic waves. They have phase speeds (Eq.~\eqref{e:soundspeed}) around $300~\mathrm{m~s^{-1}}$. The terms involving pressure in the momentum and energy equations are essential for their existence.
+    \item Gravity waves. They have a spectrum of phase speeds. In a deep atmosphere (e.g., in a GCM), the gravest, external mode has phase speed $(gH)^{1/2} \approx 280~\mathrm{m~s^{-1}}$, where $H\approx 8~\mathrm{km}$ is the atmospheric scale height. The gravity term $-\rho \nabla \Phi$ in the momentum equation and the gravitational potential energy $\Phi$ in the energy equation are responsible for their existence.
+    \item Inertia-gravity, Rossby waves, and several other wave modes that owe their existence to the Coriolis acceleration $-2\vec{\Omega} \times \rho \vec{u}$. They have smaller phase speeds than the acoustic and external gravity waves.
+\end{itemize}
+Additional stiffness in the equations arises from:
+\begin{itemize}
+    \item Falling precipitation, whose fall velocity $w_{p,i}$ can reach $10~\mathrm{m~s^{-1}}$ and thus exceeds typical vertical velocities resolved in GCMs.
+    \item Microphysical source terms, for example, in the equations for suspended specific humidities $q_k$; they depend on the precipitation specific humidity $q_{p,i}$, which can change rapidly because precipitate falls rapidly. 
+    \item SGS diffusive fluxes, whose effective vertical velocity can exceed that of the resolved velocities.
+    \item Other parameterized SGS fluxes, for example, convective updrafts, whose vertical velocities can likewise be large.
+\end{itemize}
+By contrast, radiation evolves on longer timescales than the dynamical quantities and hence, because it is expensive to evaluate, usually is evolved forward in time with longer timesteps than the dynamical quantities. 
+
+Hence, we need a stable and computationally efficient time discretization strategy that allows some state vector components to be subcycled several times per dynamical timestep (e.g., $q_{p,i}$ and convective updrafts) and allows some rapidly evolving source/sink terms (e.g., from microphysics) to be accumulated over the subcycled timesteps. At the same time, it should allow other terms (e.g., radiative energy fluxes) to be evaluated less frequently. In particular, we need a computationally efficient way of handling the physically insignificant acoustic waves.
+
 \subsection{Additive Runge-Kutta IMEX Methods}
 
-To circumvent the time-step restriction due to the fast acoustic waves, using implicit-explicit (IMEX) methods is one option. For the LES model, if the aspect ratio of the horizontal to vertical grid spacing is near unity, it may be beneficial to use fully 3D-IMEX methods.  For LES models with aspect ratios of grid elements greater than one, and certainly for global atmospheric models, which generally have large aspect ratios, we use 1D-IMEX methods in which the time-integrator is fully explicit in the horizontal direction (HE) and implicit in the vertical direction (so-called HEVI schemes). IMEX methods require a linear solve at each time step. This
-is global in 3D. This may limit scalability of IMEX methods in a multi-node setting. In that case, split-explicit methods may be a more scalable option to deal with the timestep restrictions. For HEVI schemes, the linear solves are restricted to independent atmospheric columns, which are usually represented on a single node (if the domain decomposition is done in the horizontal). So their scalability across nodes is less restricted.
+To circumvent the time-step restriction due to the fast acoustic and gravity waves, using implicit-explicit (IMEX) methods is one option. For the LES model, if the aspect ratio of the horizontal ($\Delta_h$) to vertical ($\Delta_v$) grid spacing is near unity, it may be beneficial to use fully 3D-IMEX methods.  For LES models with aspect ratios of grid elements $\Delta_h/\Delta_v > 1$ and for global atmospheric models, which generally have $\Delta_h/\Delta_v \gg 1$, we use 1D-IMEX methods in which the time-integrator is fully explicit in the horizontal direction (HE) and implicit in the vertical direction (so-called HEVI schemes). 
 
-We use a general family of additive Runge-Kutta methods (ARK) methods for both the 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013}). %Note that adding fully-implicit Runge-Kutta (IRK) methods to the 3D-IMEX approach is quite trivial, so this can be included as an option. Fully-implicit methods have no time-step restriction with respect to stability.
-To get a sense of how the ARK approach works, let us describe a general abstract model here that will be used in later sections to describe specific formulations. To describe the abstract IMEX formulation, let us partition the total tendency $\vec{\mathcal{T}}$ on the right-hand side of Eq.~\eqref{e:eom_compact} into four process speeds: \hl{[label process speeds by integers indicating sub- and supercycling rates]}
-%with the fastest labeled by subscript $I$ (for implicit), with fast terms that need to be subcycled $p$ times for each dynamical timestep labeled by the subscript $+p$, and slow terms that need to be cycled every $q$ dynamical timestep by the index $-q$.
+IMEX methods require the solution of one or more linear systems at each time step. The linear system is global in 3D, and this may limit scalability of IMEX methods in a multi-node computational setting. In that case, split-explicit methods may be a more scalable option to deal with the timestep restrictions. For HEVI schemes, the linear solves are restricted to independent atmospheric columns, which are usually represented on a single compute node (if the domain decomposition is done in the horizontal). So their scalability across nodes is less restricted.
+
+We use a general family of additive Runge-Kutta methods (ARK) methods for 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013}). 
+To get a sense of how the ARK approach works, let us describe a general abstract model here that will be used in later sections to describe specific formulations. To illustrate the abstract IMEX formulation, let us partition the total tendency $\vec{\mathcal{T}}$ on the right-hand side of Eq.~\eqref{e:eom_compact} into four terms: 
+\begin{itemize}
+    \item terms to be treated implicitly, labeled by $I$ (the fastest terms);
+    \item terms evaluated at the dynamical (advective) timestep, labeled by $d$;
+    \item terms to be subcycled $f$ times for each dynamical timestep, labeled by $+f$ (for fast);
+    \item terms to be evaluated every $s$ dynamical timesteps, labeled by $-s$ (for slow).
+\end{itemize}
+This gives
 \[
-\frac{\partial \vec{Y}}{\partial t} = \Tvector = - \nabla \cdot \Fvector + \vec{\mathcal{S}} = \Tvector_{\mathrm{fastest}} + \Tvector_{\mathrm{fast}} + \Tvector_{\mathrm{dynamical}} + \Tvector_{\mathrm{slow}}.
+\frac{\partial \vec{Y}}{\partial t} = \Tvector = - \nabla \cdot \Fvector + \vec{\mathcal{S}} = \Tvector_{I} + \Tvector_{d} + \Tvector_{+r} + \Tvector_{-s}.
 \]
-Let us further partition the tendency $\Tvector_\mathrm{fastest}$ containing the fastest waves in the system into a component linear in state variables and a residual nonlinear component \hl{[if we distinguish the terms by integer labels, we should make clear where the nonlinear part of the fastest term goes, whose linear component is treated implicitly; default would be with the dynamical terms?]}
-\[
-\Tvector_\mathrm{fastest}(\statevec) =  \Tvector^L_\mathrm{fastest} \statevec + \Tvector^N_\mathrm{fastest}(\statevec).
-\]
-This then allows us to write the semi-discrete form (in space) as follows
-\begin{equation}\label{eq:IMEX}
-\difft{\statevec}{t} =  \Tvector^L_\mathrm{fastest} \statevec + \Tvector_\mathrm{fast}(\statevec) + 
-\Tvector_\mathrm{dynamical}(\statevec) + \Tvector^N_\mathrm{fastest}(\statevec) + \Tvector_\mathrm{slow}(\statevec).
+To obtain a linear problem for the implicit solve, let us linearize the implicit tendency terms $\Tvector_{I}$ by Taylor expansion around a reference state $\vec{Y}_r$,
+\begin{equation}\label{e:imex_linearization}
+\Tvector_{I}(\vec{Y}) =  \Tvector_I(\vec{Y}_r) + \vec{\mathcal{L}}_I (\vec{Y} - \vec{Y}_r) + \Tvector^N_{I}(\vec{Y}),
 \end{equation}
-To discretize the equations in time, we first compute the stage values
+where 
+\begin{equation}
+    \vec{\mathcal{L}}_I = \left. \frac{\partial\Tvector_I}{\partial\vec{Y}}\right|_{\vec{Y}_r}
+\end{equation} 
+is the linear component of the tendency operator and $\Tvector^N_{I}(\vec{Y})$ is the nonlinear residual. This then allows us to write the equation of motion \eqref{e:eom_compact} as
+\begin{equation}\label{eq:IMEX}
+\frac{\partial\vec{Y}}{\partial t} =  \vec{\mathcal{L}}_I \vec{Y} + \Bigl(\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r\Bigr) + \Tvector_{d} + \Tvector_{+r} + \Tvector_{-s}.
+\end{equation}
+Usually, the reference state $\vec{Y}_r$ is chosen so that the tendency of the reference state, $\Tvector_I(\vec{Y}_r)$, and the linear tendency of the reference state, $\vec{\mathcal{L}}_I \vec{Y}_r$, either vanish individually or cancel each other, so that $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r=0$
+
+To discretize the equations in time using an ARK method, we first compute the stage values \hl{\textbf{Frank}: This subsection below here needs work. A number of things are unclear/incorrect/}
 \begin{multline}\label{eq:IMEX/stages}
-\statestage^{(i)}= \statevec^n + \Delta t \sum_{j=0}^{i} \left( a^{\mathrm{fastest}}_{ij} \Tvector_{\mathrm{fastest}}^L \statestage^{(j)} \right) + \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{fast}}_{ij} \Tvector_{\mathrm{fast}}(\statestage^{(j)}) \right)  \\
-+  \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{dynamical}}_{ij} \bigl(\Tvector_{\mathrm{dynamical}}(\statestage^{(j)}) + \Tvector^N_\mathrm{fastest}(\statestage^{(j)})\bigr)\right) \\
-+ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{slow}}_{ij} \Tvector_{\mathrm{slow}}(\statestage^{(j)}) \right)
+\statestage^{(i)}= \vec{Y}^n + \Delta t \sum_{j=0}^{i} \left( a^{I}_{ij} \vec{\mathcal{L}}_{I} \statestage^{(j)} \right) + \Delta t \sum_{j=0}^{i-1} \left( {a}^{+f}_{ij} \Tvector_{+f}(\statestage^{(j)}) \right)  \\
++  \Delta t \sum_{j=0}^{i-1} \left( {a}^{d}_{ij} \bigl(\Tvector_{d}(\statestage^{(j)}) + \Tvector^N_I(\statestage^{(j)})\bigr)\right) \\
++ \Delta t \sum_{j=0}^{i-1} \left( {a}^{-s}_{ij} \Tvector_{-s}(\statestage^{(j)}) \right) + \Delta t \Bigl(\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r \Bigr) \sum_{j=0}^i a_{ij}^I 
 \end{multline}
-with $i=1,\ldots,s$ representing the $s$ stages, $\statestage^{(0)}=\statevec^n$ (where $\statevec^n$ is the solution vector at the current time), and $a$ are the coefficients of the partitioned Butcher tableau (see, e.g., \citet{constantinescu:2007, constantinescu:2010c}). Here, the nonlinear component of the fastest term was assumed to evolve with other terms on dynamical timescales. Some rows of the coefficient matrices $a$ for the slower component will be zero. \hl{We need to write this in a way that facilitates implementation, potentially with more subdivisions of a timestep. It makes sense to me to subcycle the faster components by an integer multiple of the dynamical timestep, and correspondingly to superstep the slow components by another integer multiple. Can we write this out explicitly now, even without having the Butcher tableaus worked out? We need this immediately once IMEX works and need to work on the implementation aspects now. We also need a split-explicit implementation as a fallback if 3D IMEX does not give us the performance increase we need.} 
+where $i=1,\ldots,s$ labels the $s$ stages, and $\statestage^{(0)}=\vec{Y}^n$ (where $\vec{Y}^n$ is the solution vector at the current time). The coefficients $a$ are the coefficients of the partitioned Butcher tableau (see, e.g., \citet{constantinescu:2007, constantinescu:2010c}). Here, the nonlinear residual of the implicit term was assumed to evolve with other terms on dynamical timescales. Some rows of the coefficient matrices $a$ for the slower component will be zero. \hl{Make the subcycling explicit. We need to see where computational gains come from. Can we write this out explicitly now, even without having the Butcher tableaus worked out?} 
 The solution at time $n+1$ is obtained from
 \be
-\statevec^{n+1}=\statevec^n + \Delta t \sum_{i=0}^{s} \left( b_i \vec{\mathcal{T}}(\statestage^{(i)}) \right).
+\vec{Y}^{n+1}=\vec{Y}^n + \Delta t \sum_{i=0}^{s} \left( b_i \vec{\mathcal{T}}(\statestage^{(i)}) \right).
 \label{eq:IMEX/update}
 \ee
-So far we have defined a diagonally-implicit Runge-Kutta (DIRK) method \citep{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we impose the restriction that all diagonal values $\wt{a}_{ii}$ are constant \hl{[the same?]}. This allows one construction of the matrix problem that does not change across stage values.  This we now refer to as singly-diagonally-implicit Runge-Kutta (SDIRK).
+\hl{[Really? It seems odd to have the same set of weights $b$ for all tendency terms. The sub- and supercycling should be manifest here.]} 
+We are restricting ourselves to diagonally-implicit Runge-Kutta (DIRK) methods for which $a^I_{ij} = 0$ for $i>j$ \hl{[]Is this ok? That is, apply this condition just for implicit coefficients?]} \citep{alexander:1977,butcher:1981a,ascher:1997,boscarino:2009}.  To make the DIRK more efficient, we additionally impose the restriction that all diagonal values ${a}^I_{ii}$ are the same \hl{[ok? just for implicit components?]} This allows one construction of the matrix problem for the implicit solve that does not change across stage values. We refer to this as singly-diagonally-implicit Runge-Kutta (SDIRK).
 
-Rearranging Eq.\ \eqref{eq:IMEX/stages} as follows \hl{[what happened to the off-diagonal elements involving $\Tvector^L_{\mathrm{fastest}}$? it seems DIRK assume $a_{jl} = 0$ for $j>l$, right?]}
+Rearranging Eq.~\eqref{eq:IMEX/stages} as follows 
 \begin{multline}\label{eq:IMEX/stages2}
-\left( \vec{I} - {a}^{\mathrm{fastest}}_{ii}\Tvector^L_{\mathrm{fastest}} \right)  \statestage^{(i)}  =  \statevec^n + 
-\Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{fast}}_{ij} \Tvector_{\mathrm{fast}}(\statestage^{(j)}) \right)   \\
-+ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{dynamical}}_{ij} \bigl(\Tvector_{\mathrm{dynamical}}(\statestage^{(j)}) + \Tvector^N_\mathrm{fastest}(\statestage^{(j)})\bigr) \right) \\
-+ \Delta t \sum_{j=0}^{i-1} \left( {a}^{\mathrm{slow}}_{ij} \Tvector_{\mathrm{slow}}(\statestage^{(j)}) \right) 
+\left( \vec{I} - {a}^{I}_{ii}\vec{\mathcal{L}}_{I} \right)  \statestage^{(i)}  =  \vec{Y}^n + 
+\Delta t \sum_{j=0}^{i-1} \left( {a}^{+f}_{ij} \Tvector_{+f}(\statestage^{(j)}) \right)   \\
++ \Delta t \sum_{j=0}^{i-1} \left( {a}^{d}_{ij} \bigl(\Tvector_{d}(\statestage^{(j)}) + \Tvector^N_I(\statestage^{(j)})\bigr) \right) \\
++ \Delta t \sum_{j=0}^{i-1} \left( {a}^{-s}_{ij} \Tvector_{-s}(\statestage^{(j)}) \right) + \Delta t \bigl(\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r \bigr) \sum_{j=0}^i a_{ij}^I
 \end{multline}
-reveals the implicit nature of the problem. Letting $\vec{A}=\vec{I} - {a}^{\mathrm{fastest}}_{ii} \Tvector^L_{\mathrm{fastest}}$, $\vec{X}=\statestage^{(i)}$, and denoting the right-hand side of Eq.~\eqref{eq:IMEX/stages2} by $\mathcal{B}$, we obtain the linear system 
+reveals the implicit nature of the problem. Letting $\vec{A}=\vec{I} - {a}^{I}_{ii} \vec{\mathcal{L}}_{I}$, $\vec{X}=\statestage^{(i)}$, and denoting the right-hand side of Eq.~\eqref{eq:IMEX/stages2} by $\mathcal{B}$, we obtain the linear system 
 \[
 \vec{A} \vec{X} = \mathcal{B}.
 \]
@@ -1068,89 +1128,85 @@ We can solve this linear system using, e.g., Krylov subspace methods such as GCR
 
 \subsection{Reference State for Linearization}
 
-\hl{TODO in code: Implement the reference state calculation for an arbitrary $T_r(z)$; constant $T_r$ for now is fine.}
-
-Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates. We enforce hydrostatic balance, and assume the reference state is dry, so that the reference state variables are obtained as described in section~\ref{s:initial_conditions} with zero relative humidity, $\mathrm{RH}=0$: the pressure is obtained from \eqref{eq:hydro_pressure}, the density from \eqref{eq:hydro_density}, and the total specific humidity is set to zero, $q_{t,r}=0$.
+Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates or time. We enforce hydrostatic balance, and assume the reference state is dry, so that the reference state variables are obtained as described in section~\ref{s:initial_conditions} with zero relative humidity ($\mathrm{RH}=0$): the pressure is obtained from \eqref{eq:hydro_pressure}, the density from \eqref{eq:hydro_density}, and the total specific humidity is set to zero, $q_{t,r}=0$.
 
 Because the reference temperature and thus the reference pressure are assumed to be constant in the horizontal, the reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic balance. Because the reference state is assumed dry, $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
 
-More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference state velocity in geostrophic and hydrostatic balance with this temperature field. 
+More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference velocity in geostrophic and hydrostatic balance with this temperature field. 
  
- \subsection{3D-IMEX Approach}
+ \subsection{Solving for Acoustic and Gravity Waves Implicitly}
  \label{sec:3D-IMEX/v1}
-If the grid aspect ratio between the horizontal $\Delta_h$ and the vertical $\Delta_v$ is near unity, $\Delta_h/\Delta_v \approx 1$, the stiffness of the equations arises from the acoustic modes (i.e., sound waves), which travel along all three spatial dimensions. In this case, we must extract the acoustic waves in all three spatial dimensions and treat them implicitly.  
 
-To linearize, we introduce the following splitting: $\rho(\vec{x},t)=\rho_r(\vec{x}) + \rho'(\vec{x},t)$,  $p(\vec{x},t)=p_r(\vec{x}) + p'(\vec{x},t)$, and $(\rho \etotal)'=\rho \etotal - \rho_r e_r$, where the terms $\vec{Y}'(\vec{x},t)=\vec{Y}(\vec{x},t)-\vec{Y}_r(\vec{x})$ denote perturbation variables from the reference state  $\vec{Y}_r$, assumed to be at rest with $\vec{u}_r = 0$.
- 
-Let us assume the fastest tendency terms $\Tvector_{\mathrm{fastest}}$ contain contributions from advection and pressure terms so that sound waves are captured:
+Let us lay out in general terms the linearizations for acoustic and gravity waves that underlie IMEX methods in 1D and 3D. The tendency terms responsible for acoustic waves and gravity waves are
  \begin{equation}
- \Tvector_{\mathrm{fastest}}=-\nabla \cdot \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}}\right).
- \label{eq:3d-imex/linear_operator}
+ \Tvector_{I}= -\nabla_{1/3} \cdot
+ \begin{pmatrix}
+ \rho \vec{u} \\
+ p \vec{I}_3 \\
+ \bigl(e^{\mathrm{tot}} + (\gamma-1) \Phi + p/\rho \bigr) \rho \vec{u} \\
+ \vdots
+ \end{pmatrix}
+ - \begin{pmatrix}
+ 0 \\
+ \gamma \rho \nabla_{1/3} \Phi \\
+ 0\\
+ \vdots
+ \end{pmatrix},
+ \label{eq:3d-imex/tendencies}
  \end{equation}
-The linear components of the relevant flux terms in Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} can be written as follows (with $\mathcal{L}(\cdot)$ denoting the linear component): 
+where all components indicated by dots are zero. The operator $\nabla_{1/3}$ is the 3D del operator $\nabla_3 = \nabla$ for 3D-IMEX, and it is the 1D vertical operator $\nabla_1 = \vec{k} \partial/\partial_z$ for 1D-IMEX. (The geopotential gradient $\nabla_{1/3} \Phi$ only has a vertical component as long as we consider a spherical planet, so this derivative even in 3D usually only has a vertical component.) The function $\gamma$ is included to indicate whether gravity waves are included in the implicit tendencies: 
+\begin{itemize}
+    \item $\gamma=1$: both acoustic and gravity waves are included in $\Tvector_I$;
+    \item $\gamma=0$: only acoustic waves are included in $\Tvector_I$.
+\end{itemize}
+
+In the tendency \eqref{eq:3d-imex/tendencies}, the terms that need to be linearized are the pressure $p$, which depends nonlinearly on state variables, and the total enthalpy flux $(\rho e^{\mathrm{tot}} + p) \vec{u}$. Linearization around a state of rest ($\vec{u}_r=0$) with reference total energy $e^{\mathrm{tot}}_r$, pressure $p_r$, and density $\rho_r$ leads to
  \begin{equation}
- \mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right)=\left( \begin{array}{c}
- \left(\rho \vec{u}\right) \\
- \vec{0} \\
- e_r \left(\rho \vec{u}\right)\\
-\vec{0}\\
-\vec{0} \\
-\vec{0}
-\end{array}
-\right), 
-\qquad
-\mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right)= \left( \begin{array}{c}
-\vec{0} \\
-p' \vec{I}_3 \\
-\frac{p_r}{\rho_r} \left( \rho \vec{u}\right)\\
-\vec{0} \\
-\vec{0} \\
-\vec{0} 
-\end{array}
-\right)
+ \vec{\mathcal{L}}\vec{Y} = 
+ -\nabla_{1/3} \cdot \begin{pmatrix}
+ \rho \vec{u} \\
+ p_L \vec{I}_3  \\
+ \Bigl(e^{\mathrm{tot}}_r  + (\gamma-1)\Phi + p_r/\rho_r \Bigr) \rho \vec{u}\\
+\vdots
+\end{pmatrix}
+-
+\begin{pmatrix}
+0 \\
+\gamma \rho \nabla_{1/3} \Phi \\
+0\\
+\vdots
+\end{pmatrix}.
 \label{eq:3d-imex/linear_fluxes}
 \end{equation}
-\comment{
-And the linear component of the source term  \hl{[TS: I would remove the gravity wave (buoyancy) terms. Gravity waves are not rate limiting in LES settings and are usually treated explicitly. That way you can also use the standard Euler Schur complements. Note that if the buoyancy term is omitted, this affects how the pressure gradient term is implemented: if the buoyancy term is omitted, the hydrostatic reference state contribution in the pressure terms needs to be kept, since the reference state part included in the total (nonlinear) buoyancy term also remains.]}
-is 
-\begin{equation}
-\mathcal{L}\left( \Source_{\mathrm{fastest}}\right) = \left( \begin{array}{c}
- 0 \\
- - \rho' \nabla\Phi  \\
-0 \\
-0 \\
-0 \\
-0
-\end{array}
-\right).
+This is linear with respect to $\rho$ and $\rho \vec{u}$. For it to be a linear function of all state variables, the pressure $p_L$ needs to be expressed as a linear function of state variables. To derive a linear approximation for the pressure, we use the ideal gas law $p = R_m (\rho T)$ and the expression derived from Eq.~\eqref{eq:temperature} for $\rho T$ in terms of the internal energy and specific humidities,
+\begin{align*}
+p &= R_m (\rho T) \\
+  &= \rho R_m T_0 + \frac{R_m}{c_{vm}} \left[\rho e^{\mathrm{tot}} - \rho \Phi - 0.5 \rho \|\vec{u}\|^2 - (\rho q_t - \rho q_l) I_{v,0} + \rho q_i (I_{i,0} + I_{v,0}) \right],
+\end{align*}
+where we have used the relation $I = e^{\mathrm{tot}} - \Phi - 0.5 \|\vec{u}\|^2$ between total and internal energy. Linearization $p_L = p_r + (\partial p/\partial\vec{Y})(\vec{Y}-\vec{Y}_r)$ around the reference state $\vec{Y}_r$ with pressure $p_r$ and zero specific humidities leads to 
+\begin{equation}\label{eq:pressure_linear}
+p_L = \rho R_d T_0 + \frac{R_d}{c_{vd}} \bigl[ \rho e^{\mathrm{tot}} - \rho \Phi - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0}) \bigr].
 \end{equation}
-}
-This is linear with respect to $\rho'$, $\rho \vec{u}$, and $p'$, which is linear in state variables provided we express the perturbation  pressure $p'= p - p_r$ as a linear function of state variables. We can do this by first computing the linearized internal energy perturbation per unit volume,
-\begin{equation}
-(\rho I)' \approx (\rho \etotal)'  -  \rho' \Phi,
-\end{equation}
-assuming a reference state at rest, and computing from that $(\rho T)'$ using a version of the temperature equation~\eqref{eq:temperature} that is linear in the state variables:
-\begin{equation}\label{eq:temperature_perturb}
-(\rho T)' =  \frac{(\rho I)'  - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0})}{c_{vd}}.
-\end{equation}
-The ideal gas law (neglecting moisture perturbations affecting the gas constant) then gives the perturbation pressure \hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure perturbation. We'll need it in all IMEX variants. \textbf{Charlie?}]}
-\begin{equation}\label{eq:pressure_perturb}
+Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes, e.g., when the density vanishes. 
+\hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure. We'll need it in all IMEX variants. \textbf{Charlie?}]}
+
+We can now see that the term $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}\vec{Y}_r = 0$ involving the reference state in the decomposition \eqref{e:imex_linearization} vanishes. It is useful to distinguish the cases when gravity waves are included in the implicit term and when they are not included: \hl{[check this]}
+\begin{itemize}
+    \item Acoustic and gravity waves included ($\gamma=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}\vec{Y}_r = 0$.
+    \item Only acoustic waves included ($\gamma=0$). In this case, neither $\Tvector_I(\vec{Y}_r)$ nor $\vec{\mathcal{L}}\vec{Y}_r$ vanish individually, because the geopotential term needed for the cancellation of terms in hydrostatic balance does not appear in the tendency term. However, $p_L = p_r$ in a reference state at rest, so that $\Tvector_I(\vec{Y}_r) = \vec{\mathcal{L}}\vec{Y}_r$.
+\end{itemize}
+Thus, in either case, the terms involving the reference state do not appear  in the decomposition \eqref{e:imex_linearization}. The nonlinear term then follows as the residual 
+\begin{equation}\label{e:nonlinear_residual}
 \begin{split}
-p' & \approx R_d (\rho T)' \\
-   & \approx \frac{R_d}{c_{vd}} \bigl[ (\rho I)'  - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0}) \bigr].
+\Tvector^N_{I}(\vec{Y}) =  \Tvector_I(\vec{Y}) - \vec{\mathcal{L}} \vec{Y}.
 \end{split}
 \end{equation}
-This gives the perturbation pressure as a linear function of state variables. 
 
-Defining 
-\[
-\Tvector^L_{\mathrm{fastest}} \statevec  = - \nabla \cdot \left( \mathcal{L} \bigl(\Fadv_{\mathrm{fastest}}\bigr) + \mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right) \right) ,
-\]
-we obtain the nonlinear component of the fastest tendency as the residual 
-\begin{equation}\label{e:nonlinear_residual}
-\Tvector^N_{\mathrm{fastest}}(\statevec) = \Tvector_{\mathrm{fastest}}(\statevec) - \Tvector^L_{\mathrm{fastest}} \statevec.
-\end{equation}
-This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{\mathrm{fastest}}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{\mathrm{fastest}}$) and  $\lambda^L_{\mathrm{fastest}} = c^L_s$ (corresponding to $\Tvector^L_{\mathrm{fastest}}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state. See discussion of sound waves and gravity waves, e.g., in Durran's book on numerical methods.} in the reference state and $c_s$ is the speed of sound with respect to the total variables. 
+The decomposition of $\Tvector_I$ up to this point is general and holds for 1D-IMEX and 3D-IMEX, with the appropriate differential operator substituted for $\nabla_{1/3}$.
+
+\hl{[\textbf{Someone}: Please check the derivations up to this point carefully, then go into 1D and 3D details.]}
+
+This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{I}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{I}$) and  $\lambda^L_{I} = c^L_s$ (corresponding to $\Tvector^L_{I}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state. See discussion of sound waves and gravity waves, e.g., in Durran's book on numerical methods.} in the reference state and $c_s$ is the speed of sound with respect to the total variables. 
  
  \comment{
 \subsection{3D-IMEX Approach: Version 2}
@@ -1159,7 +1215,7 @@ The advantage of using version 1 presented in Sec.\ \ref{sec:3D-IMEX/v1} is that
 
 To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into a linear and nonlinear part:
 \begin{equation}
- \vec{\mathcal{T}}(\statevec)=- \left( \begin{array}{c}
+ \vec{\mathcal{T}}(\vec{Y})=- \left( \begin{array}{c}
  0 \\
  \nabla \cdot (\rho \vec{u} \otimes \vec{u}) \\
  \nabla \cdot ( (E' + p') \vec{u} )
@@ -1180,9 +1236,9 @@ To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into
 
 \subsubsection{3D-IMEX Linear Operator in the Reference Coordinate}
  Although not strictly necessary to understand the application of the 3D-IMEX approach given by Eqs.\ \eqref{eq:3d-imex/linear_operator} and \eqref{eq:3d-imex/linear_fluxes} let us describe the approximation of the spatial derivatives in terms of the reference element coordinates; note that this will assist us in understanding the 1D-IMEX approach described below. Let us first rewrite the 3D-IMEX linear operator 
- $\Tvector_{\mathrm{fastest}}$ as follows:
+ $\Tvector_{I}$ as follows:
  \begin{equation}
- \Tvector_{\mathrm{fastest}}= \nabla \cdot \left( \begin{array}{c}
+ \Tvector_{I}= \nabla \cdot \left( \begin{array}{c}
  \rho \vec{u} \\
  p' \vec{I}_3 \\
  \left( e_r + \frac{p_r}{\rho_r} \right) \rho \vec{u} \\
@@ -1208,11 +1264,11 @@ To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into
 
 For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations arises principally from vertically propagating sound and gravity waves; vertical diffusion terms may also add stiffness. For this situation, we only need to extract sound and gravity waves, plus possibly diffusion terms, along the vertical direction and treat them implicitly.  Following an approach similar to that for the 3D-IMEX method given in Sec.\ \ref{sec:3D-IMEX/v1}, we write the fastest tendency term, involving only vertical flux divergences, as
  \[
- \Tvector_{\mathrm{fastest}}=- \diff{}{z} \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}} + \Fdiff_{\mathrm{fastest}} \right) + \Source_{\mathrm{fastest}}
+ \Tvector_{I}=- \diff{}{z} \left( \Fadv_{I} + \Pvector_{I} + \Fdiff_{I} \right) + \Source_{I}
  \]
  where $z$ again denotes the vertical coordinate.  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear components as follows: \hl{[the vector components do not match up here. First, it's odd to have the vertical coordinate in the first position of the velocity vector, third is common. Second, the entries for the momentum fluxes are to be understood as vector valued but are not indicated as such. Third, the diffusion terms do not match]}
  \begin{equation}
-\mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right)
+\mathcal{L}\left(\Fadv_{I}\right)
 =\left( \begin{array}{c}
  \rho w \\
  0 \\
@@ -1224,7 +1280,7 @@ For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations
 0
 \end{array}
 \right), \qquad
-\mathcal{L}\left(\Pvector_{\mathrm{fastest}}\right)
+\mathcal{L}\left(\Pvector_{I}\right)
 = \left( \begin{array}{c}
 0 \\
 0 \\
@@ -1239,7 +1295,7 @@ p' \\
 \end{equation}
 and
 \begin{equation}
-\mathcal{L}\left(\Fdiff_{\mathrm{fastest}}\right)=\left( \begin{array}{c}
+\mathcal{L}\left(\Fdiff_{I}\right)=\left( \begin{array}{c}
  \rho_r \vec{d}_{q_t} \cdot \vec{k} \\
  \rho_r \vec{\tau} \cdot \vec{k} \\
  \rho_r \vec{J} + \rho_r \vec{D} \cdot \vec{k}\\
@@ -1253,12 +1309,12 @@ and
 }
 
 \begin{equation}
- \Tvector_{\mathrm{fastest}}=- \diff{}{z} \left( \Fadv_{\mathrm{fastest}} + \Pvector_{\mathrm{fastest}} \right) + \Source_{\mathrm{fastest}}
+ \Tvector_{I}=- \diff{}{z} \left( \Fadv_{I} + \Pvector_{I} \right) + \Source_{I}
  \label{eq:1d-imex/linear_operator}
  \end{equation}
  where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the $x_{3}$-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x_{1} \hat{i} + x_{2} \hat{j} + x_{3} \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
  \begin{equation}
- \mathcal{L} \left( \Fadv_{\mathrm{fastest}} \right)=\left( \begin{array}{c}
+ \mathcal{L} \left( \Fadv_{I} \right)=\left( \begin{array}{c}
  \left( \rho w \right) \\
  0 \\
  0 \\
@@ -1269,7 +1325,7 @@ and
 0
 \end{array}
 \right), \qquad
-\mathcal{L} \left( \Pvector_{\mathrm{fastest}} \right) = \left( \begin{array}{c}
+\mathcal{L} \left( \Pvector_{I} \right) = \left( \begin{array}{c}
 0 \\
 0 \\
 0 \\
@@ -1284,7 +1340,7 @@ p' \\
 \end{equation}
 and similarly for the source
 \begin{equation}
-\mathcal{L} \left( \Source_{\mathrm{fastest}} \right) = \left( \begin{array}{c}
+\mathcal{L} \left( \Source_{I} \right) = \left( \begin{array}{c}
 0 \\
 0 \\
 0 \\
@@ -1301,8 +1357,8 @@ All of these are linear with respect to $\rho'$, $\rho w$, and the linearized pr
 
 With the linear operator
 \[
-\Tvector^L_{\mathrm{fastest}} \statevec  = - \diff{}{z} \left( \mathcal{L}\left(\Fadv_{\mathrm{fastest}}\right) + \mathcal{L}\bigl(\Pvector_{\mathrm{fastest}}\bigr)
-+\mathcal{L}\bigl(\Fdiff_{\mathrm{fastest}}\bigr)\right) + \mathcal{L}\bigl( \Source_{\mathrm{fastest}}\bigr)
+\Tvector^L_{I} \vec{Y}  = - \diff{}{z} \left( \mathcal{L}\left(\Fadv_{I}\right) + \mathcal{L}\bigl(\Pvector_{I}\bigr)
++\mathcal{L}\bigl(\Fdiff_{I}\bigr)\right) + \mathcal{L}\bigl( \Source_{I}\bigr)
 \]
 defined, we can then define the remaining nonlinear operator as the residual \eqref{e:nonlinear_residual} and otherwise follow the procedure outlined in section~\ref{sec:3D-IMEX/v1}. 
 
@@ -1318,7 +1374,7 @@ defined, we can then define the remaining nonlinear operator as the residual \eq
  
  Let us rewrite Eqs.\ \eqref{eq:1d-imex/linear_operator}-\eqref{eq:1d-imex/linear_sources} as follows
  \begin{equation}
- \mathcal{T}^{3D}_{\mathrm{fastest}} = \nabla \cdot \left( \begin{array}{c}
+ \mathcal{T}^{3D}_{I} = \nabla \cdot \left( \begin{array}{c}
  \left( \rho \vec{u} \right) \\
  p'  \\
  \left( e_r + \frac{p_r}{\rho_r} \right) \rho \vec{u} \\
