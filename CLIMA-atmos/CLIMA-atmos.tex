@@ -212,7 +212,7 @@ Some texts distinguish virtual and density (potential) temperatures, where densi
 
 \subsubsection{Speed of sound} The speed of sound in (moist) air is 
 \begin{equation}\label{e:soundspeed}
- c_s = (\gamma R_m T)^{1/2}, \qquad \gamma = \frac{c_{pm}}{c_{vm}},
+ c_s = \left(\frac{c_{pm}}{c_{vm}} R_m T \right)^{1/2}, 
 \end{equation}
 with the appropriate gas constants for moist air.
 
@@ -281,7 +281,7 @@ where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravita
 
 These are the general, deep-atmosphere equations for a moist, nonhydrostatic atmosphere, without the thin-shell approximation traditionally made in climate models. (The thin-shell approximation assumes that in the formulation of the angular momentum, the distance from any point in the atmosphere to the barycenter of the planet is a constant and equal to the mean planetary radius.)
 
-\subsection{Energy Balance}
+\subsection{Energy Balance}\label{s:energy_balance}
 
 To close the equations of motion for the working fluid, we require a thermodynamic or energy balance equation. Various choices are possible, a temperature (internal energy or enthalpy) equation being most common in climate models. We instead use the total specific energy $e^\mathrm{tot}$ to close the system, as in \citet{Romps08a}, a quantity that is conserved in reversible moist processes such as phase transitions of water. 
 
@@ -473,7 +473,7 @@ In the presence of stable stratification, the stratification can limit the mixin
 \begin{equation}\label{eq:smag-lilly}
 \Delta_{ij} = (\Delta x \Delta y \Delta z)^{1/3} f_{b},   
 \end{equation}
-where \hl{[Note the fourth root in buoyancy factor if it is taken to modify mixing length!]}
+where 
 \begin{equation}\label{eq:Lilly_strat}
 f_{b} = 
     \begin{cases}
@@ -1051,7 +1051,7 @@ The general, compressible equations of motion we use permit a variety of wave mo
 
 The equations permit the following wave modes:
 \begin{itemize}
-    \item Acoustic waves. They have phase speeds (Eq.~\eqref{e:soundspeed}) around $300~\mathrm{m~s^{-1}}$. The terms involving pressure in the momentum and energy equations are essential for their existence.
+    \item Acoustic waves. They have phase speeds (Eq.~\eqref{e:soundspeed}) around $300~\mathrm{m~s^{-1}}$. Density variations and the terms involving pressure in the momentum and energy equations are essential for their existence.
     \item Gravity waves. They have a spectrum of phase speeds. In a deep atmosphere (e.g., in a GCM), the gravest, external mode has phase speed $(gH)^{1/2} \approx 280~\mathrm{m~s^{-1}}$, where $H\approx 8~\mathrm{km}$ is the atmospheric scale height. The gravity term $-\rho \nabla \Phi$ in the momentum equation and the gravitational potential energy $\Phi$ in the energy equation are responsible for their existence.
     \item Inertia-gravity, Rossby waves, and several other wave modes that owe their existence to the Coriolis acceleration $-2\vec{\Omega} \times \rho \vec{u}$. They have smaller phase speeds than the acoustic and external gravity waves.
 \end{itemize}
@@ -1135,7 +1135,7 @@ Because the reference temperature and thus the reference pressure are assumed to
 More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference velocity in geostrophic and hydrostatic balance with this temperature field. 
  
  \subsection{Solving for Acoustic and Gravity Waves Implicitly}
- \label{sec:3D-IMEX/v1}
+ \label{s:IMEX_general}
 
 Let us lay out in general terms the linearizations for acoustic and gravity waves that underlie IMEX methods in 1D and 3D. The tendency terms responsible for acoustic waves and gravity waves are
  \begin{equation}
@@ -1154,15 +1154,15 @@ Let us lay out in general terms the linearizations for acoustic and gravity wave
  \end{pmatrix},
  \label{eq:3d-imex/tendencies}
  \end{equation}
-where all components indicated by dots are zero. The operator $\nabla_{1/3}$ is the 3D del operator $\nabla_3 = \nabla$ for 3D-IMEX, and it is the 1D vertical operator $\nabla_1 = \vec{k} \partial/\partial_z$ for 1D-IMEX. (The geopotential gradient $\nabla_{1/3} \Phi$ only has a vertical component as long as we consider a spherical planet, so this derivative even in 3D usually only has a vertical component.) The function $\gamma$ is included to indicate whether gravity waves are included in the implicit tendencies: 
+where all components indicated by dots are zero. The operator $\nabla_{1/3}$ is the 3D differential operator $\nabla_3 = \nabla$ for 3D-IMEX, and it is the 1D operator $\nabla_1 = \vec{k} \partial/\partial_z$ for 1D-IMEX. (The geopotential gradient $\nabla_{1/3} \Phi$ only has a vertical component as long as we consider a spherical planet, so this gradient even in 3D usually only has a vertical component.) The function $\gamma$ is included to indicate whether gravity waves are included in the implicit tendencies: 
 \begin{itemize}
     \item $\gamma=1$: both acoustic and gravity waves are included in $\Tvector_I$;
     \item $\gamma=0$: only acoustic waves are included in $\Tvector_I$.
 \end{itemize}
 
 In the tendency \eqref{eq:3d-imex/tendencies}, the terms that need to be linearized are the pressure $p$, which depends nonlinearly on state variables, and the total enthalpy flux $(\rho e^{\mathrm{tot}} + p) \vec{u}$. Linearization around a state of rest ($\vec{u}_r=0$) with reference total energy $e^{\mathrm{tot}}_r$, pressure $p_r$, and density $\rho_r$ leads to
- \begin{equation}
- \vec{\mathcal{L}}\vec{Y} = 
+ \begin{equation}\label{e:IMEX_linear}
+ \vec{\mathcal{L}}_I \vec{Y} = 
  -\nabla_{1/3} \cdot \begin{pmatrix}
  \rho \vec{u} \\
  p_L \vec{I}_3  \\
@@ -1176,37 +1176,51 @@ In the tendency \eqref{eq:3d-imex/tendencies}, the terms that need to be lineari
 0\\
 \vdots
 \end{pmatrix}.
-\label{eq:3d-imex/linear_fluxes}
 \end{equation}
 This is linear with respect to $\rho$ and $\rho \vec{u}$. For it to be a linear function of all state variables, the pressure $p_L$ needs to be expressed as a linear function of state variables. To derive a linear approximation for the pressure, we use the ideal gas law $p = R_m (\rho T)$ and the expression derived from Eq.~\eqref{eq:temperature} for $\rho T$ in terms of the internal energy and specific humidities,
-\begin{align*}
+\begin{equation}\label{e:pressure}
+\begin{split}
 p &= R_m (\rho T) \\
   &= \rho R_m T_0 + \frac{R_m}{c_{vm}} \left[\rho e^{\mathrm{tot}} - \rho \Phi - 0.5 \rho \|\vec{u}\|^2 - (\rho q_t - \rho q_l) I_{v,0} + \rho q_i (I_{i,0} + I_{v,0}) \right],
-\end{align*}
-where we have used the relation $I = e^{\mathrm{tot}} - \Phi - 0.5 \|\vec{u}\|^2$ between total and internal energy. Linearization $p_L = p_r + (\partial p/\partial\vec{Y})(\vec{Y}-\vec{Y}_r)$ around the reference state $\vec{Y}_r$ with pressure $p_r$ and zero specific humidities leads to 
+\end{split}
+\end{equation}
+where we have used the relation $I = e^{\mathrm{tot}} - \Phi - 0.5 \|\vec{u}\|^2$ between total and internal energy. Linearization $p_L = p_r + (\partial p/\partial\vec{Y})\cdot(\vec{Y}-\vec{Y}_r)$ around the reference state $\vec{Y}_r$ with pressure $p_r$ and zero specific humidities leads to 
 \begin{equation}\label{eq:pressure_linear}
 p_L = \rho R_d T_0 + \frac{R_d}{c_{vd}} \bigl[ \rho e^{\mathrm{tot}} - \rho \Phi - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0}) \bigr].
 \end{equation}
-Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes, e.g., when the density vanishes. 
-\hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure. We'll need it in all IMEX variants. \textbf{Charlie?}]}
+\hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure. We'll need it in all IMEX variants. \textbf{Charlie?}]} If only the total specific humidity $q_t$ is available as a prognostic variable and condensate is determined by saturation adjustment, the condensate specific humidities $q_l$ and $q_i$ in this linearized expression for the pressure can be set to zero. Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes when the density vanishes. 
 
-We can now see that the term $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}\vec{Y}_r = 0$ involving the reference state in the decomposition \eqref{e:imex_linearization} vanishes. It is useful to distinguish the cases when gravity waves are included in the implicit term and when they are not included: \hl{[check this]}
+We can now see that the sum of the terms involving the reference state in the decomposition \eqref{e:imex_linearization} vanishes,
+\[
+\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r = 0.
+\]
+To see this, it is useful to distinguish the cases when gravity waves are included in the implicit term and when they are not included: 
 \begin{itemize}
-    \item Acoustic and gravity waves included ($\gamma=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}\vec{Y}_r = 0$.
-    \item Only acoustic waves included ($\gamma=0$). In this case, neither $\Tvector_I(\vec{Y}_r)$ nor $\vec{\mathcal{L}}\vec{Y}_r$ vanish individually, because the geopotential term needed for the cancellation of terms in hydrostatic balance does not appear in the tendency term. However, $p_L = p_r$ in a reference state at rest, so that $\Tvector_I(\vec{Y}_r) = \vec{\mathcal{L}}\vec{Y}_r$.
+    \item Acoustic and gravity waves included ($\gamma=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}_I \vec{Y}_r = 0$.
+    \item Only acoustic waves included ($\gamma=0$). In this case, neither $\Tvector_I(\vec{Y}_r)$ nor $\vec{\mathcal{L}}_I\vec{Y}_r$ vanish individually, because the geopotential term needed for the cancellation of terms in hydrostatic balance does not appear in the momentum tendency. However, $p_L = p_r$ in a reference state at rest, so that $\Tvector_I(\vec{Y}_r) = \vec{\mathcal{L}}_I\vec{Y}_r$.
 \end{itemize}
 Thus, in either case, the terms involving the reference state do not appear  in the decomposition \eqref{e:imex_linearization}. The nonlinear term then follows as the residual 
 \begin{equation}\label{e:nonlinear_residual}
 \begin{split}
-\Tvector^N_{I}(\vec{Y}) =  \Tvector_I(\vec{Y}) - \vec{\mathcal{L}} \vec{Y}.
+\Tvector^N_{I}(\vec{Y}) & =  \Tvector_I(\vec{Y}) - \vec{\mathcal{L}}_I \vec{Y} \\
+& = 
+-\nabla_{1/3} \begin{pmatrix}
+0 \\
+(p - p_L) \vec{I}_3\\
+(e^{\mathrm{tot}} - e^{\mathrm{tot}}_r + p/\rho - p_r/\rho_r) \rho \vec{u}\\
+\vdots
+\end{pmatrix}.
 \end{split}
 \end{equation}
-
+The difference between the full pressure (Eq.~\ref{e:pressure}) and its linearized counterpart (Eq.~\ref{eq:pressure_linear}) is in the inclusion in the full pressure of the kinetic energy term $0.5 \|\vec{u} \|^2$ and inclusion of the effects of moisture on the gas constant and specific heat. Because relative to the internal energy, the kinetic energy is of order $\|\vec{u}\|^2/c_s^2$ (where $c_s$ is the speed of sound; see section~\ref{s:energy_balance}), and the moisture effects on the gas constant and specific heat are of order $q_t$, the nonlinear residual $p-p_L$ is small relative to the full pressure $p$: typically of order $10^{-3}$ in Earth's atmosphere. The nonlinear residual in the energy equation depends on the choice of reference state. With a reference temperature $T_r(z)$ that depends on height $z$ only, one may expect $T - T(z) \lesssim 30~\mathrm{K}$ in Earth's atmosphere. Because the internal energy deviation from the reference state dominates the residual $e^{\mathrm{tot}} - e^{\mathrm{tot}}_r$, one may expect a size of the residual $e^{\mathrm{tot}} - e^{\mathrm{tot}}_r$ relative to the full total energy $e^{\mathrm{tot}}$ of order $30~\mathrm{K}/300~\mathrm{K} = 10^{-1}$. Hence, the nonlinear residual is small compared with the linear tendency term.
+ 
 The decomposition of $\Tvector_I$ up to this point is general and holds for 1D-IMEX and 3D-IMEX, with the appropriate differential operator substituted for $\nabla_{1/3}$.
+
+\hl{[Would be good to derive the Helmholtz problem for pressure here.]}
 
 \hl{[\textbf{Someone}: Please check the derivations up to this point carefully, then go into 1D and 3D details.]}
 
-This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{I}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{I}$) and  $\lambda^L_{I} = c^L_s$ (corresponding to $\Tvector^L_{I}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state. See discussion of sound waves and gravity waves, e.g., in Durran's book on numerical methods.} in the reference state and $c_s$ is the speed of sound with respect to the total variables. 
+This allows us to use the IMEX time stepping strategy \eqref{eq:IMEX/stages2}. It yields the maximum eigenvalue of the Jacobian operators  $\lambda_{I}=\widehat{\vec{n}} \cdot \vec{u} + c_{s}$ (corresponding to $\Tvector_{I}$) and  $\lambda^L_{I} = c^L_s$ (corresponding to $\vec{\mathcal{L}}_{I}\vec{Y}$), where $c^L_s$ is the speed of sound \eqref{e:soundspeed} \hl{the speed of sound isn't exactly that given by (21) but includes a modification from the stratification of the background state. Not sure it matters, but what is stated here is not exact, even with an isothermal, dry reference state. See discussion of sound waves and gravity waves, e.g., in Durran's book on numerical methods.} in the reference state and $c_s$ is the speed of sound with respect to the total variables. 
  
  \comment{
 \subsection{3D-IMEX Approach: Version 2}
@@ -1262,105 +1276,8 @@ To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into
 \subsection{1D-IMEX Approach}
 \label{sec:1D-IMEX}
 
-For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations arises principally from vertically propagating sound and gravity waves; vertical diffusion terms may also add stiffness. For this situation, we only need to extract sound and gravity waves, plus possibly diffusion terms, along the vertical direction and treat them implicitly.  Following an approach similar to that for the 3D-IMEX method given in Sec.\ \ref{sec:3D-IMEX/v1}, we write the fastest tendency term, involving only vertical flux divergences, as
- \[
- \Tvector_{I}=- \diff{}{z} \left( \Fadv_{I} + \Pvector_{I} + \Fdiff_{I} \right) + \Source_{I}
- \]
- where $z$ again denotes the vertical coordinate.  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear components as follows: \hl{[the vector components do not match up here. First, it's odd to have the vertical coordinate in the first position of the velocity vector, third is common. Second, the entries for the momentum fluxes are to be understood as vector valued but are not indicated as such. Third, the diffusion terms do not match]}
- \begin{equation}
-\mathcal{L}\left(\Fadv_{I}\right)
-=\left( \begin{array}{c}
- \rho w \\
- 0 \\
- 0 \\
- 0 \\
- e_r (\rho w)\\
-0 \\
-0 \\
-0
-\end{array}
-\right), \qquad
-\mathcal{L}\left(\Pvector_{I}\right)
-= \left( \begin{array}{c}
-0 \\
-0 \\
-0 \\
-p' \\
-\frac{p_r}{\rho_r} (\rho w) \\
-0 \\
-0 \\
-0 
-\end{array}
-\right),
-\end{equation}
-and
-\begin{equation}
-\mathcal{L}\left(\Fdiff_{I}\right)=\left( \begin{array}{c}
- \rho_r \vec{d}_{q_t} \cdot \vec{k} \\
- \rho_r \vec{\tau} \cdot \vec{k} \\
- \rho_r \vec{J} + \rho_r \vec{D} \cdot \vec{k}\\
-\rho_r \vec{d}_{q_k} \cdot \vec{k} \\
-\rho_r \vec{d}_{q_{p, i}} \cdot \vec{k}\\
-\rho_r \vec{d}_{\chi_j} \cdot \vec{k}
-\end{array}
-\right)
-\label{eq:fluxes_linear_1d}
-\end{equation}
-}
+For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations arises principally from vertically propagating sound and gravity waves; vertical diffusion terms may also add stiffness. For this situation, we only need to extract fast terms along the vertical direction and treat them implicitly.  Following the general approach outlined in section~\ref{s:IMEX_general}, using $\gamma=1$ to extract sound and gravity waves. (We treat diffusion terms explicitly for the moment.) The linear tendency component $\vec{\mathcal{L}}_I \vec{Y}$ and the nonlinear residual $\Tvector_I^N(\vec{Y})$ are then given by Eqs.~\eqref{e:IMEX_linear} and \eqref{e:nonlinear_residual}, with the derivative operator $\nabla_{1/3} = \vec{k} \partial/\partial z$.
 
-\begin{equation}
- \Tvector_{I}=- \diff{}{z} \left( \Fadv_{I} + \Pvector_{I} \right) + \Source_{I}
- \label{eq:1d-imex/linear_operator}
- \end{equation}
- where $z$ here denotes the direction in which gravity acts (in the LES simulations, this is indeed the $x_{3}$-coordinate but on the sphere this is the radial direction which is just the vector along $\vec{x}=x_{1} \hat{i} + x_{2} \hat{j} + x_{3} \hat{k}$).  Let us start with the fluxes given by Eqs.\ \eqref{e:adv_flux}--\eqref{eq:diff_flux} and write their linear representations as follows
- \begin{equation}
- \mathcal{L} \left( \Fadv_{I} \right)=\left( \begin{array}{c}
- \left( \rho w \right) \\
- 0 \\
- 0 \\
- 0 \\
- e_r \left( \rho w \right) \\
-0 \\
-0 \\
-0
-\end{array}
-\right), \qquad
-\mathcal{L} \left( \Pvector_{I} \right) = \left( \begin{array}{c}
-0 \\
-0 \\
-0 \\
-p' \\
-\frac{p_r}{\rho_r} \left( \rho w \right) \\
-0 \\
-0 \\
-0 
-\end{array}
-\right),
-\label{eq:1d-imex/linear_fluxes}
-\end{equation}
-and similarly for the source
-\begin{equation}
-\mathcal{L} \left( \Source_{I} \right) = \left( \begin{array}{c}
-0 \\
-0 \\
-0 \\
--\rho' \diff{\Phi}{z} \\
-0 \\
-0 \\
-0 \\
-0 
-\end{array}
-\right).
-\label{eq:1d-imex/linear_sources}
-\end{equation}
-All of these are linear with respect to $\rho'$, $\rho w$, and the linearized pressure $p'$ obtained from Eq.~\eqref{eq:pressure_perturb}. The term $\rho w$ represents the momentum along the vertical ($z$) direction. The source term includes the geopotential responsible for gravity waves. It makes sense to include them in the implicit part in 1D IMEX, because we usually are not interested in an accurate representation of gravity waves in a global model.
-
-With the linear operator
-\[
-\Tvector^L_{I} \vec{Y}  = - \diff{}{z} \left( \mathcal{L}\left(\Fadv_{I}\right) + \mathcal{L}\bigl(\Pvector_{I}\bigr)
-+\mathcal{L}\bigl(\Fdiff_{I}\bigr)\right) + \mathcal{L}\bigl( \Source_{I}\bigr)
-\]
-defined, we can then define the remaining nonlinear operator as the residual \eqref{e:nonlinear_residual} and otherwise follow the procedure outlined in section~\ref{sec:3D-IMEX/v1}. 
 
 \subsubsection{1D-IMEX Linear Operator in the Reference Coordinate}
  Although Eqs. \eqref{eq:1d-imex/linear_operator} -  \eqref{eq:1d-imex/linear_sources} are written with respect to the z-coordinate (direction along which gravity acts) it does not necessarily mean that the model spatial coordinates are aligned in such a fashion (e.g., unless spherical coordinates are used). However, we can construct the grids of the model in a stacked approach such that one reference coordinate is indeed aligned along the z-coordinate. 
