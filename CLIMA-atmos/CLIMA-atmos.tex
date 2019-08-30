@@ -1045,6 +1045,25 @@ where the index $(i,j,k)$ will account for which direction we are referring to.
 \end{itemize}
 \hl{This does not need to be very detailed, just for others to be able to understand the code and what is and is not possible in DG.}
 
+\subsection{Higher-Order Derivatives}
+To construct second and higher order derivatives,  we use the so-called local discontinuous Galerkin (LDG) method.  The primal form of the second order operator $\nabla^2 \vec{Y}$ is written in the following flux form
+\[
+\vec{Y}^{(1)} = \nabla \vec{Y},
+\]
+and
+\[
+\vec{Y}^{(2)} = \nabla \cdot \vec{Y}^{(1)} \equiv \nabla^2 \vec{Y}.
+\]
+With this approach, it is straightforward to construct higher order operators (such as fourth order ones) by applying LDG one more time as follows
+\[
+\vec{Y}^{(3)} = \nabla \vec{Y}^{(2)},
+\]
+and
+\[
+\vec{Y}^{(4)} = \nabla \cdot \vec{Y}^{(3)} \equiv \nabla^4 \vec{Y}.
+\]
+Note that each application of the operator $\nabla$ requires both a volume integral as well as a flux integral, and that the application of a flux integral requires off-node communication.
+
 \section{Time-Discretization Methods}\label{s:timestepping}
 
 The general, compressible equations of motion we use permit a variety of wave modes with different characteristic speeds. Additionally, the equations contain sources that can add stiffness, for example, from microphysical processes that occur on timescales of seconds or less.
@@ -1072,7 +1091,8 @@ To circumvent the time-step restriction due to the fast acoustic and gravity wav
 
 IMEX methods require the solution of one or more linear systems at each time step. The linear system is global in 3D, and this may limit scalability of IMEX methods in a multi-node computational setting. In that case, split-explicit methods may be a more scalable option to deal with the timestep restrictions. For HEVI schemes, the linear solves are restricted to independent atmospheric columns, which are usually represented on a single compute node (if the domain decomposition is done in the horizontal). So their scalability across nodes is less restricted.
 
-We use a general family of additive Runge-Kutta methods (ARK) methods for 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013}). 
+We use a general family of additive Runge-Kutta methods (ARK) methods for 1D and 3D IMEX approaches (see, e.g., \citet{giraldo:2013}). Note that the same infrastructure of the linear (implicit) and nonlinear (explicit) decomposition can also be used in the substepping (e.g., split-explicit) approach.
+
 To get a sense of how the ARK approach works, let us describe a general abstract model here that will be used in later sections to describe specific formulations. To illustrate the abstract IMEX formulation, let us partition the total tendency $\vec{\mathcal{T}}$ on the right-hand side of Eq.~\eqref{e:eom_compact} into four terms: 
 \begin{itemize}
     \item terms to be treated implicitly, labeled by $I$ (the fastest terms);
@@ -1082,7 +1102,7 @@ To get a sense of how the ARK approach works, let us describe a general abstract
 \end{itemize}
 This gives
 \[
-\frac{\partial \vec{Y}}{\partial t} = \Tvector = - \nabla \cdot \Fvector + \vec{\mathcal{S}} = \Tvector_{I} + \Tvector_{d} + \Tvector_{+r} + \Tvector_{-s}.
+\frac{\partial \vec{Y}}{\partial t} = \Tvector = - \nabla \cdot \Fvector + \vec{\mathcal{S}} = \Tvector_{I} + \Tvector_{d} + \Tvector_{+f} + \Tvector_{-s}.
 \]
 To obtain a linear problem for the implicit solve, let us linearize the implicit tendency terms $\Tvector_{I}$ by Taylor expansion around a reference state $\vec{Y}_r$,
 \begin{equation}\label{e:imex_linearization}
@@ -1094,11 +1114,12 @@ where
 \end{equation} 
 is the linear component of the tendency operator and $\Tvector^N_{I}(\vec{Y})$ is the nonlinear residual. This then allows us to write the equation of motion \eqref{e:eom_compact} as
 \begin{equation}\label{eq:IMEX}
-\frac{\partial\vec{Y}}{\partial t} =  \vec{\mathcal{L}}_I \vec{Y} + \Bigl(\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r\Bigr) + \Tvector_{d} + \Tvector_{+r} + \Tvector_{-s}.
+\frac{\partial\vec{Y}}{\partial t} =  \vec{\mathcal{L}}_I \vec{Y} + \Bigl(\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r\Bigr) + \Tvector^N_{I}(\vec{Y}) + \Tvector_{d} + \Tvector_{+f} + \Tvector_{-s}.
 \end{equation}
+[\fxg{What happened to $\Tvector^N_{I}(\vec{Y})$? I've added back in.  We can use this form whereby the total variable is used but if we use an iterative solver then it behooves us to use warm restarts, otherwise the iterative solver has to work harder to get the solution to get first to the reference state and then to the perturbation from the reference state. This situation is easy to see for cases when the solution is not far away from the reference field.  If not the case, then is not too big of an issue.}]
 Usually, the reference state $\vec{Y}_r$ is chosen so that the tendency of the reference state, $\Tvector_I(\vec{Y}_r)$, and the linear tendency of the reference state, $\vec{\mathcal{L}}_I \vec{Y}_r$, either vanish individually or cancel each other, so that $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r=0$
 
-To discretize the equations in time using an ARK method, we first compute the stage values \hl{\textbf{Frank}: This subsection below here needs work. A number of things are unclear/incorrect/}
+To discretize the equations in time using an ARK method, we first compute the stage values \hl{\textbf{Frank}: This subsection below here needs work. A number of things are unclear/incorrect/} [\fxg{Yes, unclear and incorrect. However, some of what is here I did not write. Let me try to fix this after the substepping.}]
 \begin{multline}\label{eq:IMEX/stages}
 \statestage^{(i)}= \vec{Y}^n + \Delta t \sum_{j=0}^{i} \left( a^{I}_{ij} \vec{\mathcal{L}}_{I} \statestage^{(j)} \right) + \Delta t \sum_{j=0}^{i-1} \left( {a}^{+f}_{ij} \Tvector_{+f}(\statestage^{(j)}) \right)  \\
 +  \Delta t \sum_{j=0}^{i-1} \left( {a}^{d}_{ij} \bigl(\Tvector_{d}(\statestage^{(j)}) + \Tvector^N_I(\statestage^{(j)})\bigr)\right) \\
@@ -1133,6 +1154,7 @@ Solving for the fastest waves implicitly by a linear solve requires linearizatio
 Because the reference temperature and thus the reference pressure are assumed to be constant in the horizontal, the reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic balance. Because the reference state is assumed dry, $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
 
 More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference velocity in geostrophic and hydrostatic balance with this temperature field. 
+[\fxg{Would be good to know if we plan to use such states. If not then the 1D-IMEX problem becomes very simple for us and so we can optimize based on this since only one linear system has to be solved for all columns but with different RHS.}]
  
  \subsection{Solving for Acoustic and Gravity Waves Implicitly}
  \label{s:IMEX_general}
@@ -1143,41 +1165,41 @@ Let us lay out in general terms the linearizations for acoustic and gravity wave
  \begin{pmatrix}
  \rho \vec{u} \\
  p \vec{I}_3 \\
- \bigl(e^{\mathrm{tot}} + (\gamma-1) \Phi + p/\rho \bigr) \rho \vec{u} \\
+ \bigl(e^{\mathrm{tot}} + (\delta_{gw}-1) \Phi + p/\rho \bigr) \rho \vec{u} \\
  \vdots
  \end{pmatrix}
  - \begin{pmatrix}
  0 \\
- \gamma \rho \nabla_{1/3} \Phi \\
+ \delta_{gw} \rho \nabla_{1/3} \Phi \\
  0\\
  \vdots
  \end{pmatrix},
  \label{eq:3d-imex/tendencies}
  \end{equation}
-where all components indicated by dots are zero. The operator $\nabla_{1/3}$ is the 3D differential operator $\nabla_3 = \nabla$ for 3D-IMEX, and it is the 1D operator $\nabla_1 = \vec{k} \partial/\partial_z$ for 1D-IMEX. (The geopotential gradient $\nabla_{1/3} \Phi$ only has a vertical component as long as we consider a spherical planet, so this gradient even in 3D usually only has a vertical component.) The function $\gamma$ is included to indicate whether gravity waves are included in the implicit tendencies: 
+where all components indicated by dots are zero. The operator $\nabla_{1/3}$ is the 3D differential operator $\nabla_3 = \nabla$ for 3D-IMEX, and it is the 1D operator $\nabla_1 = \vec{k} \partial/\partial_z$ for 1D-IMEX. (The geopotential gradient $\nabla_{1/3} \Phi$ only has a vertical component as long as we consider a spherical planet, so this gradient even in 3D usually only has a vertical component.) The switch $\delta_{gw}$ (which can only take the value of either $0$ or $1$) is included to indicate whether gravity waves are included in the implicit tendencies: 
 \begin{itemize}
-    \item $\gamma=1$: both acoustic and gravity waves are included in $\Tvector_I$;
-    \item $\gamma=0$: only acoustic waves are included in $\Tvector_I$.
+    \item $\delta_{gw}=1$: both acoustic and gravity waves are included in $\Tvector_I$;
+    \item $\delta_{gw}=0$: only acoustic waves are included in $\Tvector_I$.
 \end{itemize}
 
-In the tendency \eqref{eq:3d-imex/tendencies}, the terms that need to be linearized are the pressure $p$, which depends nonlinearly on state variables, and the total enthalpy flux $(\rho e^{\mathrm{tot}} + p) \vec{u}$. Linearization around a state of rest ($\vec{u}_r=0$) with reference total energy $e^{\mathrm{tot}}_r$, pressure $p_r$, and density $\rho_r$ leads to
+In the tendency \eqref{eq:3d-imex/tendencies}, the terms that need to be linearized are the pressure $p$, which depends nonlinearly on state variables, and the total enthalpy flux $(\rho e^{\mathrm{tot}} + p/\rho) (\rho \vec{u})$. Linearization around a state of rest ($\vec{u}_r=0$) with reference total energy $e^{\mathrm{tot}}_r$, pressure $p_r$, and density $\rho_r$ leads to
  \begin{equation}\label{e:IMEX_linear}
  \vec{\mathcal{L}}_I \vec{Y} = 
  -\nabla_{1/3} \cdot \begin{pmatrix}
- \rho \vec{u} \\
- p_L \vec{I}_3  \\
- \Bigl(e^{\mathrm{tot}}_r  + (\gamma-1)\Phi + p_r/\rho_r \Bigr) \rho \vec{u}\\
+ \textcolor{blue}{\rho \vec{u}} \\
+ \textcolor{blue}{p_L} \vec{I}_3  \\
+ \Bigl(e^{\mathrm{tot}}_r  + (\delta_{gw}-1)\Phi + p_r/\rho_r \Bigr) \textcolor{blue}{\rho \vec{u}}\\
 \vdots
 \end{pmatrix}
 -
 \begin{pmatrix}
 0 \\
-\gamma \rho \nabla_{1/3} \Phi \\
+\delta_{gw} \textcolor{blue} \rho \nabla_{1/3} \Phi \\
 0\\
 \vdots
 \end{pmatrix}.
 \end{equation}
-This is linear with respect to $\rho$ and $\rho \vec{u}$. For it to be a linear function of all state variables, the pressure $p_L$ needs to be expressed as a linear function of state variables. To derive a linear approximation for the pressure, we use the ideal gas law $p = R_m (\rho T)$ and the expression derived from Eq.~\eqref{eq:temperature} for $\rho T$ in terms of the internal energy and specific humidities,
+This is linear with respect to \textcolor{blue}{$\rho$} and \textcolor{blue}{$\rho \vec{u}$} (all state variables and linear functions thereof are colored \textcolor{blue}{blue}; all other terms are constants or fixed functions of height $z$). For it to be a linear function of all state variables, the pressure \textcolor{blue}{$p_L$} needs to be expressed as a linear function of state variables. To derive a linear approximation for the pressure, we use the ideal gas law $p = R_m (\rho T)$ and the expression derived from Eq.~\eqref{eq:temperature} for $\rho T$ in terms of the internal energy and specific humidities,
 \begin{equation}\label{e:pressure}
 \begin{split}
 p &= R_m (\rho T) \\
@@ -1186,7 +1208,7 @@ p &= R_m (\rho T) \\
 \end{equation}
 where we have used the relation $I = e^{\mathrm{tot}} - \Phi - 0.5 \|\vec{u}\|^2$ between total and internal energy. Linearization $p_L = p_r + (\partial p/\partial\vec{Y})\cdot(\vec{Y}-\vec{Y}_r)$ around the reference state $\vec{Y}_r$ with pressure $p_r$ and zero specific humidities leads to 
 \begin{equation}\label{eq:pressure_linear}
-p_L = \rho R_d T_0 + \frac{R_d}{c_{vd}} \bigl[ \rho e^{\mathrm{tot}} - \rho \Phi - (\rho q_t - \rho q_l)I_{v,0} + (\rho q_i) (I_{i,0} + I_{v,0}) \bigr].
+\textcolor{blue}{p_L} = \textcolor{blue}{\rho} R_d T_0 + \frac{R_d}{c_{vd}} \bigl[ \textcolor{blue}{\rho e^{\mathrm{tot}}} - \textcolor{blue}{\rho} \Phi - (\textcolor{blue}{\rho q_t} - \textcolor{blue}{\rho q_l})I_{v,0} + (\textcolor{blue}{\rho q_i}) (I_{i,0} + I_{v,0}) \bigr].
 \end{equation}
 \hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure. We'll need it in all IMEX variants. \textbf{Charlie?}]} If only the total specific humidity $q_t$ is available as a prognostic variable and condensate is determined by saturation adjustment, the condensate specific humidities $q_l$ and $q_i$ in this linearized expression for the pressure can be set to zero. Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes when the density vanishes. 
 
@@ -1196,8 +1218,8 @@ We can now see that the sum of the terms involving the reference state in the de
 \]
 To see this, it is useful to distinguish the cases when gravity waves are included in the implicit term and when they are not included: 
 \begin{itemize}
-    \item Acoustic and gravity waves included ($\gamma=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}_I \vec{Y}_r = 0$.
-    \item Only acoustic waves included ($\gamma=0$). In this case, neither $\Tvector_I(\vec{Y}_r)$ nor $\vec{\mathcal{L}}_I\vec{Y}_r$ vanish individually, because the geopotential term needed for the cancellation of terms in hydrostatic balance does not appear in the momentum tendency. However, $p_L = p_r$ in a reference state at rest, so that $\Tvector_I(\vec{Y}_r) = \vec{\mathcal{L}}_I\vec{Y}_r$.
+    \item Acoustic and gravity waves included ($\delta_{gw}=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}_I \vec{Y}_r = 0$. [\fxg{Is your intent to only use hydrostatic reference profiles?}]
+    \item Only acoustic waves included ($\delta_{gw}=0$). In this case, neither $\Tvector_I(\vec{Y}_r)$ nor $\vec{\mathcal{L}}_I\vec{Y}_r$ vanish individually, because the geopotential term needed for the cancellation of terms in hydrostatic balance does not appear in the momentum tendency. However, $p_L = p_r$ in a reference state at rest, so that $\Tvector_I(\vec{Y}_r) = \vec{\mathcal{L}}_I\vec{Y}_r$.
 \end{itemize}
 Thus, in either case, the terms involving the reference state do not appear  in the decomposition \eqref{e:imex_linearization}. The nonlinear term then follows as the residual 
 \begin{equation}\label{e:nonlinear_residual}
@@ -1207,7 +1229,7 @@ Thus, in either case, the terms involving the reference state do not appear  in 
 -\nabla_{1/3} \begin{pmatrix}
 0 \\
 (p - p_L) \vec{I}_3\\
-(e^{\mathrm{tot}} - e^{\mathrm{tot}}_r + p/\rho - p_r/\rho_r) \rho \vec{u}\\
+(e^{\mathrm{tot}}  + p/\rho - e^{\mathrm{tot}}_r - p_r/\rho_r) \rho \vec{u}\\
 \vdots
 \end{pmatrix}.
 \end{split}
@@ -1276,8 +1298,7 @@ To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into
 \subsection{1D-IMEX Approach}
 \label{sec:1D-IMEX}
 
-For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations arises principally from vertically propagating sound and gravity waves; vertical diffusion terms may also add stiffness. For this situation, we only need to extract fast terms along the vertical direction and treat them implicitly.  Following the general approach outlined in section~\ref{s:IMEX_general}, using $\gamma=1$ to extract sound and gravity waves. (We treat diffusion terms explicitly for the moment.) The linear tendency component $\vec{\mathcal{L}}_I \vec{Y}$ and the nonlinear residual $\Tvector_I^N(\vec{Y})$ are then given by Eqs.~\eqref{e:IMEX_linear} and \eqref{e:nonlinear_residual}, with the derivative operator $\nabla_{1/3} = \vec{k} \partial/\partial z$.
-
+For grid aspect ratios $\Delta_h/\Delta_v \gg 1$, the stiffness of the equations arises principally from vertically propagating sound and gravity waves; vertical diffusion terms may also add stiffness. For this situation, we only need to extract fast terms along the vertical direction and treat them implicitly.  Following the general approach outlined in section~\ref{s:IMEX_general}, using $\delta_{gw}=1$ to extract sound and gravity waves. (We treat diffusion terms explicitly for the moment.) The linear tendency component $\vec{\mathcal{L}}_I \vec{Y}$ and the nonlinear residual $\Tvector_I^N(\vec{Y})$ are then given by Eqs.~\eqref{e:IMEX_linear} and \eqref{e:nonlinear_residual}, with the derivative operator $\nabla_{1/3} = \vec{k} \partial/\partial z$.
 
 \subsubsection{1D-IMEX Linear Operator in the Reference Coordinate}
  Although Eqs. \eqref{eq:1d-imex/linear_operator} -  \eqref{eq:1d-imex/linear_sources} are written with respect to the z-coordinate (direction along which gravity acts) it does not necessarily mean that the model spatial coordinates are aligned in such a fashion (e.g., unless spherical coordinates are used). However, we can construct the grids of the model in a stacked approach such that one reference coordinate is indeed aligned along the z-coordinate. 
@@ -1316,6 +1337,70 @@ where we are now considering the fastest waves linear operator in three-dimensio
 [\fxg{To Do: separate in terms of reference coordinate to isolate the radial coordinate}]
 
 \hl{[Important points to keep in mind here: (1) For a global model, we usually use domain decompositions that leave atmospheric columns on one node. This means there is no sizable inter-node communication overhead for 1D-IMEX. The problem for 3D IMEX is that the linear solve can involve states distributed across nodes, and hence involves inter-node communication. This may not scale well, and split-explicit schemes may be preferable in that case. We need to test to find out. We should implement all of this such that it is relatively straightforward to go from 3D-IMEX to some form of split-explicit (or multirate), and make it part of the model configuration what to choose here. (2) It would be good to start working on an implementation of a split-explicit method as alternative to IMEX very soon. We'll need multirate explicit methods in the end anyway. (3) We'll need 1D balance law solvers, for example, for the land and sea ice models. So implementing them for 1D IMEX makes sense.]}
+
+\subsection{Substepping}
+\label{sec:substepping}
+To discretize the equations in time using a partitioned Runge-Kutta method, let us describe the method using the following abstract 3-partition:
+\[
+\diff{\vec{Y}}{t}= F_1 + F_2 + F_3. 
+\]
+where the wave speed $\mathcal{S}$ of the different components are ordered as follows $\mathcal{S}(F_3) > \mathcal{S}(F_2) > \mathcal{S}(F_1)$.
+The algorithm describing the 3-partition RK method is highlighted in Alg.\ \ref{alg:3-prk}.
+\begin{algorithm}
+\label{alg:3-prk}
+\begin{algorithmic}
+\State
+\Function{3-Partition RK}{}
+\State $\vec{Y}^{(i)}=\vec{Y}^n$ 
+\For{$i=1:I_{stages}$} 
+\State $\vec{Y}^{(j)}=\vec{Y}^{(i)}$ \Comment update $F_1(\red{ \vec{Y}^{(i)} })$
+\For{$j=1:J_{stages}$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(j)}$ \Comment update $F_2(\blue{ \vec{Y}^{(j)} })$
+\For{$k=1:K_{stages}$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(j)} + \Delta \tau \left[ F_1(\red{ \vec{Y}^{(i)} }) + F_2(\blue{ \vec{Y}^{(j)} }) + F_3(\vec{Y}^{(k)}) \right]$
+\EndFor %k
+\State $\vec{Y}^{(j)}=\vec{Y}^{(k)}$
+\EndFor %j
+\State $\vec{Y}^{(i)}=\vec{Y}^{(j)}$
+\EndFor %i
+\State $\vec{Y}^{n+1}=\vec{Y}^{(i)}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+In Alg.\ \ref{alg:3-prk} the red and blue font indicates that those terms are frozen within the $k$-loop and is what allows a performance gain. Also, 
+$\Delta \tau=\Delta t a_i^I a_j^J a_k^K$ where $\Delta t$ is the time-step of the slowest modes ($F_1$), the RK coefficients are written in low-storage form, and the order of each of the three partitions can be of different order. If all three partitions are of the same order then effective time-step of each partition is 
+\[
+\mathcal{O} \left( \frac{\Delta t}{N_{RK}^{p-1}} \right)
+\]where $N_{RK}$ is the order of the RK method and $p$ refers to the partition (e.g., for $p=1$ the time-step is $\Delta t$, for $p=2$ the time-step is $\Delta t/N_{RK}$, and for $p=3$ the time-step is $\Delta t/N_{RK}^2$). 
+
+If the embedded partition described in Alg.\ \ref{alg:3-prk} yields an insufficiently small time-step to maintain stability of the fastest waves then substepping can be added in a time-splitting approach as shown in Alg.\ \ref{alg:3-prk_v2} where an additional loop ($m$-loop) is added before the $k$-loop.
+\begin{algorithm}
+\label{alg:3-prk_v2}
+\begin{algorithmic}
+\State
+\Function{3-Partition RK with Substepping}{}
+\State $\vec{Y}^{(i)}=\vec{Y}^n$ 
+\For{$i=1:I_{stages}$} 
+\State $\vec{Y}^{(j)}=\vec{Y}^{(i)}$ \Comment update $F_1(\red{ \vec{Y}^{(i)} })$
+\For{$j=1:J_{stages}$} 
+\State $\vec{Y}^{(m)}=\vec{Y}^{(j)}$ \Comment update $F_2(\blue{ \vec{Y}^{(j)} })$
+\For{$m=1:M_{substeps}$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(m)}$
+\For{$k=1:K_{stages}$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(m)} + \Delta \tau \left[ F_1(\red{ \vec{Y}^{(i)} }) + F_2(\blue{ \vec{Y}^{(j)} }) + F_3(\vec{Y}^{(k)}) \right]$
+\EndFor %k
+\State $\vec{Y}^{(m)}=\vec{Y}^{(k)}$
+\EndFor %m
+\State $\vec{Y}^{(j)}=\vec{Y}^{(m)}$
+\EndFor %j
+\State $\vec{Y}^{(i)}=\vec{Y}^{(j)}$
+\EndFor %i
+\State $\vec{Y}^{n+1}=\vec{Y}^{(i)}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+In Alg.\ \ref{alg:3-prk_v2}
+$\Delta \tau=\frac{\Delta t}{M_{substeps}} a_i^I a_j^J a_k^K$.
 
 \section{Topography}
 Topography can be either built analytical or by reading an external topography file. The topography data are taken from the NOAA ETOPO-1 database \cite{etopo1}. As of now, only {\bf XYZ files are being read}. If necessary, a NetCFD topograpjhy reader can be easily added.
