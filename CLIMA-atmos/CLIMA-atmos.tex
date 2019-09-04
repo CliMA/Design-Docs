@@ -402,11 +402,11 @@ The SGS flux of total energy consists of two components: The energy flux $\vec{D
 \]
 where
 \[
-e^{\mathrm{tot}} + R_m T = \frac{1}{2} \| \vec{u} \|^2 + h + \Phi
+h^{\mathrm{tot}} = e^{\mathrm{tot}} + R_m T = \frac{1}{2} \| \vec{u} \|^2 + h + \Phi
 \]
 is what we call the \emph{total specific enthalpy}: the sum of kinetic energy, enthalpy $I + R_m T$, and potential energy $\Phi$.\footnote{What is usually called the total specific enthalpy in fluid dynamics does not contain the potential energy $\Phi$. However, neither this nor our total specific enthalpy strictly are enthalpies in the thermodynamic sense. The sum of enthalpy and potential energy (without the kinetic energy term) is commonly referred to as the moist static energy. It is materially conserved in adiabatic, hydrostatic displacements.} We model the unresolved total enthalpy flux diffusively, so that the SGS flux of total enthalpy becomes
 \begin{equation}\label{e:SGS_energy_flux}
-\vec{J} + \vec{D} = - \vec{\mathcal{D}}_t \circ \nabla (e^{\mathrm{tot}} + R_m T).
+\vec{J} + \vec{D} = - \vec{\mathcal{D}}_t \circ \nabla h^{\mathrm{tot}}.
 \end{equation}
 
 While not needed for implementation, it facilitates the interpretation of this total enthalpy flux and the formulation of boundary conditions to consider the two components $\vec{J}$ and $\vec{D}$ separately. We can model the SGS fluxes of water vapor ($\vec{d}_{q_v}$), liquid water ($\vec{d}_{q_l}$), and ice ($\vec{d}_{q_i}$) separately as diffusive fluxes, 
@@ -1113,12 +1113,147 @@ where
     \vec{\mathcal{L}}_I = \left. \frac{\partial\Tvector_I}{\partial\vec{Y}}\right|_{\vec{Y}_r}
 \end{equation} 
 is the linear component of the tendency operator and $\Tvector^N_{I}(\vec{Y})$ is the nonlinear residual. This then allows us to write the equation of motion \eqref{e:eom_compact} as
-\begin{equation}\label{eq:IMEX}
+\begin{equation}
+\label{eq:IMEX}
 \frac{\partial\vec{Y}}{\partial t} =  \vec{\mathcal{L}}_I \vec{Y} + \Bigl(\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r\Bigr) + \Tvector^N_{I}(\vec{Y}) + \Tvector_{d} + \Tvector_{+f} + \Tvector_{-s}.
 \end{equation}
-[\fxg{What happened to $\Tvector^N_{I}(\vec{Y})$? I've added back in.  We can use this form whereby the total variable is used but if we use an iterative solver then it behooves us to use warm restarts, otherwise the iterative solver has to work harder to get the solution to get first to the reference state and then to the perturbation from the reference state. This situation is easy to see for cases when the solution is not far away from the reference field.  If not the case, then is not too big of an issue.}]
-Usually, the reference state $\vec{Y}_r$ is chosen so that the tendency of the reference state, $\Tvector_I(\vec{Y}_r)$, and the linear tendency of the reference state, $\vec{\mathcal{L}}_I \vec{Y}_r$, either vanish individually or cancel each other, so that $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r=0$
+[\fxg{What happened to $\Tvector^N_{I}(\vec{Y})$? I've added it back in.  We can use this form whereby the total variable is used instead of the perturbation but if we use an iterative solver then it behooves us to use warm restarts, otherwise the iterative solver has to work harder to get the solution to get to the reference state and then to the perturbation from the reference state. This situation is easy to see for cases when the solution is not far away from the reference field.  If not the case, then is not too big of an issue.}] \hl{[Thanks for adding the missing term. And, of course, you start the iterations from the reference state, which is the same as starting from zero when working in perturbed variables. Might it not be even better to start from the state at a previous time step?}
+Usually, the reference state $\vec{Y}_r$ is chosen so that the tendency of the reference state, $\Tvector_I(\vec{Y}_r)$, and the linear tendency of the reference state, $\vec{\mathcal{L}}_I \vec{Y}_r$, either vanish individually or cancel each other, so that $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r=0$.
 
+[\fxg{I will assume below that $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r=0$.}]
+
+Assuming that $\Tvector_I(\vec{Y}_r) - \vec{\mathcal{L}}_I \vec{Y}_r=0$, let us
+describe the 3D-IMEX approach, by focusing on the simpler form of Eq.\ \eqref{eq:IMEX} written as follows
+\begin{equation}
+\label{eq:IMEX_v2}
+\frac{\partial\vec{Y}}{\partial t} =  \vec{\mathcal{L}}_I \vec{Y} + \Tvector^N_{I} + \Tvector_{d} + \Tvector_{-s}.
+\end{equation}
+which we shall rewrite in the following way
+\begin{equation}
+\label{eq:IMEX_v3}
+\frac{\partial\vec{Y}}{\partial t} =  \vec{\mathcal{L}}_I \vec{Y} + \Tvector_{p} + \Tvector_{-s}
+\end{equation}
+where $\Tvector_{p}=\Tvector^N_{I} + \Tvector_{d}$ and the subscript $p$ denotes the "physical" mode, for lack of a better term (is what Wicker and Skamarock call this mode - \textbf{need reference}).
+\begin{algorithm}
+\label{alg:3d-imex_v1}
+\begin{algorithmic}
+\State
+\Function{3D-IMEX with Superstepping}{}
+\For{$i=1:S$} 
+\State $\left( \vec{I} - \Delta t \widetilde{a}_{ii} \vec{\mathcal{L}}_I \right) \vec{Y}^{(i)}=\vec{Y}^{n} + \Delta t \sum_{j=1}^{i-1} \left( a_{ij} \Tvector_{p}(\vec{Y}^{(j)}) + a_{ij} \Tvector_{-s}(\red{\vec{Y}^{n-s}})
++ \widetilde{a}_{ij} \vec{\mathcal{L}}_I \vec{Y}^{(j)} \right)$ 
+\EndFor %i
+\State $\vec{Y}^{n+1}=\vec{Y}^{n} + \Delta t \sum_{i=1}^{S} b_{i} \left[ \Tvector_{p}(\vec{Y}^{(i)}) + \Tvector_{-s}(\red{\vec{Y}^{n-s}})
++ \vec{\mathcal{L}}_I \vec{Y}^{(i)} \right]$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+In Alg.\ \ref{alg:3d-imex_v1}, the fastest waves (acoustic modes) are solved implicitly for each stage $i$ of the RK method with $S$-stages, the term $\red{\vec{Y}^{n-s}}$ is frozen at the time level $n-s$, and $a_{ij}$, $\widetilde{a}_{ij}$, and $b_i$ are the RK coefficients in Butcher tableau form (see Table \ref{eq:butcher_tableau}) and therefore represents a general formulation.
+\begin{equation}
+\begin{array}{c|c}
+\ST c&A\\
+\hline
+\ST  & b\transpose
+\end{array}
+\hspace{0.5in}
+\begin{array}{c|c}
+\ST \wt{c} & \wt{A} \\
+\hline
+\ST  & \wt{b} \transpose
+\end{array}
+\label{eq:butcher_tableau}
+\end{equation}
+where $A=a_{ij}, \; i,j=1,\ldots S$, and $c_i=\sum_{j} a_{ij}$ represent the time when the right-hand side is evaluated; that is, we evaluate it at each stage which occurs at the time interval $t+c_i \dt$.
+In addition, $b=\wt{b}$ is necessary in order to conserve all linear invariants \cite{giraldo:2013}.
+
+If we now include the medium-fast terms denoted by $\Tvector_{+f}$ then we can modify Alg.\ \ref{alg:3d-imex_v1} as summarized in Alg.\ \ref{alg:3d-imex_v2} where for simplicity we assume a 3-partition IMEX multirate strategy based on Euler's method.
+\begin{algorithm}
+\label{alg:3d-imex_v2}
+\begin{algorithmic}
+\State
+\Function{3D-IMEX Multirate with 3-Partitions based on Euler's Method}{}
+\State $\vec{Y}^{(0)}=\vec{Y}^{n}$
+\For{$m=1:M$} 
+\State $\vec{Y}^{(m)}=\vec{Y}^{(m-1)} + \frac{\Delta t}{M} \Tvector_{+f}(\vec{Y}^{(m)})$
+\EndFor %m
+\State $\left( \vec{I} - \Delta t \vec{\mathcal{L}}_I \right) \vec{Y}^{(M)}=\vec{Y}^{(m)}$
+\State $\vec{Y}^{n+1}=\vec{Y}^{n} + \Delta t \left[ \Tvector_{-s}(\red{\vec{Y}^{n-s}}) + \Tvector_{p}(\vec{Y}^{(M)}) + 
+\Tvector_{+f}(\vec{Y}^{(M)}) + 
+\vec{\mathcal{L}}_I \vec{Y}^{(M)} \right]$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+A more general form of Alg.\ \ref{alg:3d-imex_v2} can be found in Alg.\ \ref{alg:3d-imex_v3} where we now replace the outside Euler loop with an I-stage Additive Runge-Kutta method. 
+\begin{algorithm}
+\label{alg:3d-imex_v3}
+\begin{algorithmic}
+\State
+\Function{3D-IMEX Multirate with 3-Partitions based on ARK and Euler's Method}{}
+\State $\vec{Y}^{(i)}=\vec{Y}^{n}$
+\For{$i=2:I$} 
+\State $\vec{Y}^{(0)}=\vec{Y}^{(i)}$
+\For{$m=1:M$} 
+\State $\vec{Y}^{(m)}=\vec{Y}^{(m-1)} + \frac{\left(c_i - c_{i-1} \right) \Delta t}{M} \Tvector_{+f}(\vec{Y}^{(m)})$
+\EndFor %m
+\State $\left( \vec{I} - \Delta t \widetilde{a}_{ii} \vec{\mathcal{L}}_I \right) \vec{Y}^{(i)}=\vec{Y}^{(m)} + \Delta t \sum_{j=1}^{i-1} \left( a_{ij} \Tvector_{p}(\vec{Y}^{(j)}) + \widetilde{a}_{ij} \vec{\mathcal{L}}_I \vec{Y}^{(j)} \right)$
+\EndFor %i
+\State $\vec{Y}^{n+1}=\vec{Y}^{n} + \Delta t \sum_{j=1}^{i} b_i \left[ \Tvector_{-s}(\red{\vec{Y}^{n-s}}) + \Tvector_{p}(\vec{Y}^{(i)}) + 
+\Tvector_{+f}(\vec{Y}^{(i)}) + 
+\vec{\mathcal{L}}_I \vec{Y}^{(i)} \right]$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+A slightly more general form of Alg.\ \ref{alg:3d-imex_v3} can be found in Alg.\ \ref{alg:3d-imex_v4} where we now replace the inner Euler loop with an J-stage explicit Runge-Kutta method. 
+\begin{algorithm}
+\label{alg:3d-imex_v4}
+\begin{algorithmic}
+\State
+\Function{3D-IMEX Multirate with 3-Partitions based on ARK}{}
+\State $\vec{Y}_i^{(i)}=\vec{Y}^{n}$
+\For{$i=2:I$} 
+\State $\vec{Y}_j^{(1)}=\vec{Y}_i^{(i)}$
+\For{$j=2:J$} 
+\State $\vec{Y}_j^{(j)}=\vec{Y}_i^{(i-1)} + \left(c_i - c_{i-1} \right) \Delta t \sum_{k=1}^{j-1} a_{jk} \Tvector_{+f}(\vec{Y}_j^{(k)})$
+\EndFor %j
+\State $\vec{Y}^{(*)}=\vec{Y}_i^{(i-1)} + \left(c_i - c_{i-1} \right) \Delta t \sum_{j=1}^{J} b_j \Tvector_{+f}(\vec{Y}_j^{(j)})$
+\State $\left( \vec{I} - \Delta t \widetilde{a}_{ii} \vec{\mathcal{L}}_I \right) \vec{Y}_i^{(i)}=\vec{Y}^{(*)} + \Delta t \sum_{j=1}^{i-1} \left( a_{ij} \Tvector_{p}(\vec{Y}_i^{(j)}) + \widetilde{a}_{ij} \vec{\mathcal{L}}_I \vec{Y}_i^{(j)} \right)$
+\EndFor %i
+\State $\vec{Y}^{n+1}=\vec{Y}^{n} + \Delta t \sum_{j=1}^{i} b_i \left[ \Tvector_{-s}(\red{\vec{Y}^{n-s}}) + \Tvector_{p}(\vec{Y}_i^{(i)}) + 
+\Tvector_{+f}(\vec{Y}_i^{(i)}) + 
+\vec{\mathcal{L}}_I \vec{Y}_i^{(i)} \right]$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+A challenge in implementing Alg.\ \ref{alg:3d-imex_v4} is that we require two stage value storages: one for the $i$-loop and the other for the $j$-loop which have different Butcher tableaux and store the solution at different times in the interval $[t^n,t^{n+1}]$.
+[\fxg{To do: add an interior m-loop for subcycling. This section will be compressed once  I get the general form worked out.}]
+\hl{[What would be even more important, in my view, is an algorithm for 1D IMEX for sound and gravity waves in the vertical, and explicit substepping for sound and gravity waves in the horizontal (both can be low order); then explicit steps (higher-order) for the rest. This is what all other models I know of do. It seems algorithm 2 could be modified to do this, couldn't it?]}
+
+\comment{
+\begin{algorithm}
+\label{alg:3d-imex_v2}
+\begin{algorithmic}
+\State
+\Function{3D-IMEX with Substepping}{}
+\For{$i=1:Stages$} 
+\State $\left( \vec{I} - \Delta t \widetilde{a}_{i,i} \vec{\mathcal{L}}_I \right) \vec{Y}^{(i)}=\vec{Y}^{n} + \Delta t \sum_{j=1}^{i-1} \left( a_{i,j} \Tvector_{p}(\vec{Y}^{(j)}) + a_{i,j} \Tvector_{-s}(\vec{Y}^{n-s})
++ \widetilde{a}_{i,j} \vec{\mathcal{L}}_I \vec{Y}^{(j)} \right)$ 
+\For{$m=1:M_{steps}$}
+\State $\vec{Y}^{(m)} = \vec{Y}^{(i)} + \Delta \tau \Tvector_{+f} (\vec{Y}^{(m)} )$ \Comment \fxg{simple Euler substepping with time-splitting (large splitting errors)}
+\EndFor %m
+\State $\vec{Y}^{(i)} = \vec{Y}^{(m)}$
+\EndFor %i
+\State $\vec{Y}^{n+1}=\vec{Y}^{n} + \Delta t \sum_{i=1}^{Stages} b_{i} \left( \Tvector_{p}(\vec{Y}^{(i)}) 
++ \vec{\mathcal{L}}_I \vec{Y}^{(i)} \right)$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+In Alg.\ \ref{alg:3d-imex_v2}, $\Delta \tau=\frac{\Delta t c_i}{M_{steps}}$ where $c_i=\sum_{j=1}^{i-1} a_{i,j}$.
+Note that in Alg.\ \ref{alg:3d-imex_v2}, the $m$-loop can be replaced by another RK loop with stage-order greater than or equal to $S$. If the stage-order of this loop is chosen to be $S$ then we can effectively increase the stability of the method by a factor of 2 with respect to time-step (this means that the terms in $\Tvector_{+f}$ can be twice as fast as those in $\Tvector_{p}$.
+[\fxg{In progress. Need to know what is in $\Tvector_{+f}$ in order to see how to fractional-step or substep properly and accurately.  E.g., are these entirely separate processes or do they contain the prognostic variables that we have in the other operators.}]
+}
+
+\comment{
 To discretize the equations in time using an ARK method, we first compute the stage values \hl{\textbf{Frank}: This subsection below here needs work. A number of things are unclear/incorrect/} [\fxg{Yes, unclear and incorrect. However, some of what is here I did not write. Let me try to fix this after the substepping.}]
 \begin{multline}\label{eq:IMEX/stages}
 \statestage^{(i)}= \vec{Y}^n + \Delta t \sum_{j=0}^{i} \left( a^{I}_{ij} \vec{\mathcal{L}}_{I} \statestage^{(j)} \right) + \Delta t \sum_{j=0}^{i-1} \left( {a}^{+f}_{ij} \Tvector_{+f}(\statestage^{(j)}) \right)  \\
@@ -1146,6 +1281,7 @@ reveals the implicit nature of the problem. Letting $\vec{A}=\vec{I} - {a}^{I}_{
 \vec{A} \vec{X} = \mathcal{B}.
 \]
 We can solve this linear system using, e.g., Krylov subspace methods such as GCR or GMRES (we cannot use conjugate gradient since the system is hyperbolic and therefore is not symmetric positive-definite in the current form). ARK of order $\order(\Delta ^k)$ for $k=2,\ldots,5$ are planned (which are roughly of order $k=s-1$ where $s$ denotes the number of stages.
+}
 
 \subsection{Reference State for Linearization}
 
@@ -1154,7 +1290,7 @@ Solving for the fastest waves implicitly by a linear solve requires linearizatio
 Because the reference temperature and thus the reference pressure are assumed to be constant in the horizontal, the reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic balance. Because the reference state is assumed dry, $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
 
 More sophisticated reference states for linearization are possible, for example, with a latitudinally varying hydrostatically balanced temperature profile, and with a reference velocity in geostrophic and hydrostatic balance with this temperature field. 
-[\fxg{Would be good to know if we plan to use such states. If not then the 1D-IMEX problem becomes very simple for us and so we can optimize based on this since only one linear system has to be solved for all columns but with different RHS.}]
+[\fxg{Would be good to know if we plan to use such states. If not then the 1D-IMEX problem becomes very simple for us and so we can optimize based on this since only one linear system has to be solved for all columns but with different RHS.}] \hl{[Let's focus on hydrostatic reference states at rest and implement that. If the implicit solve only contains sound waves, that will be fine for sure, and it is probably also good enough for gravity waves. And, yes, that means it is the same system for each column; so we should be able to store an LU or QR factorization and solve directly.]}
  
  \subsection{Solving for Acoustic and Gravity Waves Implicitly}
  \label{s:IMEX_general}
@@ -1210,7 +1346,7 @@ where we have used the relation $I = e^{\mathrm{tot}} - \Phi - 0.5 \|\vec{u}\|^2
 \begin{equation}\label{eq:pressure_linear}
 \textcolor{blue}{p_L} = \textcolor{blue}{\rho} R_d T_0 + \frac{R_d}{c_{vd}} \bigl[ \textcolor{blue}{\rho e^{\mathrm{tot}}} - \textcolor{blue}{\rho} \Phi - (\textcolor{blue}{\rho q_t} - \textcolor{blue}{\rho q_l})I_{v,0} + (\textcolor{blue}{\rho q_i}) (I_{i,0} + I_{v,0}) \bigr].
 \end{equation}
-\hl{[It would be good to add a function to MoistThermodynamics that returns this linearized pressure. We'll need it in all IMEX variants. \textbf{Charlie?}]} If only the total specific humidity $q_t$ is available as a prognostic variable and condensate is determined by saturation adjustment, the condensate specific humidities $q_l$ and $q_i$ in this linearized expression for the pressure can be set to zero. Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes when the density vanishes. 
+A function in MoistThermodynamics returns this linearized pressure. If only the total specific humidity $q_t$ is available as a prognostic variable and condensate is determined by saturation adjustment, the condensate specific humidities $q_l$ and $q_i$ in this linearized expression for the pressure can be set to zero. Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes when the density vanishes. 
 
 We can now see that the sum of the terms involving the reference state in the decomposition \eqref{e:imex_linearization} vanishes,
 \[
@@ -1218,7 +1354,7 @@ We can now see that the sum of the terms involving the reference state in the de
 \]
 To see this, it is useful to distinguish the cases when gravity waves are included in the implicit term and when they are not included: 
 \begin{itemize}
-    \item Acoustic and gravity waves included ($\delta_{gw}=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}_I \vec{Y}_r = 0$. [\fxg{Is your intent to only use hydrostatic reference profiles?}]
+    \item Acoustic and gravity waves included ($\delta_{gw}=1$). In this case, it is evident that $\Tvector_I(\vec{Y}_r)=0$ because the pressure gradient ($-\nabla_{1/3} p_r(z)$) and geopotential gradient ($-\rho_r\nabla_{1/3}\Phi$) in the momentum equation (second component of tendency vector) cancel for a hydrostatic reference state with $p_r = p_r(z)$. The same is true for the linear term for a reference state at rest, for which $p_L = p_r$: $\vec{\mathcal{L}}_I \vec{Y}_r = 0$. [\fxg{Is your intent to only use hydrostatic reference profiles?}] \hl{yes}
     \item Only acoustic waves included ($\delta_{gw}=0$). In this case, neither $\Tvector_I(\vec{Y}_r)$ nor $\vec{\mathcal{L}}_I\vec{Y}_r$ vanish individually, because the geopotential term needed for the cancellation of terms in hydrostatic balance does not appear in the momentum tendency. However, $p_L = p_r$ in a reference state at rest, so that $\Tvector_I(\vec{Y}_r) = \vec{\mathcal{L}}_I\vec{Y}_r$.
 \end{itemize}
 Thus, in either case, the terms involving the reference state do not appear  in the decomposition \eqref{e:imex_linearization}. The nonlinear term then follows as the residual 
@@ -1338,26 +1474,29 @@ where we are now considering the fastest waves linear operator in three-dimensio
 
 \hl{[Important points to keep in mind here: (1) For a global model, we usually use domain decompositions that leave atmospheric columns on one node. This means there is no sizable inter-node communication overhead for 1D-IMEX. The problem for 3D IMEX is that the linear solve can involve states distributed across nodes, and hence involves inter-node communication. This may not scale well, and split-explicit schemes may be preferable in that case. We need to test to find out. We should implement all of this such that it is relatively straightforward to go from 3D-IMEX to some form of split-explicit (or multirate), and make it part of the model configuration what to choose here. (2) It would be good to start working on an implementation of a split-explicit method as alternative to IMEX very soon. We'll need multirate explicit methods in the end anyway. (3) We'll need 1D balance law solvers, for example, for the land and sea ice models. So implementing them for 1D IMEX makes sense.]}
 
-\subsection{Substepping}
+\subsection{Fully Explicit Multirate Method: Substepping}
 \label{sec:substepping}
-To discretize the equations in time using a partitioned Runge-Kutta method, let us describe the method using the following abstract 3-partition:
+To discretize the equations in time using a partitioned Runge-Kutta method, let us describe the method using the following 4-partition system of ordinary differential equations:
 \[
-\diff{\vec{Y}}{t}= F_1 + F_2 + F_3. 
+\diff{\vec{Y}}{t}= L_I(\vec{Y}) + \Tvector_{+f} + \Tvector_{p} + \Tvector_{-s}
 \]
-where the wave speed $\mathcal{S}$ of the different components are ordered as follows $\mathcal{S}(F_3) > \mathcal{S}(F_2) > \mathcal{S}(F_1)$.
-The algorithm describing the 3-partition RK method is highlighted in Alg.\ \ref{alg:3-prk}.
+where $\Tvector_{p}=\Tvector^N_{I}(\vec{Y}) + \Tvector_{d}$, and the right-hand side is ordered in ascending wave-speed order, i.e., 
+the wave speed $\mathcal{S}$ of the different components are ordered as follows $\mathcal{S}(L_I) > \mathcal{S}(\Tvector_{+f})$, etc.
+
+The algorithm describing the 4-partition multirate RK method is highlighted in Alg.\ \ref{alg:4-prk}.
 \begin{algorithm}
-\label{alg:3-prk}
+\label{alg:4-prk}
 \begin{algorithmic}
 \State
-\Function{3-Partition RK}{}
+\Function{4-Partition Multirate RK}{}
+\State update $\Tvector_{-s}(\magenta{ \vec{Y}^{n-s}})$
 \State $\vec{Y}^{(i)}=\vec{Y}^n$ 
-\For{$i=1:I_{stages}$} 
-\State $\vec{Y}^{(j)}=\vec{Y}^{(i)}$ \Comment update $F_1(\red{ \vec{Y}^{(i)} })$
-\For{$j=1:J_{stages}$} 
-\State $\vec{Y}^{(k)}=\vec{Y}^{(j)}$ \Comment update $F_2(\blue{ \vec{Y}^{(j)} })$
-\For{$k=1:K_{stages}$} 
-\State $\vec{Y}^{(k)}=\vec{Y}^{(j)} + \Delta \tau \left[ F_1(\red{ \vec{Y}^{(i)} }) + F_2(\blue{ \vec{Y}^{(j)} }) + F_3(\vec{Y}^{(k)}) \right]$
+\For{$i=1:I$} 
+\State $\vec{Y}^{(j)}=\vec{Y}^{(i)}$ \Comment update $\Tvector_{p}(\red{ \vec{Y}^{(i)} })$
+\For{$j=1:J$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(j)}$ \Comment update $\Tvector_{+f}(\blue{ \vec{Y}^{(j)} })$
+\For{$k=1:K$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(j)} + \Delta \tau \left[ \Tvector_{-s}(\magenta{ \vec{Y}^{n-s} }) + \Tvector_{p}(\red{ \vec{Y}^{(i)}}) + \Tvector_{+f}(\blue{ \vec{Y}^{(j)} }) + L_I(\vec{Y}^{(k)}) \right]$
 \EndFor %k
 \State $\vec{Y}^{(j)}=\vec{Y}^{(k)}$
 \EndFor %j
@@ -1367,27 +1506,28 @@ The algorithm describing the 3-partition RK method is highlighted in Alg.\ \ref{
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
-In Alg.\ \ref{alg:3-prk} the red and blue font indicates that those terms are frozen within the $k$-loop and is what allows a performance gain. Also, 
-$\Delta \tau=\Delta t a_i^I a_j^J a_k^K$ where $\Delta t$ is the time-step of the slowest modes ($F_1$), the RK coefficients are written in low-storage form, and the order of each of the three partitions can be of different order. If all three partitions are of the same order then effective time-step of each partition is 
+In Alg.\ \ref{alg:4-prk} the red, blue, and magenta fonts indicate terms that are frozen within the $k$-loop and is what allows a performance gain since these terms are not computed within this loop. Also, 
+$\Delta \tau=\Delta t a_i^I a_j^J a_k^K$ where $\Delta t$ is the time-step of the physical mode, the RK coefficients are written in low-storage form (e.g., $a_i^I=\frac{1}{I-i+1}$ yields one common method for $I\leq3$), and the order of each partition can be of different order. If all partitions are of the same order then the effective time-step of each partition is 
 \[
 \mathcal{O} \left( \frac{\Delta t}{N_{RK}^{p-1}} \right)
 \]where $N_{RK}$ is the order of the RK method and $p$ refers to the partition (e.g., for $p=1$ the time-step is $\Delta t$, for $p=2$ the time-step is $\Delta t/N_{RK}$, and for $p=3$ the time-step is $\Delta t/N_{RK}^2$). 
 
-If the embedded partition described in Alg.\ \ref{alg:3-prk} yields an insufficiently small time-step to maintain stability of the fastest waves then substepping can be added in a time-splitting approach as shown in Alg.\ \ref{alg:3-prk_v2} where an additional loop ($m$-loop) is added before the $k$-loop.
+If the embedded partition described in Alg.\ \ref{alg:4-prk} yields an insufficiently small time-step to maintain stability of the fastest waves then substepping can be added as shown in Alg.\ \ref{alg:4-prk_v2} where an additional loop ($m$-loop) is inserted before the $k$-loop.
 \begin{algorithm}
-\label{alg:3-prk_v2}
+\label{alg:4-prk_v2}
 \begin{algorithmic}
 \State
-\Function{3-Partition RK with Substepping}{}
+\Function{4-Partition Multirate RK with Euler Substepping}{}
+\State update $\Tvector_{-s}(\magenta{ \vec{Y}^{n-s}})$
 \State $\vec{Y}^{(i)}=\vec{Y}^n$ 
-\For{$i=1:I_{stages}$} 
-\State $\vec{Y}^{(j)}=\vec{Y}^{(i)}$ \Comment update $F_1(\red{ \vec{Y}^{(i)} })$
-\For{$j=1:J_{stages}$} 
-\State $\vec{Y}^{(m)}=\vec{Y}^{(j)}$ \Comment update $F_2(\blue{ \vec{Y}^{(j)} })$
-\For{$m=1:M_{substeps}$} 
+\For{$i=1:I$} 
+\State $\vec{Y}^{(j)}=\vec{Y}^{(i)}$ \Comment update $\Tvector_{p}(\red{ \vec{Y}^{(i)} })$
+\For{$j=1:J$} 
+\State $\vec{Y}^{(m)}=\vec{Y}^{(j)}$ \Comment update $\Tvector_{+f}(\blue{ \vec{Y}^{(j)} })$
+\For{$m=1:M$} 
 \State $\vec{Y}^{(k)}=\vec{Y}^{(m)}$
-\For{$k=1:K_{stages}$} 
-\State $\vec{Y}^{(k)}=\vec{Y}^{(m)} + \Delta \tau \left[ F_1(\red{ \vec{Y}^{(i)} }) + F_2(\blue{ \vec{Y}^{(j)} }) + F_3(\vec{Y}^{(k)}) \right]$
+\For{$k=1:K$} 
+\State $\vec{Y}^{(k)}=\vec{Y}^{(m)} + \Delta \tau \left[ \Tvector_{-s}(\magenta{ \vec{Y}^{n-s} }) + \Tvector_{p}(\red{ \vec{Y}^{(i)}}) + \Tvector_{+f}(\blue{ \vec{Y}^{(j)} }) + L_I(\vec{Y}^{(k)}) \right]$
 \EndFor %k
 \State $\vec{Y}^{(m)}=\vec{Y}^{(k)}$
 \EndFor %m
@@ -1399,8 +1539,8 @@ If the embedded partition described in Alg.\ \ref{alg:3-prk} yields an insuffici
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
-In Alg.\ \ref{alg:3-prk_v2}
-$\Delta \tau=\frac{\Delta t}{M_{substeps}} a_i^I a_j^J a_k^K$.
+In Alg.\ \ref{alg:4-prk_v2}
+$\Delta \tau=\frac{\Delta t}{M} a_i^I a_j^J a_k^K$.
 
 \section{Topography}
 Topography can be either built analytical or by reading an external topography file. The topography data are taken from the NOAA ETOPO-1 database \cite{etopo1}. As of now, only {\bf XYZ files are being read}. If necessary, a NetCFD topograpjhy reader can be easily added.
