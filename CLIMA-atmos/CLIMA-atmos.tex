@@ -1,6 +1,8 @@
 \documentclass{report}
 
 \include{CLIMA_Macros}
+\usepackage[inline]{enumitem}
+
 
 \title{Design Document for the CLIMA Atmosphere Model} 
 \author{ }
@@ -963,7 +965,7 @@ through the use of metric terms.
 \subsection{Basis Functions}
 On the reference element, the space of functions used is tensor-product
 polynomials of degree $N$; the space of tensor-product polynomials of degree $N$
-is denoted as $\mathbb{Q}^{N}(\hat{e})$ where $\hat{e} = [-1, 1]^d$ is the
+is denoted as $\mathbb{Q}^{N}(\hat{e})$ where $\hat{e} = {[-1, 1]}^d$ is the
 reference element. In 3-D the solution inside the element is taken to be
 \begin{align}
   \vec{Y}^{(e)}(\vec{\xi}, t) = \sum_{(i,j,k) = (0,0,0)}^{(N,N,N)}
@@ -1053,9 +1055,9 @@ dependencies:
   \vec{Y}^{-}, \vec{Y}^{+}, \vec{\Sigma}^{-}, \vec{\Sigma}^{+}, \nhat^{-}, t
   \right),\\
   %
-  \diffusive^{*} &= 
+  \diffusive^{*} &=
   \diffusive^{*}\left(
-  \vec{Y}^{-}, \vec{Y}^{+}, \nhat, t
+  \vec{Y}^{-}, \vec{Y}^{+}, \nhat^{-}, t
   \right).
 \end{align}
 The numerical fluxes are implemented in the CLIMA
@@ -1069,18 +1071,210 @@ in the following functions:
   \begin{tabular}{cl}
     ${\left(\nhat^{-} \cdot \Fnondiff\right)}^{*}$ & \texttt{numerical\_flux\_nondiffusive!}\\
     ${\left(\nhat^{-} \cdot \Fdiff\right)}^{*}$    & \texttt{numerical\_flux\_diffusive!}\\
-    $\diffusive^{*}$                               & \texttt{diffusive\_numerical\_flux!}\\
+    $\diffusive^{*}$                               & \texttt{numerical\_flux\_gradient!}\\
   \end{tabular}
 \end{table}
 
+\subsection{Numerical Flux}
+A variety of choices can be made for the numerical flux functions, and here we
+outline the choices made by \citet{bassi:1997nse} which we currently follow
+in CLIMA\@.
+
+The numerical flux for the non-diffusive flux\footnote{In \citet[Eq.
+(10)]{bassi:1997nse} this is the function $\vec{h_{e}}$.} is set using the
+Rusanov (or Local Lax-Friedrichs) flux:
+\begin{align}
+  {\left(
+  \nhat^{-} \cdot \Fnondiff\right)}^{*} =
+  \frac{\nhat^{-} \cdot \left(
+  {\left(\Fnondiff\right)}^{-} +
+  {\left(\Fnondiff\right)}^{+}\right)
+  +
+  \lambda
+  \left(
+  \vec{Y}^{-}
+  -
+  \vec{Y}^{+}
+  \right)}{2},
+\end{align}
+where $\lambda = \lambda(\vec{Y}^{-}, \vec{Y}^{+})$ is an estimate of the
+maximum wavespeed, i.e., the maximum eigenvalue of the Jacobian of the flux
+function $\Fnondiff$. Here the subscript $+$ denotes the value on face of the
+opposing element. As noted in \citet{bassi:1997nse} other choices of the
+non-diffusive numerical flux are possible such as Roe, Engquist-Osher, HLLE
+(Harten, Lax, Van Leer, Einfeldt), and exact Godunov.
+
+The numerical flux for the diffusive flux\footnote{In \citet[Eq.
+(15)]{bassi:1997nse} this is the function $\vec{h_{v}}$.} is set using the
+central flux:
+\begin{align}
+  {\left(
+  \nhat^{-} \cdot \Fdiff\right)}^{*} =
+  \frac{\nhat^{-} \cdot \left(
+  {\left(\Fdiff\right)}^{-} + {\left(\Fdiff\right)}^{+}
+  \right)}{2}.
+\end{align}
+
+The numerical flux for the auxiliary equation\footnote{In \citet[Eq.
+(13)]{bassi:1997nse} this is the function $\vec{H_{s}}$.} is set using the
+central flux:
+\begin{align}
+  \diffusive^{*} = \frac{ \diffusive^{-} + \diffusive^{+} }{2}.
+\end{align}
+
+\subsection{Boundary Conditions}
+For faces on the boundary of the domain the numerical fluxes are set so that the
+boundary condition is enforced weakly. Currently, in CLIMA this is done by
+calling the same numerical flux functions except with the exterior (or ghost)
+states $\vec{Y}^{+}$ and $\vec{\Sigma}^{+}$ set based on the interior state
+$\vec{Y}^{-}$ and $\vec{\Sigma}^{-}$ and boundary condition type. For all three
+numerical fluxes this is done with the function \texttt{boundary\_state!} with
+multiple dispatch used to distinguish between the different fluxes\footnote{see
+\texttt{src/DGmethods/NumericalFluxes.jl} at
+\url{https://github.com/climate-machine/CLIMA/blob/master/src/DGmethods/NumericalFluxes.jl}}.
+
+Generally speaking, there is no generic way to do this for all boundary
+conditions and each boundary condition must be handled separately. Following,
+\citet{bassi:1997nse} here a few different boundary treatments are outlined for
+compressible Navier-Stokes. In this case we take the state vector $\vec{Y}$} and
+diffusive variables $\vec{\Sigma}$ to be
+\begin{align}
+  \vec{Y} &=
+  \begin{pmatrix}
+    \rho\\
+    \rho\vec{u}\\
+    \rho e^{\rm tot}
+  \end{pmatrix},
+  &
+  \vec{\Sigma} &= \rho \vec{\tau}
+\end{align}
+
+\subsubsection{Inflow and Outflow Boundary Conditions}
+The inflow and outflow boundary condition for compressible Navier-Stokes says
+that $\vec{Y} = \vec{Y}^{\rm bc}$ is known on the boundary. To enforce this, in the
+non-diffusive and diffusive numerical $\vec{Y}^{+} = \vec{Y}^{\rm bc}$ is set and in
+the diffusive numerical flux $\vec{S}^{+} = \vec{S}^{-}$. In the gradient
+numerical flux, $\vec{Y}^{+} = 2\vec{Y}^{\rm bc} - \vec{Y}^{-}$ so that
+$\diffusive^{*} = \diffusive^{\rm bc}$ after the central flux has been applied.
+This is summarized as:
+\begin{align}
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right),\\
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \vec{\Sigma}^{-}, \vec{\Sigma}^{-},
+  \nhat^{-}, t\right),\\
+  \diffusive^{*} &=
+  \diffusive^{*}
+  \left(\vec{Y}^{-}, 2\vec{Y}^{\rm bc}-\vec{Y}^{-}, \nhat^{-}, t\right).
+\end{align}
+
+\subsubsection{No Flux / Flow Boundary Conditions}
+In no flux/flow boundary conditions, the condition to enforce is that $\nhat
+\cdot \vec{u} = 0$ along with either
+\begin{enumerate*}[label = (\roman*)]
+  \item no boundary condition on $\vec{\Sigma}$; or
+  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$.
+\end{enumerate*}
+To enforce these conditions it is convenient define
+\begin{align}
+  \vec{Y}^{\rm bc}
+  =
+  \begin{pmatrix}
+    \rho^{-}\\
+    \left(\vec{I} - 2 \nhat^{-} {\left(\nhat^{-}\right)}^{T}\right)
+    {\left(\rho \vec{u}\right)}^{-}\\
+    {\left(\rho e^{\rm tot}\right)}^{-}
+  \end{pmatrix}.
+\end{align}
+Importantly since the momentum component is just a Householder reflection of the
+${\left(\rho \vec{u}\right)}^{-}$ across the plane defined by $\nhat^{-}$, the
+norm is preserved, in particular $\|\vec{u}^{-}\|_{2} = \|\vec{u}^{\rm
+bc}\|_{2}$. This means that pressure computed from $\vec{Y}^{-}$ and
+$\vec{Y}^{\rm bc}$ will be the same. Additionally, when $\vec{u}^{-}$ and
+$\vec{u}^{\rm bc}$ are averaged the result has no normal component:
+\begin{align}
+  \frac{1}{2}\nhat\cdot\left(\vec{u}^{-} + \vec{u}^{\rm bc}\right) = 0,
+\end{align}
+which is the desired boundary condition (other component are not modified
+including the tangential velocity).
+
+For the non-diffusive and diffusive fluxes, the exterior state is set as
+$\vec{Y}^{+} = \vec{Y}^{\rm bc}$ and in the gradient transform
+$\vec{Y}^{+} = 2\vec{Y}^{\rm bc} - \vec{Y}^{-}$; this is the same as in the
+inflow/outflow case after setting $\vec{Y}^{\rm bc}$ as above.
+
+In the case of no boundary condition on $\vec{\Sigma}$ the exterior value is set
+as $\vec{\Sigma}^{+} = \vec{\Sigma}^{-}$ and the numerical fluxes are:
+\begin{align}
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right),\\
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \vec{\Sigma}^{-}, \vec{\Sigma}^{-},
+  \nhat^{-}, t\right),\\
+  \diffusive^{*} &=
+  \diffusive^{*}
+  \left(\vec{Y}^{-}, 2\vec{Y}^{\rm bc}-\vec{Y}^{-}, \nhat^{-}, t\right).
+\end{align}
+
+In the case of a boundary condition on $\vec{\Sigma}$ the exterior value is set
+as $\vec{\Sigma}^{+} = \vec{\Sigma}^{\rm bc}\left(\vec{Y}^{\rm bc}, t\right)$
+and the numerical fluxes are:
+\begin{align}
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right),\\
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \vec{\Sigma}^{-}, \vec{\Sigma}^{\rm bc}
+  \left(\vec{Y}^{\rm bc}, t\right),
+  \nhat^{-}, t\right),\\
+  \diffusive^{*} &=
+  \diffusive^{*}
+  \left(\vec{Y}^{-}, 2\vec{Y}^{\rm bc}-\vec{Y}^{-}, \nhat^{-}, t\right).
+\end{align}
+\hl{Should $\vec{Y}^{\rm bc}$, $\vec{Y}^{\rm -}$, or an average be used here?
+--- Jeremy}
+
+\subsubsection{No Slip Conditions}
+In no slip boundary conditions, the condition to enforce is that $\vec{u} =
+\vec{0}$ along with either
+\begin{enumerate*}[label = (\roman*)]
+  \item no boundary condition on $\vec{\Sigma}$; or
+  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$.
+\end{enumerate*}
+To enforce these conditions it is convenient define
+\begin{align}
+  \vec{Y}^{\rm bc}
+  =
+  \begin{pmatrix}
+    \rho^{-}\\
+    -{\left(\rho \vec{u}\right)}^{-}\\
+    {\left(\rho e^{\rm tot}\right)}^{-}
+  \end{pmatrix}.
+\end{align}
+As in the no flux / flow case, the norm is preserved and the pressure is
+preserved.  Additionally, when $\vec{u}^{-}$ and
+$\vec{u}^{\rm bc}$ are averaged the result is a zero velocity,
+which is the desired boundary condition (other component are not modified).
+
+The remainder of the implementation is the same as in the no flux / flow case.
+
+\subsection{Implementation Details (aka Quadrature and Variational Crimes)}
+\hl{FILL ME\@!}
+
+\subsection{Energy Analysis of Advection-Diffusion}
+\hl{FILL ME\@!}
+
 \hl{Still TODO\@:}
 \begin{itemize}
-  \item Discuss quadrature/variational crimes?
-  \item Discuss boundary conditions
-  \item State choices for fluxes based on \citet{bassi:1997nse}
   \item Bring code in line with skew symmetric formulation
   \item Replace in code \texttt{diffusive\_penalty!} with
-    \texttt{diffusive\_numerical\_flux!}
+    \texttt{gradient\_numerical\_flux!}
+  \item Check / correct boundary conditions already in use in the code
   \item Add DG refs (skew symmetric formulation stuff, geometry handling, etc.)
 \end{itemize}
 
