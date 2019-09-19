@@ -877,6 +877,9 @@ Thus, generally, we want vanishing normal flux components at rigid boundaries, a
 
 \section{Spatial Discretization}
 
+\hl{2019/09/19: I (Jeremy) am working on rewriting this section. Still have some
+things to add, so it should be seen as a work in progress\dots}
+
 \subsection{Overview}
 For the spatial discretization, we use variants of the discontinuous Galerkin
 (DG) method with tensor-product bases (see, e.g., \citealt{giraldo:2008a,
@@ -1275,6 +1278,8 @@ The remainder of the implementation is the same as in the no flux / flow case.
   \item Replace in code \texttt{diffusive\_penalty!} with
     \texttt{gradient\_numerical\_flux!}
   \item Check / correct boundary conditions already in use in the code
+  \item Add more BC types?
+  \item Add details on BCs for moisture / tracer variables
   \item Add DG refs (skew symmetric formulation stuff, geometry handling, etc.)
 \end{itemize}
 
