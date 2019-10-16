@@ -1,0 +1,326 @@
+\documentclass{article}
+
+
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{amsthm}
+\usepackage{makeidx}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{dsfont}
+\usepackage{comment}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+
+\usepackage{bm}
+\usepackage[utf8]{inputenc}
+
+\newcommand{\A}[2]{\partial_t #1 &= - #2 \cdot \nabla #1}
+\newcommand{\B}[2]{\partial_t #1 &= - #2 \cdot \nabla #1}
+
+\usepackage[colorlinks]{hyperref}
+\hypersetup{citecolor=red}
+\hypersetup{linkcolor=red}
+\hypersetup{urlcolor=red}
+\usepackage{cleveref}
+\title{NPS Visit Goals}
+\author{Andre Souza, Brandon Allen, Jean-Michel Campin, Chris Hill}
+\date{September 2019}
+
+
+
+
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+A document to state what equations we are solving as well as put down some of the things that we have tried.
+
+The main goals of the week are to develop a prototype of a hydrostatic ocean model with a flat bottom and linear free surface that uses a split-explicit time stepping scheme.
+
+\section{Hydrostatic Equations}
+
+Defining the variables
+\begin{align}
+    \vec u & = (u, v, w) \\
+    \vec f & = (f_0 + \beta y) \hat z \\
+    p & = p_0 + \rho g \eta \\
+    \vec U & = \frac{1}{H} \int_{-H}^0 (u,v,0) \: \mathrm{d}z ,
+\end{align}
+solve the following system of equations
+\begin{align}
+    \partial_t \vec u & = - \nabla \cdot (\vec u \otimes \vec u) + \nu \nabla^2 \vec u - \frac{1}{\rho} \nabla p + \vec F(\vec x, t) - \vec f \times \vec u \\
+    \partial_t \eta & = - \nabla \cdot \vec U \\
+    \partial_t T & = - \nabla \cdot (T \vec u) + \kappa \nabla^2 T
+\end{align}
+with periodic boundary conditions in the horizontal $(x,y)$ directions a free surface in the top boundary for the velocity field and no-slip boundary conditions for the velocity at the bottom of the domain.
+
+Writing things out component-wise this means
+\begin{align*}
+    \partial_t u = & - \partial_x \left( uu - \nu \partial_x u \right + p)
+                     - \partial_y \left( uv - \nu \partial_y u \right) 
+                     - \partial_z \left( uw - \nu \partial_z u \right)
+                     + F_x - (f_0 + \beta y) v \\
+    \partial_t v = & - \partial_x \left( uv - \nu \partial_x v \right)
+                     - \partial_y \left( vv - \nu \partial_y v \right + p)
+                     - \partial_z \left( vw - \nu \partial_z v \right)
+                     + F_y + (f_0 + \beta y) u \\ 
+    \partial_t w = & - \partial_x \left( uw - \nu \partial_x w \right)
+                     - \partial_y \left( vw - \nu \partial_y w \right)
+                     - \partial_z \left( ww - \nu \partial_z w \right + p)
+                     + F_z \\
+    \partial_t \eta = & - \partial_x  \left( \frac{1}{H} \int_{-H}^0 u \: \mathrm{d}z \right) -  \partial_y \left( \frac{1}{H} \int_{-H}^0 v \: \mathrm{d}z \right) \\
+    \partial_t T = & - \partial_x (Tu - \kappa \partial_x T) - \partial_y (Tv - \kappa \partial_y T) - \partial_z (Tw - \kappa \partial_z T) 
+\end{align*}
+
+
+\section{List of Goals / Questions for NPS vist}
+
+\begin{enumerate}
+    \item Workstation setup
+        \begin{enumerate}
+            \item Development environment
+            \item Architecture
+            \item etc
+        \end{enumerate}
+    \item Why weak formulation instead of strong?
+    \item Understand data structures 
+    \item Understand current nomenclature
+    \item Learn how to set up equations using the computational kernel (outside balance law framework)
+    \begin{enumerate}
+        \item How to compute derivatives
+        \item How to interpolate
+        \item How to compute integrals
+        \item How to compute lift operators (aka flux terms)
+        \item How to compute diffusion operators / set up auxillary fields
+        \item How to time step with split-explicit methods
+        \item How to include metric terms for curved coordinate systems
+        \item How to include body force terms (coriolis)
+        \item How to solve a linear system
+        \item How to setup fluxes for nonlinear terms on the boundary
+    \end{enumerate}
+    \item Set up a hydrostatic ocean model with a flat bottom and linear free surface
+    \begin{enumerate}
+        \item Periodic boundary conditions
+        \item Channel model (two rigid walls)
+        \item Stommel Gyre (four rigid walls)
+    \end{enumerate}
+    \item Clarification on some edge cases in DG formulation
+    \begin{enumerate}
+        \item how to handle $\vec u \cdot \nabla \vec u$ versus $\nabla \cdot (\vec u \otimes \vec u)$
+        \item what is the most consistent way to handle nonlinear terms on the boundary, e.g., ghost points
+        \item How to impose other boundary conditions, e.g., robin
+        \item  Is it possible to introduce approximate boundary fluxes for piecewise constant / linear approximations of curved domains in a way that preservers accuracy?
+        \item What happens if ``boundary conditions" are imposed on the interior of an element?
+        \item Are there ways to avoid using moving meshes? Or is it better to use moving meshes?
+    \end{enumerate}
+    \item Improve the readability of the code
+    \begin{enumerate}
+        \item more abstracting chunks of code into functions if possible
+        \begin{enumerate}
+            \item nest your functions inside of functions inside of functions
+        \end{enumerate}
+        \item introduce $^+$ and $^-$ to refer to interior and exterior nodes, ex. vmapM and vmapP to vmap$^-$ and vmap$^+$
+        \item formalize nomenclature for some of the DG structures
+        \begin{enumerate}
+            \item vmap $\rightarrow \iota$ to refer to indices
+            \item elemtobndy, elemtocoord, elemtoface, etc.
+            \item nabrtosend, nabrtorank, etc.
+            \item sendelems, sendfaces, recvelems, etc.
+        \end{enumerate}
+    \end{enumerate}
+    \item Understand performance considerations 
+    \begin{enumerate}
+        \item should the $z$-direction be contiguous
+        \item would structures for elements and faces (collections of GL points) slow things down
+        \item Chebyshev vs Legendre polys (use FFT to go to modal basis)
+        \item Integral formulation ???
+        \item why not different polynomial order in each dimension?
+    \end{enumerate}
+    \item Compare performance between NPS code and MIT GCM in similar configurations
+\end{enumerate}
+
+
+\section{What we understand about data structures, where functions are located, and what they mean}
+The core functionality is located in the src directory. 
+
+
+\subsection{Volume Derivatives}
+It seems that the code to compute the ``volume derivative", aka the derivative that does not contain any of the lift terms associated with discontinuities, is  \href{https://github.com/climate-machine/CLIMA/blob/2629ce8f5ff7eb53f4b1eea8bfb90de7e3c0a380/src/DGmethods/DGmodel_kernels.jl#L631}{here}.
+Because we need to use the chain rule, there are lots of terms associated with this change of variable. Furthermore the jacobian terms are built in as part of the object. 
+
+
+
+\subsection{Vertical Integrals}
+The line to compute a vertical integral is \href{https://github.com/climate-machine/CLIMA/blob/2629ce8f5ff7eb53f4b1eea8bfb90de7e3c0a380/src/DGmethods/DGmodel_kernels.jl#L821}{here}. 
+
+Also why is there a reverse?
+
+\subsection{Filters}
+Spectral filters are \href{https://github.com/climate-machine/CLIMA/blob/2629ce8f5ff7eb53f4b1eea8bfb90de7e3c0a380/src/DGmethods/DGmodel_kernels.jl#L968}{here}.
+
+
+\section{What we understand about DG}
+
+We have a good understanding of the computational aspects of chapters 1-7 of NDG as well as the use of a tensor product basis (since we've implemented it). But there are gaps in our knowledge.  We have read, (but not implemented) the other chapters. We are comfortable with unstructured meshes, the weak formulation of PDEs, as well as properties inherited from global spectral methods. Proofs of convergence rate, numerical stability, dispersive properties of operators, convergence to weak solution of PDE etc., we understand less. We also have little understanding of how to make DG efficient.
+
+
+\section{Clarification / Thoughts}
+\begin{enumerate}
+    \item DG derivative is the derivative plus the lift terms
+    \item Derivative is just the local derivative without any of the lift/flux terms
+    \item Pull request to stick to a style convention (YAS). return statements on everything. 
+    \item different order in different directions (pull request)
+    \begin{enumerate}
+        \item also create better names for the topology related objects
+        \item MIT people should do this to better learn the DG kernels
+    \end{enumerate}
+    \item Workstation: 2 Nvidia GPUs, anything with that capability
+    \item Val{dim} is like a #define dim = 3. 
+    \item isbits to check if gpu will be good. static array on GPU. 
+    \item paraview
+    \item get index and set index errors come breaks in the vars (interpreting the arrays as structs).
+\end{enumerate}
+ 
+\section{Performance}
+\begin{enumerate}
+    \item Always @inbounds
+    \item @loop for GPUify loops
+    \item threads within blocks can talk to one another. but not outside
+    \item warps: vector length on cpu executed at exactly at the same time.
+    \item gpus require threads and blocks
+    \item heptapus.jl for examples
+    \item only boundarypoints are passed between gpus, but the whole element is stored (the other points is garbage)
+\end{enumerate}
+
+\section{Name conventions}
+balance law generally works as follows
+\begin{equation}
+    \partial_t q + \nabla \cdot F (q, \alpha) - \nabla \cdot F' (q, \alpha, \sigma) = S(q, \alpha)
+\end{equation}
+in words: the tendency of the state $q$ plus the non-diffusive flux $F$ plus the diffusive flux $F'$ are equal to the source terms $S$.
+\begin{itemize}
+\item $q$ refers to any state variables that are being evolved, i.e. $\vec u$, $\eta$
+\item $\alpha$ refers to any auxiliary variables that are used in the computation of the fluxes and sources, i.e. $\vec f$, $\vec \tau$
+\item $G(q, \alpha)$ is the gradient transform and is used to specify the variables that need second order derivatives, i.e. $G = \vec u$
+\item $\sigma(q, \alpha, \nabla G)$ is the diffusive transform, used for second order terms, and continuous, i.e. $\sigma = \nu \nabla \vec u$
+\item $F(q, \alpha)$ is the non-diffusive flux, used for first order terms, i.e. $F = \eta$
+\item $F'(q, \alpha, \sigma)$ is the diffusive flux, used for second order terms, i.e. $F' = \nu \nabla \vec u$
+\item $S(q, \alpha)$ is the source term, i.e. $S = \vec \tau - \vec f \times \vec u$
+\end{itemize}
+
+Example of the munk gyre in this notation
+\begin{equation}
+    \partial_t \vec u + \nabla \cdot \left( g H \eta \right) - \nabla \cdot \left( \nu \nabla \vec u \right) = \vec \tau - \vec f \times \vec u
+\end{equation}
+
+\section{Kernel overviews}
+
+DGModel(dQdt, Q, param, t) is the main function that computes the tendency at each step. 
+each computation is automatically split up by elements and sent to different processors. 
+cross processor communication is automatically handled by MPIStateArrays. 
+the general logic is
+\begin{itemize}
+    \item compute any column integrals needed
+    \item compute any updates to the auxiliary variables needed
+    \item compute diffusive transform in the volume (volumeviscterms!)
+    \item compute diffusive transform along the faces
+    \item compute fluxes and sources in the volume (volumerhs!)
+    \item compute fluxes along the faces
+\end{itemize}
+volumeviscterms!() is the function that computes the diffusive transform in the volume
+the general logic is
+\begin{itemize}
+    \item create shared memory for D matrices and $G(q, \alpha)$
+    \item create local scratch memory for $Q$ and $\alpha$
+    \item create local memory for $G$, $\nabla G$, and $\sigma$
+    \item load D matrices into shared memory
+    \item loop over elements
+    \begin{itemize}
+        \item loop over GL points
+        \begin{itemize}
+            \item load $Q$ and $\alpha$ into local memory
+            \item compute $G$ using $Q$, $\alpha$ and user-defined gradvariables!()
+            \item store $G$ in shared memory
+        \end{itemize}
+        \item synchronize shared memory across threads
+        \item loop over GL points
+        \begin{itemize}
+            \item get metric factors from geometry 
+            \item compute $\nabla G$ wrt ideal coords and transform to physical coords
+            \item compute $\sigma$ using $q$, $\nabla G$, and user-defined diffusive!()
+            \item store $\sigma$ into global memory
+        \end{itemize}
+        \item synchronize shared memory across threads
+    \end{itemize}
+\end{itemize}
+faceviscterms!() is the function that computes the diffusive transform along the faces
+the general logic is
+\begin{itemize}
+    \item create local memory for minus and plus $Q$ and $\alpha$
+    \item create local memory for $\sigma$
+    \item loop over elements
+    \begin{itemize}
+        \item loop over faces x: 1,2; y: 3,4; z: 5,6 (ordering to avoid writing to same location in volume at the same time)
+        \begin{itemize}
+            \item loop over GL points
+            \begin{itemize}
+                \item load normals, surface and volume mass matrices, plus/minus indices into memory
+                \item load minus $Q$, $\alpha$
+                \item compute $G$ using gradvariables!()
+                \item get boundary condition types
+                \item if not on boundary, compute diffusive penalty / jump in flux
+                \item if on boundary, compute boundary penalty / boundary value for jump in flux
+                \item perform surface integral and add lifts to $\sigma$ in global memory
+            \end{itemize}
+            \item synchronize shared memory across threads 
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+knl\_indefinite\_stack\_integral!() is the function that computes vertical integrals. 
+the general logic is
+\begin{itemize}
+    \item load integration matrix into shared memory
+    \item zero out integral storage
+    \item loop over vertical stacks
+    \begin{itemize}
+        \item loop over columns in each stack
+        \begin{itemize}
+            \item load in $Q$, $\alpha$, and jacobian for vert integral
+            \item load in integrand using user-defined integrate\_aux!()
+            \item multiply by the jacobian
+            \item multiply by the integration matrix
+            \item store to global memory and for next element
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+volumerhs!()
+
+\section{debugging tips}
+run on cpu first. run on gpu second
+
+\section{Working with git together}
+Do this before merging (key)
+\begin{enumerate}
+    \item brew install tig
+    \item git rebase \#
+\end{enumerate}
+
+
+
+\section{Slow tests}
+
+\section{MPI}
+
+mpirun -n 4 julia --project=env/gpu myfile.jl
+
+nvprof
+
+
+\end{document}

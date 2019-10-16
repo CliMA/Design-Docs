@@ -1785,7 +1785,7 @@ $\Delta \tau=\frac{\Delta t}{M} a_i^I a_j^J a_k^K$.
 }
 
 \subsubsection{Multirate as in Wensch-Knoth}
-The approach presented previously has been used in various nonhydrostatic codes and has been shown to work effectively to increase the time-to-solution of the problem.  However, the Butcher tableaux required in that approach is rather limited (only one type of RK method was originally proposed).  A general approach was introduced by Wensch and Knoth in order to give split-explicit methods a more formal mathematical formulation.  This resulted in Alg.\ \ref{alg:split-explicit-WS2002} presented above.  Fortunately, Wensch and Knoth generalized this approach further to yield multirate methods that have better than 1st order comvergence rates which we now describe in Alg.\ \ref{alg:general_explicit_multirate} for the following three-partitioned equation
+The approach presented previously has been used in various nonhydrostatic codes and has been shown to work effectively to increase the time-to-solution of the problem.  However, the Butcher tableaux required in that approach is rather limited (only one type of RK method was originally proposed and forward Euler was used in the inner/fast loop which is not ideal for high-order spatial discretization methods).  A general approach was introduced by Wensch and Knoth in order to give split-explicit methods a more formal mathematical formulation.  Wensch and Knoth generalized this approach further to yield multirate methods that have better than 1st order convergence rates which we now describe in Alg.\ \ref{alg:general_explicit_multirate} for the following three-partitioned equation
 \[
 \diff{\vec{Y}}{t}= L_I(\vec{Y}) +  \Tvector_{p} + \Tvector_{-s}.
 \]
@@ -1826,6 +1826,27 @@ and
 \right.
 \]
 with $a$, $b$, and $c$ being the Butcher tableau coefficients found in Eq.\ \eqref{eq:butcher_tableau} and $s$ denotes the number of stages.  The only constraint on this algorithm is that the coefficients $c$ increase monotonically. If they do not, we can still use this approach but Alg.\ \ref{alg:general_explicit_multirate} would have to be modified.  Using this approach, the order of the scheme is min(order(I),order(J)) where  order(I) and order(J) are the orders of the RK methods with respect to the $I$ and $J$ loops.
+
+\subsubsection{Multirate as in Wensch-Knoth for Low-Storage Methods}
+Algorithm \ref{alg:general_explicit_multirate} represents a general multirate time-integration form that can be used with any comnbination of methods provided that they are written in Butcher tableau form.  However, the Butcher form requires the storage of stage values which may not be ideal on GPUs. Instead, we now rewrite this algorithm for low-storage RK methods which we describe below.
+\begin{algorithm}
+\label{alg:general_explicit_multirate/lsrk}
+\begin{algorithmic}
+\State
+\Function{3-Partition General Explicit Multirate LSRK}{}
+\State $\vec{y}=\vec{Y}^n$ 
+\For{$i=1:I$} 
+\State $\red{r_{slow}}=\Tvector_{-s}(\magenta{ \vec{Y}^{n-s}}) + A_i r_{slow} + \Tvector_{p}(\red{\vec{y}})$
+\State $\widetilde{c}_i=c_i - c_{i-1}$
+\For{$j=1:J$} 
+\State $r_{fast}=A_j r_{fast} + L_I(\vec{y}) + \frac{B_i}{c_i - c_{i-1}} \red{r_{slow}}$ 
+\State $\vec{y} = \vec{y} + \Delta t \widetilde{c}_i  B_j r_{fast}$
+\EndFor %j
+\EndFor %i
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+The multirate LSRK presented in Alg.\  \ref{alg:general_explicit_multirate/lsrk} is the method currently implemented in CLIMA where the 5-stage (Kennedy-Carpenter) and 14-stage (Niegemann et al.) LSRK methods are included, where the coefficients $A$ and $B$ are the typical coefficients in Williamson low-storage form.
 
 \section{Topography}
 Topography can be either built analytical or by reading an external topography file. The topography data are taken from the NOAA ETOPO-1 database \cite{etopo1}. As of now, only {\bf XYZ files are being read}. If necessary, a NetCFD topograpjhy reader can be easily added.
@@ -2139,7 +2160,6 @@ An instantaneous view of the precipitating squall line is shown in Figure \ref{f
 \label{fig:benchmarks/squall1}
 \end{figure}
 
-
 \section{External Soundings}
 External soundings can be read into the code for initialization purposes. The sounding requires the format reported in Table \ref{tab:DeltaDefinitionsTable}.
 
@@ -2155,13 +2175,63 @@ z (m) & $\theta_v$ (K) & $q_{tot}$ $\rm {kg/kg}$ & $u$ (m/s) & $v$ (m/s) & p (Pa
 0 & 300 & 14  & -2 & 0 & 100000\\
 ... & ... & ...  & ... & ... & ...\\
 \hline
+\hline
+\end{tabular*}
+}
+\end{table*}
 
+\chapter{Input/Output}
+\section{Inputs}
+
+\section{Outputs}
+\section{Three dimensional fields}
+
+
+\section{Diagnostics}
+
+A Reynolds decomposition is applied to all quantities for which statistics are computed. For a given quantity $a$, it is split into a mean value, $<a>$  (in either time or space) and a fluctuation, $a'$, around it such that $a' = a - <a>$, where the space or time averaging is simply:
+
+\begin{equation}
+    <a> = \frac{1}{N}\mathlarger{\sum}_{i=1}^N a_i
+\end{equation}
+where $N$ indicates either the number of time or space samples. \hl{An ensemble average should also be added at some point}.
+
+For space averaging, data are first interpolated onto an auxiliary Cartesian mesh with equally spaced nodes. The auxiliary mesh is usually coarser than the solution mesh.
+The spatial means are computed across two-dimensional slices of the auxiliary mesh at each vertical level  \hl{to be done}.
+
+The statistics listed in Table \ref{tab:stats} are calculated during the simulation at a regular interval defined by the user. 
+
+\begin{table*}[t]
+\centering
+{\footnotesize
+\caption[short]{Structure of sounding files for simulation initialization.}
+\label{tab:stats}
+\begin{tabular*}{\textwidth}{ @{\extracolsep{\fill}} lccc}
+\hline
+\hline
+Vertical velocity variance & & &$<w' w'>$\\
+Third moment of vertical velocity & & &$<w'w'w'>$\\
+Vertical heat flux & & &$<w' \theta'>$\\
+Vertical water vapor flux & & &$<w' q_v'>$\\
+...\\
 \hline
 \hline
 \end{tabular*}
 }
 \end{table*}
 
+The velocity two-point correlation is used to extract the energy spectrum as follows:
+
+\begin{equation}
+    E(k) = \int \Phi_{ij}dV
+\end{equation}
+
+The energy spectrum is calculated by means of the i of the velocity spectrum The velocity spectrum is first calculated by means of the Fourier transform of the correlation 
+
+\section{File formats}
+Three dimensional data are written to disk in parallel (one file per processor \hl{Jeremy, please confirm}) using the {\it Visualization Toolkit} (VTK) format (\cite{vtkWeb}). The user defines the writing interval.
+VTK should soon be replaced by the HDF5 file format (\cite{hdf5web}).
+Statistical quantities are now written out to ASCII files which are read and plotted via a set of Python scripts (under construction).
 
 
 %-------Bibliography
