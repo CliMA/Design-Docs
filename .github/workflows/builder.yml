@@ -1,0 +1,21 @@
+name: LaTeX builder
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Github Action for LaTeX
+      uses: xu-cheng/latex-action@master
+      env:
+        TEXINPUTS: ".:..:"
+      with:
+        working_directory: CLIMA-atmos
+        root_file: Atmosphere.tex
+        extra_packages: "soul algorithmicx subfigure stmaryrd enumitem"
+    - uses: actions/upload-artifact@master
+      with:
+        name: Atmosphere.pdf
+        path: CLIMA-atmos/Atmosphere.pdf
