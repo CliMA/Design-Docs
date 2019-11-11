@@ -2,6 +2,9 @@
 
 \include{CLIMA_Macros}
 \usepackage[inline]{enumitem}
+\newcommand{\PD}{\partial}
+\newcommand{\IL}{I_{\lambda}}
+\newcommand{\OMEGA}{I_{\lambda}}
 
 
 \title{CLIMA Radiative Transfer} 
@@ -13,6 +16,10 @@
 \tableofcontents
 
 \chapter{Radiative Transfer Equation}
+The spectral radiative transfer equation is
+\begin{equation}\begin{aligned}
+\frac{\PD \IL}{\PD \tau} = \IL(\Omega)
+\end{aligned}\end{equation}
 
 
 %-------Bibliography

@@ -155,7 +155,7 @@ In this section we describe approximations for collisional processes when breaku
 where $\mathcal{C}(m, m') = E_{CA}(m, m') \mathcal{K}(m, m')$ is the product of the coalescence and collision efficiency. In order to avoid confusion with terminology, we call $\mathcal{C}$ the collision-coalescence kernel. We seek approximation to equation~\eqref{eq:source_co_mom} that lend itself to efficient implementations.
 
 \subsection{Polynomial Kernel Approximations \& Closure}
-In order to simplify the integral expression in equation \eqref{eq:source_co_mom} in terms of the moments of $M_k$ of $f(m)$, we can approximate the collision-coalescence kernel via an $r^2$-order polynomial through an expansion in monomials. If we make the approximation
+In order to simplify the integral expression in equation \eqref{eq:source_co_mom} in terms of the moments of $M_k$ of $f(m)$, we can approximate the collision-coalescence kernel via an $2r$-order polynomial through an expansion in monomials. If we make the approximation
 \begin{equation}
     \mathcal{C}(m,m') \approx \sum_{a,b=0}^{r} c_{ab} m^a{m'}^b, \quad \text{with} \quad r \geq 0
 \label{eq:dist_approx}

@@ -277,15 +277,27 @@ When the amount of condensate in air is small and the temperature $T$ is not too
 \end{equation}
 is approximately materially conserved in adiabatic and reversible processes (including phase transitions). It is the potential temperature \eqref{e:pot_temp_press_T} an air parcel would have if all liquid water in the parcel were evaporated and all ice sublimated. It is the limit of a more general expression for liquid-ice potential temperature for small $q_l$ and $q_i$ \citep[e.g.,][]{Bryan04a} and when the temperature $T$ is small ($T \lessapprox 253~K$) the expression needs to be modified \citep{Tripoli81}. Equation \eqref{e:liquid_ice_pottemp} is sometimes used as a variable in numerical models, and we use it for diagnostic purposes, for comparison with other studies.
 
-The liquid-ice potential temperature $\theta_{li}$ can be inverted to obtain temperature given pressure $p$ (and hence $\Pi$), and the condensate specific humidities $q_l$ and $q_i$:
+The liquid-ice potential temperature $\theta_{li}$ can be inverted to obtain temperature given pressure $p$ (and hence $\Pi$), and the specific humidities $q_t$, $q_l$, and $q_i$:
 \begin{equation}\label{e:temp_from_theta_li_given_p}
     T = \Pi \theta_{li} + \frac{L_v q_l + L_s q_i}{c_{pm}}.
 \end{equation}
-Alternatively, the temperature can be obtained from the liquid-ice potential temperature $\theta_{li}$ given density $\rho$ and the condensate specific humidities $q_l$ and $q_i$: 
-\begin{equation}\label{e:temp_from_theta_li_given_rho}
-    T \approx \left( \frac{\rho R_m \theta_{li}}{p_0} \right)^{R_m/c_{vm}} \theta_{li} + \frac{L_v q_l + L_s q_i}{c_{vm}}.
+Alternatively, the temperature can be obtained from the liquid-ice potential temperature $\theta_{li}$ given density $\rho$ and the specific humidities $q_t$, $q_l$, and $q_i$,
+\begin{subequations}\label{e:temp_from_theta_li_given_rho}
+\begin{equation}
+    T \approx T_u  + \frac{L_v q_l + L_s q_i}{c_{vm}}
+    + \frac{c_{pm} R_m}{2c_{vm}^2}
+    \frac{1}{T_u} \left(\frac{L_vq_l + L_sq_i}{c_{vm}}\right)^2,
 \end{equation}
-\hl{add second order term}This equation is obtained from \eqref{e:temp_from_theta_li_given_p} by substituting for pressure in the Exner function $\Pi$ from the ideal gas law, $p=\rho R_m T$, solving for temperature using a Taylor expansion for small condensate specific humidities, and using the relation $1-\kappa = c_{vm}/c_{pm}$, which follows from $c_{pm} - R_m = c_{vm}$. The relation for temperature \eqref{e:temp_from_theta_li_given_rho} holds to the same linear approximation in $q_l$ and $q_i$ to which the definition of the liquid-ice potential temperature \eqref{e:liquid_ice_pottemp} holds.   
+where 
+\begin{equation}
+   T_u =  \left( \frac{\rho R_m \theta_{li}}{p_0} \right)^{R_m/c_{vm}} \theta_{li}
+\end{equation}
+\end{subequations}
+is the temperature that would correspond to $\theta_{li}$ in unsaturated conditions, i.e., when condensate specific humidities $q_l$ and $q_i$ are zero. However, the specific heats $c_{vm}$ and $c_{pm}$ and the moist gas constant $R_m$ are evaluated with the given total and condensate specific humidities $q_t$, $q_l$, and $q_i$.
+%\begin{equation}
+%T = \left(\frac{\rho R_m \theta_{li}}{p_0}\right)^{\frac{R_m}{c_{vm}}\theta_{li} + \frac{L_vq_l + L_sq_i}{c_{vm}} + \frac{\kappa(\kappa-1)}{2-\kappa}\left(\frac{\rho R_m \theta_{li}}{p_0}\right)^{-\frac{R_m}{c_{vm}}}\theta_{li}^{-1} + \left(\frac{L_vq_l + L_sq_i}{c_{vm}}\right)^2 + \mathcal{O}\left( \left(\frac{L_vq_l + L_sq_i}{c_{vm}}\right)^3\right)
+%\end{equation}
+\hl{[check second order term]}This expression for temperature as a function of liquid-ice potential temperature is obtained from \eqref{e:temp_from_theta_li_given_p} by substituting for pressure in the Exner function $\Pi$ from the ideal gas law, $p=\rho R_m T$, solving for temperature using a second-order Taylor expansion around $T_u$ for small condensate specific humidities, and using the relation $1-\kappa = c_{vm}/c_{pm}$, which follows from $c_{pm} - R_m = c_{vm}$. The relation for temperature \eqref{e:temp_from_theta_li_given_rho} holds to second order in condensate specific humidities $q_l$ and $q_i$. That is, the inversion relation \eqref{e:temp_from_theta_li_given_rho} holds to one higher order of accuracy than the definition of the liquid-ice potential temperature \eqref{e:liquid_ice_pottemp} itself, which is only first order in condensate specific humidities $q_l$ and $q_i$.
 
 \subsection{Speed of Sound} The speed of sound in (moist) air is 
 \begin{equation}\label{e:soundspeed}
@@ -1190,13 +1202,13 @@ thus completely specifying the initial state.
 The initial state of all the quantities described above are plotted in Figure \ref{dycomsInitFig}
 \begin{figure}
     \centering
-	\includegraphics[width=0.49\textwidth]{./figures/dy_tempe.eps}
-	\includegraphics[width=0.49\textwidth]{./figures/dy_pot_temp.eps}
-	\includegraphics[width=0.49\textwidth]{./figures/dy_mixing_ratios.eps}
-	\includegraphics[width=0.49\textwidth]{./figures/dy_press.eps}
-	\includegraphics[width=0.49\textwidth]{./figures/dy_densi.eps}
-	%\includegraphics[width=0.49\textwidth]{./figures/dy_Rm.eps}
-	%\includegraphics[width=0.49\textwidth]{./figures/dy_cpm.eps}
+	\includegraphics[width=0.49\textwidth]{figures/dy_tempe.eps}
+	\includegraphics[width=0.49\textwidth]{figures/dy_pot_temp.eps}
+	\includegraphics[width=0.49\textwidth]{figures/dy_mixing_ratios.eps}
+	\includegraphics[width=0.49\textwidth]{figures/dy_press.eps}
+	\includegraphics[width=0.49\textwidth]{figures/dy_densi.eps}
+	%\includegraphics[width=0.49\textwidth]{figures/dy_Rm.eps}
+	%\includegraphics[width=0.49\textwidth]{figures/dy_cpm.eps}
       \caption{Dycoms: initial states of $T, T_v, \theta, \theta_v, \theta_l, q_t, q_l, p, \rho$.}
 \label{dycomsInitFig}
 \end{figure}

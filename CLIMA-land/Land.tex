@@ -77,13 +77,13 @@ In the soil heat will be diffused following a 1D vertical heat diffusion:
 \begin{equation}
      \frac{\partial (\rho_s c_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z}
 \end{equation}
-the soil heat capacity $c_s$ and hydraulic conductivity $k_s$ are function of the soil moisture content $\theta$. Note that the diffusion coefficient $\lambda_s/(\rho_s c_s)$ has much less moisture dependence because of a compensation of the dependence between $\lambda_s$ and $c_s$. 
-For the conductivity we will first follow the CLM formulation:
+where the density of the soil $\rho_{s}$ and the soil heat capacity $c_s$ make up the volumetric heat capacity (i.e. $C = \rho_s c_s$), $\lambda_{s}$ is the thermal conductivity of the soil. Both the thermal conductivity and the capacity of the soil are functions of the soil moisture content, $\theta$. Note that the diffusion coefficient, or $\alpha = \lambda_s/(\rho_s c_s)$, has much less moisture dependence because of a compensation of the dependence between $\lambda_s$ and $c_s$. 
+For the conductivity we will first follow the CLM formulation: \\
 The thermal and hydraulic properties of the soil are assumed to be weighted combinations of a mineral and organic layers of the soil (Lawrence and Slater 2008). The soil layer organic matter fraction $f_{om}$ is 
 \begin{equation}
     f_{om} = \rho_{om}/\rho_{om,{\rm max}}
 \end{equation}
-The thermal conductivity is then $\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}$, with $K_e$ is the Kersten number, a function of soil relative humidity $s=\theta/\theta_{\rm sat}$, with $\theta(x,y,z,t)$ the soil msoiture content. Those functions are rather empirical. One example of which is $K_e = \exp \big( \gamma((1-s(\gamma-1.33))\big)$. For  the  deep  ground  layers  (typical  of  saturated  granitic  rock;  Clauser  and  Huenges,  1995) $\lambda_s =  \lambda_{\rm dry} = 3 \rm W  m^{-1}  K^{-1}$ as $K_e=0$.
+The thermal conductivity is then $\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}$, with $K_e$ is the Kersten number, a function of soil relative humidity $s=\theta/\theta_{\rm sat}$, with $\theta(x,y,z,t)$ the soil moisture content. Those functions are rather empirical. One example of which is $K_e = \exp \big( \gamma((1-s(\gamma-1.33))\big)$. For  the  deep  ground  layers  (typical  of  saturated  granitic  rock;  Clauser  and  Huenges,  1995) $\lambda_s =  \lambda_{\rm dry} = 3 \rm W  m^{-1}  K^{-1}$ as $K_e=0$.
 
 The heat capacity of the soil is:
 $c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}$, with $\theta$ the soil moisture content.
@@ -93,14 +93,29 @@ In the bedrock we take $c_{soil,bedrock} = 2 \cdot 10^6 {\rm J m^{-1} K^{-1}}$ a
 
 \begin{table}[]
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llll}
+\begin{tabular}{lllll}
 \hline
-Variables & Description                      & Units     & Range [if relevant] \\ \hline
-$f_{om}$   & organic matter fraction &           &                         \\
-... &   &  & \\
-... &   &  & \\
-... &   &  & \\
-... &   &  & 
+Variables & Description   & Units     & Range & Example value \\ \hline
+
+$T_s$       & Soil Temperature & K & 0 - $\infty$       & 286 K \\
+$\partial T_s$ /  $\partial z$       & Soil Temperature Gradient & K/m & 0 - $\infty$       & 10 K/m \\
+$\rho_s$       & Density of Soil & kg/m$^3$ & 0 - $\infty$       & 2.65 g/cm$^{3}$ or 2650 kg/m$^{3}$ \\
+$c_s$       & Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 1000 J/(kg K) \\
+$C_s$ =  $\rho_s$  $c_s$    & Volumetric Soil Heat Capacity & J/(m$^3$ K) & 0 - $\infty$       & 2e$^{9}$ J/(m$^3$ K) \\
+$\alpha_s$ =  $\lambda_s$ / $C_s$    & Thermal Diffusivity & m$^2$/s  & 0 - $\infty$       & 2e$^{-6}$ m$^2$/s \\
+$\lambda_s$       & Soil Thermal Conductivity & W/(m K) & 0 - $\infty$       & 0.85 W/(m K) \\
+$\lambda_{sat}$       & Saturated Thermal Conductivity & W/(m K) & 0 - $\infty$       & 0.35 W/(m K) \\
+$\lambda_{dry}$       & Dry Thermal Conductivity & W/(m K) & 0 - $\infty$       & 1.5 W/(m K) \\
+$f_{om}$   & Organic Matter Fraction &   [\%]        &   0 - 100           &    3-6 \%       \\
+$\rho_{om}$ [ ??? ]  & Organic Matter Density & kg/m$^3$ & 0 - $\infty$       & 150 kg/m$^{3}$  \\
+$\rho_{om,max}$ [ ??? ]  & Maximum Organic Matter Density &  kg/m$^3$ & 0 - $\infty$          &    2650 kg/m$^{3}$      \\
+$K_e$  & Kersten Number &  [-] & 0 - 1  &   $\sim$0 for dry , $\sim$1 for wet soils      \\
+$\gamma$ & [ ??? ] & [ ??? ] & [ ??? ]  &    [ ??? ]      \\
+$c_s,dry$       & Dry Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 800 J/(kg K) \\
+$c_s,liq$       & Wet Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 1600 J/(kg K) \\
+$c_s,bedrock$       & Heat Capacity at Bedrock Layer & J/(kg K) or J/(m K) & 0 - $\infty$       & 2e$^{6}$ J/(m K) [ ??? ] \\
+$c_s,om$       & Heat Capacity of Organic Matter &  J/(kg K) or J/(m K) & 0 - $\infty$       & 2.5e$^{6}$ J/(m K) [ ??? ] \\
+\hline
 \end{tabular}%
 }
 \caption{List of heat eqs variables}
@@ -117,7 +132,7 @@ Without loss of generality we can therefore write the storage as a (nonlinear) f
 \label{head}
 \end{equation}
 
-, with $\psi$ the matric potential so that $dS = C(\psi)d\psi$. In the unsaturated case C(\psi)=$\partial \theta /\partial h$ \\ and in the saturated (unconfined aquifer) case it is the specific yield $C(\psi)=S_y$.
+, with $\psi$ the matric potential so that $dS = C(\psi)d\psi$. In the unsaturated case C($\psi$)=$\partial \theta /\partial h$ \\ and in the saturated (unconfined aquifer) case it is the specific yield $C(\psi)=S_y$.
 We therefore write the conservation of mass including sinks/sources (such as due to roots but also for instance non-local transport due to preferential flow). 
 So the generic 3D Richards' equation using chain's rule:
 \begin{equation}
@@ -178,29 +193,27 @@ with $K_{\rm sat}$ the saturated hydraulic conductivity.
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lllll}
 \hline
-Variables & Description                      & Units     & Range [if relevant] & Example value (if relevant)\\ \hline
-$\theta$       & Relative Water Content                    & $m^3/m^3$ & 0 - 1       & N/A \\
-$K$   & Hydraulic Conductivity &   $m/s$        &    0 - $\infty$    \\
-$K_{sat}$   & Saturated Hydraulic Conductivity &   $m/s$        &    0 - $\infty$                     \\
-$S$       & Water Storage                    & $m^3/m^3$ & 0 - 1        \\
-$S_{y}$       & Unconfined Aquifer Specific Yield   & $m^3/m^3$ &  0 - 1       \\
-$n$       & Porosity   & $m^3/m^3$  &   0 - 1      \\
-$S_{s}$       & Aquifer Storativity   & $m^3/m^3$ &  0 - 1       \\
-$b$       & Aquifer Thickness  & $m$ &  0 - $\infty$        \\
-$h$       & Hydraulic Head  & $m$ &  $-\infty$ - $\infty$        \\
-$z$       & Height  & $m$ &  0 - $\infty$        \\
-$\psi$       & Matric Potential  & $m$ &  $-\infty$ - $\infty$        \\
-$\bold{q}$       & Darcy's Flow  & $m^3/s$ &  0 - $\infty$        \\
+Variables & Description   & Units     & Range  & Example value \\ \hline
+$\theta$       & Relative Water Content                    & m$^3$/m$^3$ & 0 - 1       & 0.2 m$^3$/m$^3$ \\
+$K$   & Hydraulic Conductivity &   m/s or cm/day       &    0 - $\infty$ & 0.1 cm/day    \\
+$K_{sat}$   & Saturated Hydraulic Conductivity &   m/s or cm/day       &    0 - $\infty$ & 10 cm/day                    \\
+$S$       & Water Storage                    & m$^3$/m$^3$ & 0 - 1 & 0.43 m$^3$/m$^3$       \\
+$S_{y}$       & Unconfined Aquifer Specific Yield   & m$^3$/m$^3$ &  0 - 1   & 0.2 m$^3$/m$^3$     \\
+$n$       & Porosity   & m$^3$/m$^3$  &   0 - 1  & 0.45 m$^3$/m$^3$     \\
+$S_{s}$       & Aquifer Storativity   & m$^3$/m$^3$ &  0 - 1 & 0.25 m$^3$/m$^3$       \\
+$b$       & Aquifer Thickness  & m &  0 - $\infty$  & 10 m        \\
+$h$       & Hydraulic Head  & m or kPa &  $-\infty$ - $\infty$    & 10 m or 100 kPa     \\
+$z$       & Height or Depth & m  &  0 - $\infty$    & 10 m     \\
+$\psi$       & Matric Potential  & m or kPa &  $-\infty$ - $\infty$  & 10 m or 100 kPa       \\
+$\bold{q}$       & Darcy's Flow  & m$^3$/s &  0 - $\infty$   & 1e$^{-6}$ m$^3$/s     \\
 ... &   &  & \\
-$\theta_{r}$       & Residual Water Content   & $m^3/m^3$ & 0 - 1       & 0.05 \\
-$\theta_{s}$       & Saturated Water Content   & $m^3/m^3$ & 0 - 1       & 0.45 \\
-$\alpha$   & VG Scale Parameter for Retention Function & $cm^{-1}$ & 1e$^{-6}$ - 1e$^{-4}$  & 1e$^{-5}$ \\
+$\theta_{r}$       & Residual Water Content   & m$^3$/m$^3$ & 0 - 1       & 0.05 m$^3$/m$^3$ \\
+$\theta_{s}$       & Saturated Water Content   & m$^3$/m$^3$ & 0 - 1       & 0.45 m$^3$/m$^3$ \\
+$\alpha$   & VG Scale Parameter for Retention Function & cm$^{-1}$ & 1e$^{-6}$ - 1e$^{-4}$  & 1e$^{-5}$ cm$^{-1}$ \\
 $n$   & VG Shape Parameter for Retention Function & (-) & 4.0 - 8.0  & 7.1 \\
 $L$   & VG Empirical Parameter for Retention Function & (-) & 0 - 1  & 0.5 \\
-$S_{e}$   & Relative Degree of Saturation of the Soil & (-) & 0 - 1  & 0.25 \\
-... &   &  & \\
-... &   &  & \\
-... &   &  & 
+$S_{e}$   & Relative Degree of Saturation of the Soil & (-) & 0 - 1  & 0.25 \\ 
+\hline
 \end{tabular}%
 }
 \caption{List of moisture eqs variables [eventually maybe split into "states" and "parameters" tables]}
@@ -247,16 +260,16 @@ We note that there is a fundamental issue in the continuity of the Richards' equ
 
 We write the porous medium temporal mass $M$ balance per unit volume as a departure from the hydrostatic pressure, equivalent to $\partial h/\partial z=0$, with $h=z+\psi$. The temporal departure from hydrostatic balance is written as $\psi'$ with corresponding changes in density $\rho'=\rho-\overline\rho$. The water porous medium density conservation reads:
 \begin{equation}
-\frac{\partial \rho \theta}{\partial t} = {\overline{\rho}} \nabla \cdot \left( K(\psi) \nabla \psi + {\mathbf e_z} \right)
+\frac{\partial \rho \theta}{\partial t} = {\overline{\rho}} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
 \end{equation}
 In which we have neglected the mass of water vapor.
 We expand this into:
 \begin{equation}
-{\overline \rho} \frac{\partial \theta}{\partial t} + \theta \frac{\partial \rho}{\partial t} = {\overline \rho} \nabla \cdot \left( K(\psi) \nabla \psi + {\mathbf e_z} \right)
+{\overline \rho} \frac{\partial \theta}{\partial t} + \theta \frac{\partial \rho}{\partial t} = {\overline \rho} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
 \end{equation}
 Dividing by $\overline \rho$ gives:
 \begin{equation}
-\frac{\partial \theta}{\partial t} + \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t} = \nabla \cdot \left( K(\psi) \nabla \psi + {\mathbf e_z} \right)
+\frac{\partial \theta}{\partial t} + \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t} = \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
 \end{equation}
 This equation looks like the unsaturated Richards’ equation beside the presence of the second term on the left hand side, related to the compressibility of liquid water: $ \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t}$.
 
@@ -271,7 +284,7 @@ The liquid water mass balance can be written
 \underbrace{{\overline \rho} n \frac{\partial s}{\partial t} }_\text{\rm unsaturated mass change} + \underbrace{{\overline \rho} s \frac{\partial n}{\partial t}  }_\text{\rm change in porous medium porosity}  
 + 
 \underbrace{\theta \frac{\partial \rho}{\partial t}   }_\text{\rm change in liquid water density}  
-
+\label{mass_balance:split}
 \end{equation}
 The change in density (assuming negligible temperature and solute impact) can be written:
 \begin{equation}
@@ -280,7 +293,28 @@ The change in density (assuming negligible temperature and solute impact) can be
 with $\psi$ the pressure.
 Assumed an elastic material (and neglecting the change in density of the material) (Bear 2018) and introducing the coefficient of porous medium compressibility $\alpha_{pm}$, with assumed veritcal stress:
 \begin{equation}
-\frac{\partial \rho}{\partial t} = \rho \beta \frac{\partial \psi}{\partial t}
+\alpha_{pm}=\frac{1}{V_{pm}} \frac{\partial V_{pm}}{\partial \sigma_z} = \frac{1}{1-n} \frac{\partial n}{\partial \psi}
+\end{equation}
+with $\sigma_z$ the stress tensor in the vertical direction.
+This then lead to the change in porosity due to the porous medium compaction:
+\begin{equation}
+\frac{\partial n}{\partial t} = (1-n)\alpha_{pm}\frac{\partial \psi}{ \partial \psi}
+\end{equation}
+The combined change in mass of the porous medium water can be finally written using equation (\ref{mass_balance:split}) 
+\begin{equation}
+\frac{\partial \theta \rho}{\partial t} = 
+\underbrace{n \rho \frac{\partial s}{ \partial t} }_\text{\rm unsaturated mass change} + \underbrace{s \rho \left[  (1-n)\alpha_{pm} + n\beta \right] \frac{\partial \psi}{\partial t} }_\text{\rm saturated mass change}
+\end{equation}
+We note here that we made a convenient approximation: we used the matric potential $\psi$, instead of the pressure $p$. The rational for that is that far away from the water table the unsaturated term the left hand side domaintes. Within the saturated zone, far from the water table, the lhs vanishes. Yet an advantage is that the equation bcomes continuous at the interface, with continuous and non-vanishing temporal derivatives. Another way to think about this is that the fluid is composed of a mixture of saturated and saturated water at the interface - i.e the interface is not abrupt. 
+Our master equation for the porous medium water conservation then becomes:
+\begin{equation}
+ \left( n \rho \frac{\partial s}{\partial \psi} + s \rho   (1-n)\alpha_{pm} + s n\beta \right) \frac{\partial \psi}{\partial t} = \rho \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
+\label{master_equation_porous_medium}
+\end{equation}
+or dividing by $\rho$
+\begin{equation}
+\red{ n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t} = \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)}
+\label{master_equation_porous_medium}
 \end{equation}
 
 
@@ -288,22 +322,20 @@ Assumed an elastic material (and neglecting the change in density of the materia
 
 
 
-We then write both terms in term of their dependence on pressure $\psi = \overline{\psi}+\psi'$:
-\begin{equation}
-{\overline \rho} \frac{\partial \theta}{\partial \psi}\frac{\partial \psi}{\partial t} + \theta \frac{\partial \rho}{\partial \psi} \frac{\partial \psi}{\partial t} = {\overline \rho} \nabla \cdot \left( K(\psi) \nabla \psi + {\mathbf e_z} \right)
-\end{equation}
-which we rewrite as:
-\begin{equation}
-\left( {\overline \rho} \frac{\partial \theta}{\partial \psi} + \theta \frac{\partial \rho}{\partial \psi} \right)\frac{\partial \psi}{\partial t} = {\overline \rho} \nabla \cdot \left( K(\psi) \nabla \psi + {\mathbf e_z} \right)
-\end{equation}
 
-We now integrate this equation over the depth of the unconfined aquifer i.e. from $z=z_0$ to $z=h$ (with $z=z_0$ the bedrock elevation – not necessarily 0):
+We now integrate the mass balance equation over the depth of the unconfined aquifer i.e. from $z=z_0$ to $z=h+\epsilon$ (with $z=z_0$ the bedrock elevation – not necessarily 0):
 \begin{equation}
-\int_{z_0}^h \frac{\partial \rho \theta}{\partial t} dz = \int_{z_0}^h {\overline \rho} \nabla \cdot \left( K(\psi) \nabla \psi + {\mathbf e_z} \right) dz
+\int_{z_0}^{h+\epsilon} { n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t}  dz = \int_{z_0}^{h+\epsilon} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)} dz
+\end{equation}
+\begin{equation}
+\int_{z_0}^{h+\epsilon} { n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t}  dz =
+K(\psi) \left( \frac{\partial \psi}{\partial z} + 1 \right)_{|z=h+\epsilon} + \nabla_H \cdot \int_{z_0}^{h+\epsilon}  K(\psi) \nabla_H \psi dz
 \end{equation}
 Using Leibniz rule, the lhs can be written as 
 \begin{equation}
-\frac{\partial \int_{z_0}^h \rho \theta_s dz }{\partial t} - \rho \theta_s \frac{\partial h}{\partial t}= \int_{z_0}^h \nabla \cdot \left( {\overline \rho} K(\psi) \left(\nabla \psi + {\mathbf e_z} \right) \right) dz
+\frac{\partial \int_{z_0}^h \rho \theta_s dz }{\partial t} - \rho \theta_s \frac{\partial h}{\partial t}=
+K(\psi) \left( \frac{\partial \psi}{\partial z} + 1 \right)_{|z=h+\epsilon} \\
++ \nabla_H \cdot \int_{z_0}^{h+\epsilon}  K(\psi) \nabla_H \psi dz
 \end{equation}
 The rhs can be rewritten as:
 \begin{equation}
@@ -321,7 +353,30 @@ Using the total derivative of $\theta$, we can write:
 
 Dupuit–Forchheimer assumptions: flow is nearly 2D below the water table (similar to shallow water approximation) and hydrostatic i.e. $\partial h/\partial z=0$.
 
-\subsection{Summary list of soil heat and moisture equations}
+\subsection{Summary of soil heat and moisture equations for CliMA implementation}
+
+This section contains a summary of all equations needed for implementation of the soil heat and moisture equations into CliMA. All variables are defined 
+
+[OPTION: list equations in table for succinct description and avoid extra equation numbers in document]
+
+
+\begin{equation}
+     \frac{\partial (\rho_s c_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z}
+\end{equation}
+
+\begin{equation}
+    f_{om} = \rho_{om}/\rho_{om,{\rm max}}
+\end{equation}
+
+
+\begin{equation}
+\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}
+\end{equation}
+
+
+...
+
+
 
 \section{Land Boundary conditions}
 We first discuss the heat boundary conditions for the soil medium.
