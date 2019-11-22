@@ -23,7 +23,7 @@ The following section provides a higher-level description of the CliMA land mode
 
 
 \begin{figure}[htb]
-\includegraphics{CLIMA-land/LM_figures/CliMA_LM_modules.png}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{CLIMA-land/LM_figures/JPLCLIMA_LM_DESIGN_20191115.png}
 \caption{Schematic of land model modules and internal + external dependencies. [ALL: please comment + suggest improvements; Pierre's comment: SPAC should include all biophysics, re-name/re-arrange/simmplify boxes]}
 \end{figure}
 % Please add the following required packages to your document preamble:
@@ -86,7 +86,9 @@ The thermal and hydraulic properties of the soil are assumed to be weighted comb
 The thermal conductivity is then $\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}$, with $K_e$ is the Kersten number, a function of soil relative humidity $s=\theta/\theta_{\rm sat}$, with $\theta(x,y,z,t)$ the soil moisture content. Those functions are rather empirical. One example of which is $K_e = \exp \big( \gamma((1-s(\gamma-1.33))\big)$. For  the  deep  ground  layers  (typical  of  saturated  granitic  rock;  Clauser  and  Huenges,  1995) $\lambda_s =  \lambda_{\rm dry} = 3 \rm W  m^{-1}  K^{-1}$ as $K_e=0$.
 
 The heat capacity of the soil is:
-$c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}$, with $\theta$ the soil moisture content.
+$c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}$, with $\theta$ the soil moisture content.[AAB + ML: this doesn't work in case of phase transition?]
+
+
 The dry soil heat capacity is a weighted average of pure soil and organic matter heat capacity $c_{\rm dry} = (1-f_{om})c_{soil} + f_{om}c_{om}$ (Farouki, 1981).
 $c_{soil} = {\rm \frac{2.128 (sand)+ 2.385 (clay)}{(sand) + (clay)}}$, with sand and clay the sand, clay percentage in the soil, respectively.
 In the bedrock we take $c_{soil,bedrock} = 2 \cdot 10^6 {\rm J m^{-1} K^{-1}}$ as the heat capacity of the bedrock and $c_{s,om} = 2.5 ×10^6 {\rm J m^{-1} K^{-1}}$ the heat capacity of organic matter (Farouki, 1981).
@@ -121,6 +123,10 @@ $c_s,om$       & Heat Capacity of Organic Matter &  J/(kg K) or J/(m K) & 0 - $\
 \caption{List of heat eqs variables}
 \end{table}
 
+\begin{figure}[htb]
+\includegraphics[scale=.15]{CLIMA-land/LM_figures/SoilSchematic-1.png}
+\caption{Draft of soil schematic figure}
+\end{figure}
 
 \subsection{Moisture equation}
 Moisture conservation is usually divided into two steps: 1) the unsaturated zone where total water storage is related to the relative water content $\theta$ and transport is typically assumed to be 1D in the vertical and 2) the saturated zone where water storage is related to changes in the water head through the storativity (porosity for an unconfined aquifer, and storativity for confined aquifer).
@@ -173,9 +179,9 @@ This is then solved typically in the vertical and simplifies to:
 \label{Richards_simple_uns_1D}
 \end{equation}
 with $K(\psi)$, an exponential function of $\psi$.
-We note however that has the horizontal resolution becomes finer and in the presence of rain this assumption is not tenable anymore.
+We note however that as the horizontal resolution becomes finer and in the presence of rain this assumption is not tenable anymore.
 
-ADD A NOTE - COULD IT BE BETTER TO SOLVE BY DIRECTLY DEIVIDING BY dTHETA/DPSI so THAT WE HAVE A DICUSSIION WHICH IS VERY SMOOTH
+ADD A NOTE - COULD IT BE BETTER TO SOLVE BY DIRECTLY DIVIDING BY dTHETA/DPSI so THAT WE HAVE A DICUSSIION WHICH IS VERY SMOOTH
 
 In an unconfined aquifer, then we will simply replace the storage change by a specific yield $S_y$ (normalized by the aquifer depth):
 \begin{equation}
@@ -206,7 +212,6 @@ $h$       & Hydraulic Head  & m or kPa &  $-\infty$ - $\infty$    & 10 m or 100 
 $z$       & Height or Depth & m  &  0 - $\infty$    & 10 m     \\
 $\psi$       & Matric Potential  & m or kPa &  $-\infty$ - $\infty$  & 10 m or 100 kPa       \\
 $\bold{q}$       & Darcy's Flow  & m$^3$/s &  0 - $\infty$   & 1e$^{-6}$ m$^3$/s     \\
-... &   &  & \\
 $\theta_{r}$       & Residual Water Content   & m$^3$/m$^3$ & 0 - 1       & 0.05 m$^3$/m$^3$ \\
 $\theta_{s}$       & Saturated Water Content   & m$^3$/m$^3$ & 0 - 1       & 0.45 m$^3$/m$^3$ \\
 $\alpha$   & VG Scale Parameter for Retention Function & cm$^{-1}$ & 1e$^{-6}$ - 1e$^{-4}$  & 1e$^{-5}$ cm$^{-1}$ \\
@@ -357,7 +362,9 @@ Dupuit–Forchheimer assumptions: flow is nearly 2D below the water table (simil
 
 This section contains a summary of all equations needed for implementation of the soil heat and moisture equations into CliMA. All variables are defined 
 
-[OPTION: list equations in table for succinct description and avoid extra equation numbers in document]
+[OPTION: list equations in table for succinct description and avoid extra equation numbers in document] \\
+
+\textbf{Soil Heat Equations} \\
 
 
 \begin{equation}
@@ -373,8 +380,136 @@ This section contains a summary of all equations needed for implementation of th
 \lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}
 \end{equation}
 
+\begin{equation}
+K_e = \exp \big( \gamma((1-s(\gamma-1.33))\big)
+\end{equation}
 
-...
+\begin{equation}
+s=\theta/\theta_{\rm sat}
+\end{equation}
+
+\begin{equation}
+c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}
+\end{equation}
+
+\begin{equation}
+c_{\rm dry} = (1-f_{om})c_{soil} + f_{om}c_{om}
+\end{equation}
+
+\begin{equation}
+c_{soil} = {\rm \frac{2.128 (sand)+ 2.385 (clay)}{(sand) + (clay)}}
+\end{equation}  \\
+
+
+
+\textbf{Soil Moisture Equations} \\
+
+(Unsaturated soil)
+\begin{equation}
+ dS=\theta 
+\end{equation}
+
+(Saturated - Unconfined Aquifer)
+\begin{equation}
+ dS=S_y dh ; S_y = n
+\end{equation}
+
+(Saturated - Confined Aquifer)
+\begin{equation}
+ dS=S_s dh
+\end{equation}
+
+\begin{equation}
+ h=z+\psi
+\end{equation}
+
+\begin{equation}
+dS = C(\psi)d\psi
+\end{equation}
+
+(Unsaturated soil)
+\begin{equation}
+C(\psi)=\partial \theta /\partial h 
+\end{equation}
+
+(Saturated  - Unconfined Aquifer)
+\begin{equation}
+C(\psi)=S_y 
+\end{equation}
+
+\begin{equation}
+     \frac{\partial S}{\partial t} = C(\psi)\frac{\partial \psi}{\partial t} = -\nabla \cdot {\bf{q}} + {\rm Source}
+\label{Richards}
+\end{equation}
+
+\begin{equation}
+     \bf{q} = - \mathbf{K}(\psi) \otimes \nabla h
+\end{equation}
+
+\begin{equation}
+     {\bf{q}} = - K \ \nabla h
+\end{equation}
+
+\begin{equation}
+     C(\psi)\frac{\partial \psi}{\partial t}  = \nabla \cdot \left( {K(\psi) \nabla h} \right) + {\rm Source}
+\label{Richards_simple}
+\end{equation}
+
+\begin{equation}
+     C(\psi)\frac{\partial \psi}{\partial t}  = \nabla \cdot \left( {K \nabla \psi} + K \right) + {\rm Source}
+\label{Richards_simple}
+\end{equation}
+
+\begin{equation}
+     \frac{\partial \theta}{\partial \psi}\frac{\partial h}{\partial t} = \nabla \cdot \left( {K(\psi) \nabla \psi} + K(\psi) \right) + {\rm Source}
+\label{Richards_simple_uns}
+\end{equation}
+
+\begin{equation}
+     \frac{\partial \theta}{\partial \psi}\frac{\partial \psi}{\partial t} = \frac{\partial}{\partial z}  \left( {K \frac{\partial \psi}{\partial z} + K(\psi)} \right) + {\rm Source}
+\label{Richards_simple_uns_1D}
+\end{equation}
+
+(Saturated - Unconfined Aquifer)
+\begin{equation}
+     \frac{\partial S}{\partial t} = S_y \frac{\partial h}{\partial t}  
+\end{equation}
+
+\begin{equation}
+     \frac{\partial S}{\partial t} = S_y \frac{\partial h}{\partial t} = \nabla \cdot \left( {K_{\rm sat} \nabla h} \right) + {\rm Source}
+\label{Richards_simple}
+\end{equation} \\
+
+
+\textbf{Retention functions for unsaturated soils - van Genuchten} \\
+
+
+\begin{equation}
+     \theta(\psi) = \theta_r + \frac{\theta_s - \theta_r}{\left[ 1+(\alpha |\psi|)^n \right]^{m}}
+\end{equation}
+
+\begin{equation}
+m=1-1/n
+\end{equation}
+
+\begin{equation}
+     K(\psi) = K_{s} S_e^L \left (1 -  (1-S_e^{1/m})^m  \right)^2
+\end{equation}
+
+\begin{equation}
+L = 0.5
+\end{equation}
+
+\begin{equation}
+     S_e = \frac{\theta(\psi) - \theta_r}{\theta_s - \theta_r}
+\end{equation}
+
+\begin{equation}
+     \frac{\partial \theta}{\partial \psi} =   \frac{m n\alpha^n |\psi|^{n-1}}{\left[ 1+(\alpha |\psi|)^n \right]^{m+1}} \left( \theta_s - \theta_r \right) 
+\end{equation}
+
+
+
 
 
 

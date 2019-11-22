@@ -69,10 +69,16 @@ The corresponding specific heat capacities of moist air are the weighted sum of 
     c_{\cdot m} & = (1-q_t) c_{\cdot d} + q_v c_{\cdot v} + q_l c_{\cdot l} + q_i c_{\cdot i} \label{e:specific_heat}\\
     & = c_{\cdot d} + (c_{\cdot v} - c_{\cdot d})q_t + (c_{\cdot l} - c_{\cdot v})q_l + (c_{\cdot i} - c_{\cdot v})q_i
 \end{align}
-where $\cdot$ stands for $v$ or $p$ and we have used $q_v = q_t -q_l - q_i$. Straightforward substitution shows that the above relations between the specific heat capacities of the constituents also holds for moist air as a whole:
+where $\cdot$ stands for $v$ or $p$ and we have used $q_v = q_t -q_l - q_i$. Straightforward substitution shows that the above relation between the specific heat capacities of the constituents also holds for moist air as a whole:
 \begin{equation}\label{e:specific_heat_relation}
     c_{pm} = c_{vm} + R_m.
 \end{equation}
+
+\hl{[Would it make sense to add a reference to the code path where the thing  described in each section/paragraph are coded? e.g.]}\\
+
+CODED in: {\tt src/Common/PlanetParameters/PlanetParameters.jl}\\
+
+\hl{[I started building a "Clima developer manual" doing that with that purpose, but I think that it's probably better to keep the number of documents to a minimum if all we need is a note on where to find things in the code]}
 
 \section{Latent Heats}
 
@@ -132,7 +138,7 @@ The reference specific internal energies $I_{v,0}$ and $I_{i,0}$ are related to 
 \section{Enthalpies}\label{s:enthalpies}
 
 The specific enthalpies of the constituents of moist air are obtained by adding $p_k/\rho_k$ for phase $k$ to the corresponding specific internal energy \eqref{e:internal_energies}. Again neglecting the specific volumes of the condensed phases and using the relations \eqref{e:ref_internal_energies} between reference specific energies and latent heats, this gives:
-\begin{subequations}
+\begin{subequations}\label{e:enthalpies}
 \begin{align}
     h_d(T) = I_d(T) + R_d T &= c_{pd}(T-T_0) + R_d T_0, \\
     h_v(T) = I_v(T) + R_v T &= c_{pv}(T-T_0) + L_{v,0}, \\
@@ -393,7 +399,7 @@ To close the equations of motion for the working fluid, we require a thermodynam
 Total energy satisfies the conservation law \citep{Romps08a,Bott08a}
 \begin{multline}
  \diff{(\rho e^\mathrm{tot})}{t} + \divergence \left( (\rho e^\mathrm{tot} + p)\vec{u} \right)
- = -\divergence (\rho \vec{F}_R) - \divergence (\rho \vec{J}) + \rho Q - \divergence (\rho \vec{D})  \\
+ = -\divergence (\rho \vec{F}_R) - \divergence \bigl(\rho (\vec{J} + \vec{D})\bigr) + \rho Q  \\
   +\divergence \left(\rho W_c \vec{k} \right)  - \divergence (\vec{u} \cdot \rho\vec{\tau)} + \rho \vec{u} \cdot \vec{F}_u \\
    - \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M,
  \label{eq:energy_balance}
@@ -647,7 +653,10 @@ The model will need to be capable of running in a global climate model configura
 \chapter{Boundary Conditions}\label{sct:bc}
 
 \section{Top} 
-At the top of the atmosphere, we require a boundary that absorbs upward propagating waves. This is commonly accomplished through the introduction of a sponge layer at a rigid model lid. 
+
+The boundary at the model top is a rigid lid: It is impenetrable (no normal mass, water, or tracer fluxes), free-slip (no normal momentum flux), and insulating (no normal energy flux). Hence, normal components of all fluxes vanish at the top. 
+
+However, we require that the top boundary absorbs upward propagating waves. This is commonly accomplished through the introduction of a sponge layer through additional source terms that are nonzero only near the model top.
 
 A simple formulation of a sponge layer is a linear damping layer, with relaxation coefficient \citep{durran:1983}
 \begin{equation}\label{eq:spongeDurran}
@@ -678,7 +687,7 @@ We will also need to keep in mind that the choice of upper boundary condition ca
 \label{s:bottom_bc}
 In a constant-flux layer near the bottom boundary, Monin-Obukhov similarity (MOS) theory gives the profiles of velocity and scalars normal to the surface and how they are related to the fluxes of momentum, heat, water vapor, and tracers across the surface. MOS is exploited to relate surface fluxes to model-resolved quantities near the surface, usually in the lowest model layer. This is adequate as long as the lowest model level is within the constant-flux layer (below about 50~m altitude). Care must be taken in how quantities in the lowest model layer are interpreted in finite-volume discretizations  \citep{Nishizawa18a}.
 
-Advective fluxes normal to the surface vanish. Since the viscous sublayer is neither resolved in GCMs nor in LES, the bottom boundary condition is applied to the SGS fluxes of momentum, water, energy, and tracers and constrains their components normal to the surface. 
+Advective fluxes normal to the surface vanish. Since the viscous sublayer is neither resolved in GCMs nor in LES, the bottom boundary condition is applied to the SGS fluxes of momentum, water, energy, and tracers and constrains their components normal to the surface. Thus, only diffusive fluxes normal to the bottom boundary are nonzero.
 
 \subsection{Momentum}
 
@@ -733,15 +742,15 @@ It is the moist static energy flux that is associated with evaporation, with the
 \begin{multline}\label{e:sfc_SHF}
     \mathrm{SHF} = \vec{n} \cdot (\rho \vec{J}_{\mathrm{sfc}}) =
     \\ -\rho C_h(z) \| \vec{u}(z) \| \left[ c_{pm} (T(z) - T_\mathrm{sfc}) + \Phi(z) - \Phi_\mathrm{sfc}
-    - h_d (q_t(z) - q_{t, \mathrm{sfc}})  \right],
+    - h_d  (q_t(z) - q_{t, \mathrm{sfc}})  \right],
 \end{multline}
-where $h_d = c_{vd} (T - T_0) + R_d T$ is the specific enthalpy of dry air. It represents the part of the total moist static energy flux at the surface, Eq.~\eqref{e:sfc_energy_flux}, which is not already taken into account in the latent heat flux. The term $h_d (q_t(z) - q_{t, \mathrm{sfc}})$ arises from the diffusion of dry air, or the differential diffusion of water. The total specific humidity at the surface $q_{t, \mathrm{sfc}}$ is the sum of the component specific humidities, with the vapor specific humidity being the saturation specific humidity over a wet surface and the condensate specific humidities set to their values in the lowest model level, as above. In accordance with common practice, we call this energy flux the sensible heat flux. However, it differs in details from common empirical formulations for the sensible heat flux (e.g., in how moisture gradients enter). This form of the sensible heat flux stems from an exact decomposition of a moist static energy flux at the surface into latent and sensible components. 
+where $h_d = c_{pd} (T - T_0) + R_d T_0$ is the specific enthalpy of dry air \eqref{e:enthalpies}. It represents the part of the total moist static energy flux at the surface, Eq.~\eqref{e:sfc_energy_flux}, which is not already taken into account in the latent heat flux. The term $h_d (q_t(z) - q_{t, \mathrm{sfc}})$ arises from the diffusion of dry air, or the differential diffusion of water. The total specific humidity at the surface $q_{t, \mathrm{sfc}}$ is the sum of the component specific humidities, with the vapor specific humidity being the saturation specific humidity over a wet surface and the condensate specific humidities set to their values in the lowest model level, as above. In accordance with common practice, we call this energy flux the sensible heat flux. However, it differs in details from common empirical formulations for the sensible heat flux (e.g., in how moisture gradients enter). This form of the sensible heat flux stems from an exact decomposition of a moist static energy flux at the surface into latent and sensible components. 
 
-The total enthalpy flux at the surface \eqref{e:sfc_energy_flux} is the sum of the latent and sensible heat fluxes. Consistent with the diffusivities for total specific humidity and total enthalpy being taken to be equal, the exchange coefficients $C_q$ and $C_h$ in the moisture and energy fluxes should also be taken to be equal:
+The sensible heat flux \eqref{e:sfc_SHF} only is the residual between the total enthalpy flux at the surface \eqref{e:sfc_energy_flux} and the latent heat flux \eqref{e:sfc_LHF} if the exchange coefficients $C_q$ and $C_h$ in the moisture and energy fluxes are taken to be equal:
 \[
-C_q = C_h
+C_q = C_h.
 \]
-However, the exchange coefficient for momentum, $C_D$, may differ because momentum exchange is affected by pressure fluctuations, whereas scalar exchange is not affected by them.
+We will make this (common) assumption, consistent with the assumption that the diffusivities for total specific humidity and total enthalpy are equal. However, the exchange coefficient for momentum, $C_D$, may differ because momentum exchange is affected by pressure fluctuations, whereas scalar exchange is not affected by them.
 
 \subsection{Tracers}
 

@@ -18,12 +18,12 @@ In this section of the design documents we focus on warm rain microphysical proc
 \section{Governing Equations}
 We follow \citep{} in that we write the flux-form evolution equation for the droplet size-distribution function $f(m)$ of liquid water droplets, where $m$ is the droplet mass, as 
 \begin{equation}
-    \frac{\partial f}{\partial t} +\nabla \cdot (\mathbf{u} f) = \frac{\partial f}{\partial t} \biggr\rvert_{evap} + \frac{\partial f}{\partial t} \biggr\rvert_{sedi} + \frac{\partial f}{\partial t} \biggr\rvert_{coll}, 
+    \frac{\partial f}{\partial t} +\nabla \cdot (\mathbf{u} f) = \frac{\partial f}{\partial t} \biggr\rvert_{cond} + \frac{\partial f}{\partial t} \biggr\rvert_{sedi} + \frac{\partial f}{\partial t} \biggr\rvert_{coll}, 
     \label{eq:flux_form_f}
 \end{equation}
 where the dependence of $f(m)$ on $m$ is suppressed in the notation. Here, $\mathbf{u}$ is the barycentric velocity field of the fluid flow (e.g., at the center of mass of the grid box). In writing relation \eqref{eq:flux_form_f} in this form, we implicitly assumed that the size distribution function can be written as a smooth (e.g., $f \in \mathcal{C}^\infty(\mathbb{R})$) function. This approximation is reasonable if there exist enough particles for every value of the mass $m$ in a given grid box \citep[cf.][]{Beheng10}. In what follows, we will use $f$ and $f(m)$ interchangeably to make the notation more compact. The source-sink terms on the right-hand-side of equation~\eqref{eq:flux_form_f} are given by
 \begin{equation}
-    \frac{\partial f}{\partial t} \biggr\rvert_{evap} = -\frac{\partial (\dot{m} f)}{\partial m}
+    \frac{\partial f}{\partial t} \biggr\rvert_{cond} = \frac{\partial (\dot{m} f)}{\partial m}
     \label{eq:source_evap}
 \end{equation}
 for droplet condensation and evaporation. Here, $\dot{m} = \frac{\partial m}{\partial t}$ is the change of mass due to condensation of water vapor onto the droplet and evaporation from the droplet. The source-sink term 
@@ -50,12 +50,12 @@ The collision kernel $\chi(m,m',m'')$ outputs the number of drops with mass in t
 
 Unfortunately for us, the droplet size distribution $f$ is an infinite-dimensional object and must be approximated. This can be achieved by so-called bin schemes, which discretize $f$ in mass-space and evaluate the microphysical processes of the particles in each bin \citep[cf.][]{}. Alternatively, we can write down the governing equations for the moments of the size distribution function $f$ and work with them instead. The moment equations and source-sink terms corresponding to equation~\eqref{eq:flux_form_f} can be obtained by multiplying all terms in \eqref{eq:flux_form_f} by $m^k$ and integration over $m$ from $0$ to $\infty$. This yields a new set of equation that reads
 \begin{equation}
-    \frac{\partial M_k}{\partial t} +\nabla \cdot (\mathbf{u} M_k) = \frac{\partial M_k}{\partial  t} \biggr\rvert_{evap} + \frac{\partial M_k}{\partial t} \biggr\rvert_{sedi} + \frac{\partial M_k}{\partial t} \biggr\rvert_{coll},
+    \frac{\partial M_k}{\partial t} +\nabla \cdot (\mathbf{u} M_k) = \frac{\partial M_k}{\partial  t} \biggr\rvert_{cond} + \frac{\partial M_k}{\partial t} \biggr\rvert_{sedi} + \frac{\partial M_k}{\partial t} \biggr\rvert_{coll},
 \label{eq:flux_form_mom}
 \end{equation}
 where $M_k$ now denotes the $k$-th moment of $f$. Since $k \in \mathbb{N}_0$, this formally represents a set of infinitely many equations. The source-sink terms for each moment $M_k$ can be written correspondingly for evaporation and condensation as
 \begin{equation}
-    \frac{\partial M_k}{\partial t} \biggr\rvert_{evap} = \int_0^\infty km^{k-1}\dot{m}f(m),
+    \frac{\partial M_k}{\partial t} \biggr\rvert_{cond} = k\int_0^\infty m^{k-1}\dot{m}f(m) \text{dm}, 
 \label{eq:source_evap_mom}
 \end{equation}
 where the expression was obtain by integration by parts with respect to $m$ under the integral. The source-sink term for for droplet sedimentation can be written as
@@ -109,9 +109,19 @@ At the droplet surface, $\rho_v = \rho_{v, r_d}$ (which is usually assumed to be
 Our final goal is an expression for $dm/dt$, the time rate of change of a drop's mass due to condensation and evaporation of water vapor. This rate is equal to the integral of the water vapor flux density, $D_v \nabla \rho_v$ [where $\nabla \rho_v$ is obtained from equation~(\ref{eq:laplace_radial_solution})], over the surface of the drop. This yields
 \begin{equation}
     \frac{dm}{dt} = 4 \pi D_v r_d (\rho_{v, \infty} - \rho_{v, r_d}) 
-    \label{eq:dm_dt}
+    \label{eq:condens_dm_dt}
 \end{equation}
-When $\rho_{v, \infty}$ exceeds $\rho_{v, r_d}$, the drop will gain mass, and conversely it will lose mass. In this derivation we have made the assumption that the diffusivity $D_v$ is the same in free air as it is just above the droplet surface, where water vapor may behave more like an ensemble of molecules than a continuum. We have also neglected latent heat effects, i.e., we have assumed that the temperature at the surface of the droplet is the same as that of the ambient air. In reality, the temperature at the surface of a growing droplet is warmer due to the latent heat release associated with condensation of water vapor. This increases the saturation vapor pressure above the droplet surface, decreasing the difference between $\rho_{v, \infty}$ and $\rho_{v, r_d} = \rho_{v, sat}$ in equation~({\ref{eq:dm_dt}}), thereby slowing the droplet's condensational growth.
+When $\rho_{v, \infty}$ exceeds $\rho_{v, r_d}$, the drop will gain mass, and conversely it will lose mass. In this derivation we have made the assumption that the diffusivity $D_v$ is the same in free air as it is just above the droplet surface, where water vapor may behave more like an ensemble of molecules than a continuum. We have also neglected latent heat effects, i.e., we have assumed that the temperature at the surface of the droplet is the same as that of the ambient air. In reality, the temperature at the surface of a growing droplet is warmer due to the latent heat release associated with condensation of water vapor. This increases the saturation vapor pressure above the droplet surface, decreasing the difference between $\rho_{v, \infty}$ and $\rho_{v, r_d}=\rho_{v, sat}$ in equation~({\ref{eq:condens_dm_dt}}), thereby slowing the droplet's condensational growth.
+
+Using equation (\ref{eq:condens_dm_dt}), the moments' form of the contribution of condensation and evaporation becomes:
+\begin{equation}
+\begin{aligned}
+    \frac{\partial M_k}{\partial t} \biggr\rvert_{cond} &= k\int_0^\infty m^{k-1}\dot{m}f(m) \text{dm} \\
+                                                        &= k\int_0^\infty m^{k-1}4 \pi D_v r_d (\rho_{v, \infty} - \rho_{v, r_d})f(m) \text{dm}
+\label{eq:condensation_moments}
+\end{aligned}
+\end{equation}
+
 
 
 \section{Sedimentation of Droplets}
@@ -146,27 +156,40 @@ For larger drops, there are no simple drag expressions, and drag coefficients ha
 
 Another point worth mentioning is that we assume cloud and raindrops to always fall at their terminal velocities, whereas in reality it takes some time for each drop to reach its terminal velocity. Since the terminal velocity represents an upper bound to a drop's fall speed, this assumption will lead to an overestimation of the average droplet fall speed.
 
-\section{Collisions}
-In this section we describe approximations for collisional processes when breakups of particles after collision can be neglected. This is an assumption that does not always hold and it will need to be revisited. Generally speaking, the mathematics presented in this section will apply to the more general case of collisions with breakups as well, but will be more tedious. If we assume that droplets cannot break into smaller droplets, equation \eqref{eq:source_cb_mom} simplifies to a double integral and is easy to handle with a polynomial approximation to the collision kernel and coalescence efficiency. For simplicity, we denote the production of collision kernel $\mathcal{K}$ and coalescence efficiency $E_\mathrm{CA}$ as $\mathcal{C}$. We can then write
+With the expression for $v_s$ derived in this section and writing it as a function of mass instead of radius (for a spherical water droplet with radius $r$, $m = \frac{4 \pi}{3} r^3 \rho_w$), the moments' form of the contribution of sedimentation under the influence of gravity becomes:
+
 \begin{equation}
-    \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} = \int_0^\infty \left((m+m')^k - m^k - {m'}^k\right) \mathcal{C}(m, m')f(m)f(m') \, \text{d}m\, \text{d}m',
+\begin{aligned}
+    \frac{\partial M_k}{\partial t} \biggr\rvert_{sedi} &= -\frac{\partial}{\partial z}\int_0^\infty m^k v_s(m) f(m) \text{d}m \\
+                                                        &= -\frac{\partial}{\partial z}\int_0^\infty m^k \sqrt{\frac{8 g \left(\frac{3 m}{4 \pi \rho_w}\right)^{\frac{1}{3}}}{3 C_{D}} \left( \frac{\rho_{w} - \rho_a}{\rho_a} \right)} f(m) \text{d}m
+\end{aligned}
+\label{eq:sedimentation_moments}
+
+\end{equation}
+
+
+
+\section{Collisions}
+In this section we describe approximations for collisional processes when breakups of particles after collision can be neglected. This is an assumption that does not always hold and it will need to be revisited. Generally speaking, the mathematics presented in this section will apply to the more general case of collisions with breakups as well, but will be more tedious. If we assume that droplets cannot break into smaller droplets, equation \eqref{eq:source_cb_mom} simplifies to a double integral and is easy to handle with a polynomial approximation to the collision kernel and coalescence efficiency. For simplicity, we denote the product of the collision kernel $\mathcal{K}$ and the coalescence efficiency $E_\mathrm{CA}$ as $\mathcal{C}$. We can then write
+\begin{equation}
+    \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} = \frac{1}{2}\int_0^\infty \left((m+m')^k - m^k - {m'}^k\right) \mathcal{C}(m, m')f(m)f(m') \, \text{d}m\, \text{d}m',
 \label{eq:source_co_mom}
 \end{equation}
-where $\mathcal{C}(m, m') = E_{CA}(m, m') \mathcal{K}(m, m')$ is the product of the coalescence and collision efficiency. In order to avoid confusion with terminology, we call $\mathcal{C}$ the collision-coalescence kernel. We seek approximation to equation~\eqref{eq:source_co_mom} that lend itself to efficient implementations.
+where $\mathcal{C}(m, m') = E_{CA}(m, m') \mathcal{K}(m, m')$ is the product of the coalescence and collision efficiency. In order to avoid confusion with terminology, we call $\mathcal{C}$ the collision-coalescence kernel. We seek an approximation to equation~\eqref{eq:source_co_mom} that lends itself to efficient implementations.
 
 \subsection{Polynomial Kernel Approximations \& Closure}
-In order to simplify the integral expression in equation \eqref{eq:source_co_mom} in terms of the moments of $M_k$ of $f(m)$, we can approximate the collision-coalescence kernel via an $2r$-order polynomial through an expansion in monomials. If we make the approximation
+In order to simplify the integral expression in equation \eqref{eq:source_co_mom} in terms of the moments $M_k$ of $f(m)$, we can approximate the collision-coalescence kernel via a $2r$-order polynomial through an expansion in monomials. If we make the approximation
 \begin{equation}
     \mathcal{C}(m,m') \approx \sum_{a,b=0}^{r} c_{ab} m^a{m'}^b, \quad \text{with} \quad r \geq 0
 \label{eq:dist_approx}
 \end{equation} 
-we can simplify relation~\eqref{eq:source_co_mom} by integrating the powers of $m$ and $m'$ and using the binomial sum expression for the term $(m+m')^k$. The matrix defined by the $c_{ab}$ can be seen as a lookup table for the collision-calescence kernel $\mathcal{C}$. It must obey $c_{ab} = c_{ba}$ because $\mathcal{C}$ is symmetric in $m$ and $m'$. We arrive at the formal expression
+we can simplify relation~\eqref{eq:source_co_mom} by integrating the powers of $m$ and $m'$ and using the binomial sum expression for the term $(m+m')^k$. The matrix defined by the $c_{ab}$ can be seen as a lookup table for the collision-coalescence kernel $\mathcal{C}$. It must obey $c_{ab} = c_{ba}$ because $\mathcal{C}$ is symmetric in $m$ and $m'$. We arrive at the formal expression
 \begin{equation}
 \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} \approx
     \frac{1}{2} \sum_{a,b=0}^{r} \sum_{c=0}^k c_{ab} {k \choose c} M_{a+c} M_{b+k-c} - \sum_{a,b=0}^{r} c_{ab} M_{a+k} M_b
 \label{eq:source_co_mom_approx}
 \end{equation}
-for the collisional source term for the moment $M_k$. For the special cases of $k=0$ or $k=1$ we have simplified relations
+for the collisional source term for the moment $M_k$ (note that the factor $0.5$ avoids double counting). For the special cases of $k=0$ or $k=1$ we have simplified relations
 \begin{equation}
     \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} \approx
     \begin{cases}
@@ -174,9 +197,9 @@ for the collisional source term for the moment $M_k$. For the special cases of $
     0 & \quad k = 1.
     \end{cases}
 \end{equation}
-Here, the second relationship simply implies that collision-coalescence processes are mass-conserving. These equations are obviously not new and are implied in numerous sources \citep[cf.][]{Pruppracher78, Beheng01}. It relates the source-sink term for the moment $M_k$ to the moments $M_0, \dots, M_{r+k}$, which usually means that the time evolution of $M_k$ depends on higher moments $M_q$ with $q>k$. This represents a classic closure problem for the moments of $f$ and needs to be addressed by any moment-based microphysics scheme with nontrivial $\mathcal{C}$.
+Here, the second relationship simply reflects the fact that collision-coalescence processes conserve mass. These equations are obviously not new and are derived in numerous sources \citep[cf.][]{Pruppacher1978, Beheng2010}. They relate the source-sink term for the moment $M_k$ to the moments $M_0, \dots, M_{r+k}$, which usually means that the time evolution of $M_k$ depends on higher moments $M_q$ with $q>k$. This represents a classic closure problem for the moments of $f$ and needs to be addressed by any moment-based microphysics scheme with nontrivial $\mathcal{C}$.
 
-The fact that we are in a situation with an infinity hierarchy for the moments $M_k$ with closure problem is related to a) the fact that collisional interactions are nonlinear in $f$, b) the nontrivial dependence of most kernels $\mathcal{C}$ on $m$ and $m'$, and c) the infinite-dimensional nature of $f$. We have addressed b) by approximating the kernel with a polynomial. Now we need to reduce the allowed complexity (e.g., the allowed shape) of the size distribution function $f$ in order to close the infinite hierarchy. We choose to approximate $f$ via
+The fact that we are in a situation with an infinite hierarchy for the moments $M_k$ with closure problem is related to a) the fact that collisional interactions are nonlinear in $f$, b) the nontrivial dependence of most kernels $\mathcal{C}$ on $m$ and $m'$, and c) the infinite-dimensional nature of $f$. We have addressed b) by approximating the kernel with a polynomial. Now we need to reduce the allowed complexity (e.g., the allowed shape) of the size distribution function $f$ in order to close the infinite hierarchy. We choose to approximate $f$ via
 \begin{equation}
     f(m) \approx \hat{f}(m, \theta), \quad \text{with} \quad \theta \in \mathbb{R}^{s}.
 \end{equation}

@@ -3,8 +3,10 @@
 \include{CLIMA_Macros}
 \usepackage[inline]{enumitem}
 \newcommand{\PD}{\partial}
+\newcommand{\I}{I}
 \newcommand{\IL}{I_{\lambda}}
-\newcommand{\OMEGA}{I_{\lambda}}
+\newcommand{\HOM}{\hat{\Omega}}
+\newcommand{\tom}{\tidle{\omega}}
 
 
 \title{CLIMA Radiative Transfer} 
@@ -16,9 +18,10 @@
 \tableofcontents
 
 \chapter{Radiative Transfer Equation}
-The spectral radiative transfer equation is
+Accounting for scattering, the spectral radiative transfer equation, and the phase function, $p(\HOM',\HOM)$, normalization condition, is:
 \begin{equation}\begin{aligned}
-\frac{\PD \IL}{\PD \tau} = \IL(\Omega)
+\frac{\PD \IL(\HOM)}{\PD \tau} = \IL(\HOM) - (1 - \tom) B - \frac{\tom}{4 \pi} \int_{4 \pi} p(\HOM',\HOM) \IL(\HOM) d \omega' \\
+\frac{1}{4\pi} \int_{4\pi} p(\HOM',\HOM) d\omega'=1
 \end{aligned}\end{equation}
 
 
