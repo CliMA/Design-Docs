@@ -2,6 +2,7 @@
 
 \include{CLIMA_Macros}
 \usepackage[inline]{enumitem}
+\usepackage{xcolor}
 
 
 \title{CLIMA Cloud Microphysics} 
@@ -36,7 +37,7 @@ represents sedimentation processes under the influence of gravity, with $v_s = v
     \frac{\partial f}{\partial t} \biggr\rvert_{coll} = \frac{1}{2} \int_0^\infty \chi(m,m',m'') \mathcal{K}(m', m'')f(m')f(m'') \,\text{d}m' \, \text{d}{m''}
     \label{eq:source_cb}
 \end{equation}
-and it parameterizes collisional processes for droplet-droplet collisions. We neglect three-droplet collisions as they are less important due to the lower probability of three droplets colliding. Following the convention in \citep{Beheng10}, we call $\chi$ the collisional interaction function and $\mathcal{K}$ the collision kernel. We can write $\chi$ as
+and it parameterizes collisional processes for droplet-droplet collisions. We neglect three-droplet collisions as they are less important due to the lower probability of three droplets colliding. Following the convention in \citep{Beheng10}, we call $\chi$ the collisional interaction function and $\mathcal{K}$ the collision kernel. We can write $\chi$ as \hl{Ryan's comment: What is the significance in defining $\mathcal{K}$ for the collision kernel in addition to a function chi (the collisional interaction function). Namely, what is differentiating these two, considering the former descriptor remains unused?}
 \begin{subequations}\label{eq:collisional_interaction_function}
 \begin{align}
     \chi(m,m',m'') &= \chi_\mathrm{CA}(m,m',m'')  + \chi_\mathrm{BR}(m,m',m'')\\
@@ -121,6 +122,14 @@ Using equation (\ref{eq:condens_dm_dt}), the moments' form of the contribution o
 \label{eq:condensation_moments}
 \end{aligned}
 \end{equation}
+
+\noindent
+\colorbox{pink}{\parbox{12cm}{Anna's comment: I don't think that neglecting latent heat effects is a good approximation. 
+You could look at the derivation for eq 5.106 in the book by Jerry Straka Cloud and Precipitation 
+Microphysics Principles and Parameterizations. Or in chapter 16 in Jacobson, M.: Fundamentals of Atmospheric Modelling. The general idea is to write similar equations for the diffusion of heat,
+use Clausius-Clapeyron relation, assume that the temperature at the drop surface is close to the ambient temperature and water vapor density at the drop surface is close to saturation.
+After all of that you will end up with an equation for drop radius like eq (11) in Microphysics
+docs for CLIMA}}
 
 
 

@@ -97,26 +97,35 @@ In the bedrock we take $c_{soil,bedrock} = 2 \cdot 10^6 {\rm J m^{-1} K^{-1}}$ a
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lllll}
 \hline
-Variables & Description   & Units     & Range & Example value \\ \hline
-
+State Variables & Description   & Units     & Range & Example value \\ \hline
 $T_s$       & Soil Temperature & K & 0 - $\infty$       & 286 K \\
+$f_{om}$   & Organic Matter Fraction &   [\%]        &   0 - 100           &    3-6 \%       \\
+
+\hline
+Auxiliary State Variables & Description   & Units     & Range & Example value \\ \hline
 $\partial T_s$ /  $\partial z$       & Soil Temperature Gradient & K/m & 0 - $\infty$       & 10 K/m \\
-$\rho_s$       & Density of Soil & kg/m$^3$ & 0 - $\infty$       & 2.65 g/cm$^{3}$ or 2650 kg/m$^{3}$ \\
-$c_s$       & Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 1000 J/(kg K) \\
-$C_s$ =  $\rho_s$  $c_s$    & Volumetric Soil Heat Capacity & J/(m$^3$ K) & 0 - $\infty$       & 2e$^{9}$ J/(m$^3$ K) \\
+$K_e$  & Kersten Number &  [-] & 0 - 1  &   $\sim$0 for dry , $\sim$1 for wet soils      \\
+$\gamma$ & [ ??? ] & [ ??? ] & [ ??? ]  &    [ ??? ]      \\
+
+\hline
+Constants (known) & Description   & Units     & Range & Example value \\ \hline
 $\alpha_s$ =  $\lambda_s$ / $C_s$    & Thermal Diffusivity & m$^2$/s  & 0 - $\infty$       & 2e$^{-6}$ m$^2$/s \\
 $\lambda_s$       & Soil Thermal Conductivity & W/(m K) & 0 - $\infty$       & 0.85 W/(m K) \\
 $\lambda_{sat}$       & Saturated Thermal Conductivity & W/(m K) & 0 - $\infty$       & 0.35 W/(m K) \\
 $\lambda_{dry}$       & Dry Thermal Conductivity & W/(m K) & 0 - $\infty$       & 1.5 W/(m K) \\
-$f_{om}$   & Organic Matter Fraction &   [\%]        &   0 - 100           &    3-6 \%       \\
-$\rho_{om}$ [ ??? ]  & Organic Matter Density & kg/m$^3$ & 0 - $\infty$       & 150 kg/m$^{3}$  \\
-$\rho_{om,max}$ [ ??? ]  & Maximum Organic Matter Density &  kg/m$^3$ & 0 - $\infty$          &    2650 kg/m$^{3}$      \\
-$K_e$  & Kersten Number &  [-] & 0 - 1  &   $\sim$0 for dry , $\sim$1 for wet soils      \\
-$\gamma$ & [ ??? ] & [ ??? ] & [ ??? ]  &    [ ??? ]      \\
+
+\hline
+Constants (empirical) & Description   & Units     & Range & Example value \\ \hline
+$\rho_s$       & Density of Soil & kg/m$^3$ & 0 - $\infty$       & 2.65 g/cm$^{3}$ or 2650 kg/m$^{3}$ \\
+$c_s$       & Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 1000 J/(kg K) \\
+$C_s$ =  $\rho_s$  $c_s$    & Volumetric Soil Heat Capacity & J/(m$^3$ K) & 0 - $\infty$       & 2e$^{9}$ J/(m$^3$ K) \\
 $c_s,dry$       & Dry Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 800 J/(kg K) \\
 $c_s,liq$       & Wet Soil Heat Capacity & J/(kg K) & 0 - $\infty$       & 1600 J/(kg K) \\
 $c_s,bedrock$       & Heat Capacity at Bedrock Layer & J/(kg K) or J/(m K) & 0 - $\infty$       & 2e$^{6}$ J/(m K) [ ??? ] \\
 $c_s,om$       & Heat Capacity of Organic Matter &  J/(kg K) or J/(m K) & 0 - $\infty$       & 2.5e$^{6}$ J/(m K) [ ??? ] \\
+$\rho_{om}$ [ ??? ]  & Organic Matter Density & kg/m$^3$ & 0 - $\infty$       & 150 kg/m$^{3}$  \\
+$\rho_{om,max}$ [ ??? ]  & Maximum Organic Matter Density &  kg/m$^3$ & 0 - $\infty$          &    2650 kg/m$^{3}$      \\
+
 \hline
 \end{tabular}%
 }
@@ -199,25 +208,40 @@ with $K_{\rm sat}$ the saturated hydraulic conductivity.
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lllll}
 \hline
-Variables & Description   & Units     & Range  & Example value \\ \hline
-$\theta$       & Relative Water Content                    & m$^3$/m$^3$ & 0 - 1       & 0.2 m$^3$/m$^3$ \\
-$K$   & Hydraulic Conductivity &   m/s or cm/day       &    0 - $\infty$ & 0.1 cm/day    \\
-$K_{sat}$   & Saturated Hydraulic Conductivity &   m/s or cm/day       &    0 - $\infty$ & 10 cm/day                    \\
+State Variables & Description   & Units     & Range & Example value \\ \hline
 $S$       & Water Storage                    & m$^3$/m$^3$ & 0 - 1 & 0.43 m$^3$/m$^3$       \\
-$S_{y}$       & Unconfined Aquifer Specific Yield   & m$^3$/m$^3$ &  0 - 1   & 0.2 m$^3$/m$^3$     \\
-$n$       & Porosity   & m$^3$/m$^3$  &   0 - 1  & 0.45 m$^3$/m$^3$     \\
-$S_{s}$       & Aquifer Storativity   & m$^3$/m$^3$ &  0 - 1 & 0.25 m$^3$/m$^3$       \\
 $b$       & Aquifer Thickness  & m &  0 - $\infty$  & 10 m        \\
+
+
+\hline
+Auxiliary State Variables & Description   & Units     & Range & Example value \\ \hline
+$\theta$       & Relative Water Content                    & m$^3$/m$^3$ & 0 - 1       & 0.2 m$^3$/m$^3$ \\
+$\psi$       & Matric Potential  & m or kPa &  $-\infty$ - $\infty$  & 10 m or 100 kPa       \\
 $h$       & Hydraulic Head  & m or kPa &  $-\infty$ - $\infty$    & 10 m or 100 kPa     \\
 $z$       & Height or Depth & m  &  0 - $\infty$    & 10 m     \\
-$\psi$       & Matric Potential  & m or kPa &  $-\infty$ - $\infty$  & 10 m or 100 kPa       \\
 $\bold{q}$       & Darcy's Flow  & m$^3$/s &  0 - $\infty$   & 1e$^{-6}$ m$^3$/s     \\
+
+
+\hline
+Constants (known) & Description   & Units     & Range & Example value \\ \hline
+$S_{y}$       & Unconfined Aquifer Specific Yield   & m$^3$/m$^3$ &  0 - 1   & 0.2 m$^3$/m$^3$     \\
+$S_{s}$       & Aquifer Storativity   & m$^3$/m$^3$ &  0 - 1 & 0.25 m$^3$/m$^3$       \\
+$K$   & Hydraulic Conductivity &   m/s or cm/day       &    0 - $\infty$ & 0.1 cm/day    \\
+$K_{sat}$   & Saturated Hydraulic Conductivity &   m/s or cm/day       &    0 - $\infty$ & 10 cm/day                    \\
+$n$       & Porosity   & m$^3$/m$^3$  &   0 - 1  & 0.45 m$^3$/m$^3$     \\
+
+
+\hline
+Constants (empirical) & Description   & Units     & Range & Example value \\ \hline
 $\theta_{r}$       & Residual Water Content   & m$^3$/m$^3$ & 0 - 1       & 0.05 m$^3$/m$^3$ \\
 $\theta_{s}$       & Saturated Water Content   & m$^3$/m$^3$ & 0 - 1       & 0.45 m$^3$/m$^3$ \\
 $\alpha$   & VG Scale Parameter for Retention Function & cm$^{-1}$ & 1e$^{-6}$ - 1e$^{-4}$  & 1e$^{-5}$ cm$^{-1}$ \\
 $n$   & VG Shape Parameter for Retention Function & (-) & 4.0 - 8.0  & 7.1 \\
 $L$   & VG Empirical Parameter for Retention Function & (-) & 0 - 1  & 0.5 \\
-$S_{e}$   & Relative Degree of Saturation of the Soil & (-) & 0 - 1  & 0.25 \\ 
+$S_{e}$   & Relative Degree of Saturation of the Soil & (-) & 0 - 1  & 0.25 \\
+
+
+
 \hline
 \end{tabular}%
 }
