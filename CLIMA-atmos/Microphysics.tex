@@ -99,7 +99,7 @@ This equation describes how the water vapor density in the vicinity of a moving 
 \end{equation}
 As long as the time scale of the droplet's diffusional growth/reduction is faster than that of (major) fluctuations in the environmental water vapor density (and in most atmospheric flow settings it is), the steady-state assumption is a good approximation. Transformation to spherical coordinates gives the following equation for the radial component of equation~(\ref{eq:laplace}):
 \begin{equation}
-    \frac{1}{r^2}\frac{\partial}{\partial r} \left(r^2 \frac{\partial \rho_v}{\partial r} \right) = 0
+    \frac{1}{r^2}\frac{\partial}{\partial r} \left(r^2 \frac{\partial \rho_v}{\partial r} \right)
     \label{eq:laplace_radial}
 \end{equation}
 At the droplet surface, $\rho_v = \rho_{v, r_d}$ (which is usually assumed to be the saturated water vapor density), and for $r \rightarrow \infty$, $\rho_v = \rho_{v, \infty}$ (a constant water vapor density far away from the droplet). With these boundary conditions, the solution to equation~(\ref{eq:laplace_radial}) becomes:
@@ -112,17 +112,60 @@ Our final goal is an expression for $dm/dt$, the time rate of change of a drop's
     \frac{dm}{dt} = 4 \pi D_v r_d (\rho_{v, \infty} - \rho_{v, r_d}) 
     \label{eq:condens_dm_dt}
 \end{equation}
-When $\rho_{v, \infty}$ exceeds $\rho_{v, r_d}$, the drop will gain mass, and conversely it will lose mass. In this derivation we have made the assumption that the diffusivity $D_v$ is the same in free air as it is just above the droplet surface, where water vapor may behave more like an ensemble of molecules than a continuum. We have also neglected latent heat effects, i.e., we have assumed that the temperature at the surface of the droplet is the same as that of the ambient air. In reality, the temperature at the surface of a growing droplet is warmer due to the latent heat release associated with condensation of water vapor. This increases the saturation vapor pressure above the droplet surface, decreasing the difference between $\rho_{v, \infty}$ and $\rho_{v, r_d}=\rho_{v, sat}$ in equation~({\ref{eq:condens_dm_dt}}), thereby slowing the droplet's condensational growth.
+When $\rho_{v, \infty}$ exceeds $\rho_{v, r_d}$, the drop will gain mass, and conversely it will lose mass. In this derivation we have made the assumption that the diffusivity $D_v$ is the same in free air as it is just above the droplet surface, where water vapor may behave more like an ensemble of molecules than a continuum. We have also neglected latent heat effects, i.e., we have assumed that the temperature at the surface of the droplet is the same as that of the ambient air. In reality, the temperature at the surface of a growing droplet is warmer due to the latent heat release associated with condensation of water vapor. This increases the saturation vapor pressure above the droplet surface, decreasing the difference between $\rho_{v, \infty}$ and $\rho_{v, r_d}=\rho_{sat, r_d}$ in equation~({\ref{eq:condens_dm_dt}}), thereby slowing the droplet's condensational growth. The latent heat effect is a significant factor in diffusional droplet growth -- in the following, we thus expand equation (\ref{eq:condens_dm_dt}) to include this process.
 
+A continued diffusion of water vapor molecules onto the droplet surface requires diffusion of enthalpy (heat) in the opposite direction. In analogy to equation (\ref{eq:condens_dm_dt}), the steady-state equation for diffusion of heat ($q$) toward the droplet is given by
+\begin{equation}
+\frac{dq}{dt} = 4 \pi K r_d (T_{\infty} - T_{r_d}),
+\label{eq:dq_dt}
+\end{equation}
+where $K$ is the thermal conductivity coefficient, $T_\infty$ is the environmental temperature, and $T_{r_d}$ is the temperature at the drop's surface. Note that in most drop diffusion growth problems, $T_\infty$ is given but $T_{r_d}$ needs to be determined.
+
+The difference between the rate of latent heat production at the drop's surface and the rate at which heat is transported away from the drop determines the temperature change at the drop's surface:
+\begin{equation}
+\frac{4 \pi}{3} r_d^3 \rho_l c_{pw} \frac{dT_{r_d}}{dt} = L_v \frac{dm}{dt} - \frac{dq}{dt},
+\label{eq:dT_dt_at_drop_surface}
+\end{equation}
+where $c_{pw}$ is the is the specific heat of water at constant pressure and $L_v$ is the latent heat of vaporization. Assuming a steady-state-diffusion process ($\frac{dT_{r_d}}{dt} = 0$), temperature and density fields are then related according to
+\begin{equation}
+L_v D_v  (\rho_{v, \infty} - \rho_{v, r_d}) = K (T_{\infty} - T_{r_d})
+\label{eq:steady_state_diffusion_condition}
+\end{equation}
+Recalling that $\rho_{v, r_d}=\rho_{sat, r_d}$, which -- for a given drop size, solute amount and type -- is only a function of $T_{r_d}$, we note that equation (\ref{eq:steady_state_diffusion_condition}) is an implicit
+equation of $T_{r_d}$, or equivalently of $\rho_{v, r_d}$. Together with equation (\ref{eq:condens_dm_dt}), it forms a coupled system with no known analytical solutions. One way to proceed is to do a first-order Taylor expansion of $\rho_{v, r_d}$ about the ambient temperature $T_{\infty}$ (apologies for the sloppy use of the equality sign):
+\begin{equation}
+    \rho_{v, r_d}(T_{r_d}) = \rho_{v, r_d}(T_{\infty}) + \frac{d}{dT}\biggr\rvert_{T_{\infty}} (T_{r_d} - T)
+\end{equation}
+Using equation (\ref{eq:dq_dt}) and equation (\ref{eq:steady_state_diffusion_condition}), $(T_{r_d} - T)$ can be expressed in terms of the condensation rate, and we obtain 
+\begin{equation}
+    \rho_{v, r_d}(T_{r_d}) = \rho_{v, r_d}(T_{\infty}) + \frac{d\rho_{sat, r_d}}{dT}\biggr\rvert_{T_{\infty}} \left(\frac{L_v}{4\pi r_d K}\frac{dm}{dT}\right)
+\end{equation}
+Substituting this expression into equation (\ref{eq:condens_dm_dt}) and solving for $\frac{dm}{dt}$, we get
+\begin{equation}
+    \frac{dm}{dt} = 4 \pi r_d D_v \left(\frac{\rho_{v, \infty} - \rho_{sat, r_d}(T_\infty)}{1 + \frac{D_v L_v}{K} + \frac{d\rho_{sat, r_d}}{dT}\rvert_{T_{\infty}}}\right)
+\end{equation}
+
+This equation describes the diffusional growth (or shrinkage) of a droplet of radius $r_d$ in a vapor field of density $\rho_{v, \infty}$ and temperature $T_\infty$. The final step is to derive an expression for $\frac{d\rho_{sat, r_d}}{dT}\biggr\rvert_{T_{\infty}}$. Assuming that the drop is large enough for the curvature and solute effects to be negligible, we can make use of the Clausius-Clapeyron relation, $\frac{d ln(e_{sat})}{dT} = \frac{L_v}{R_v T^2}$ (where $e_{sat}$ is the saturation water vapor pressure and $R_v$ is the specific gas constant of water vapor):
+\begin{equation}
+    \frac{d\rho_{sat, r_d}}{dT}\biggr\rvert_{T_{\infty}} = \frac{1}{R_v T_\infty} \frac{d e_*(T_\infty}{dT} - \frac{e_*(_\infty)}{R_v T_\infty^2} = \frac{e_*}{R_v T_\infty^2} \left(\frac{L_v}{R_v T_\infty} - 1 \right),
+\label{eq:claus_clap}
+\end{equation}
+where $e_*$ is the ``base value'' of $e_{sat}$, i.e., the value for pure water in the absence of surface tension effects. Finally, we can combine the last two equations into an expression for diffusional growth that includes latent heat effects:
+\begin{equation}
+    \frac{dm}{dt} = 4 \pi r_d \left(\frac{\mathcal{S} - 1}{F_D + F_K}\right), 
+\end{equation}
+with
+\begin{equation}
+    F_K(T) = \frac{L_v \rho_l}{K T} \left(\frac{L_v}{R_vT} - 1\right) `~\textrm{and} ~~ F_D(T) = \frac{R_v T \rho_l}{D_v e_*(T)}
+\end{equation}
 Using equation (\ref{eq:condens_dm_dt}), the moments' form of the contribution of condensation and evaporation becomes:
 \begin{equation}
 \begin{aligned}
     \frac{\partial M_k}{\partial t} \biggr\rvert_{cond} &= k\int_0^\infty m^{k-1}\dot{m}f(m) \text{dm} \\
-                                                        &= k\int_0^\infty m^{k-1}4 \pi D_v r_d (\rho_{v, \infty} - \rho_{v, r_d})f(m) \text{dm}
+                                                        &= k\int_0^\infty m^{k-1}4 \pi r_d \left(\frac{\mathcal{S} - 1}{F_D + F_K}\right)f(m) \text{dm}
 \label{eq:condensation_moments}
 \end{aligned}
 \end{equation}
-
 \noindent
 \colorbox{pink}{\parbox{12cm}{Anna's comment: I don't think that neglecting latent heat effects is a good approximation. 
 You could look at the derivation for eq 5.106 in the book by Jerry Straka Cloud and Precipitation 
@@ -130,7 +173,7 @@ Microphysics Principles and Parameterizations. Or in chapter 16 in Jacobson, M.:
 use Clausius-Clapeyron relation, assume that the temperature at the drop surface is close to the ambient temperature and water vapor density at the drop surface is close to saturation.
 After all of that you will end up with an equation for drop radius like eq (11) in Microphysics
 docs for CLIMA}}
-
+\colorbox{orange}{\parbox{12cm}{Melanie's comment: Included latent heat effects. Other processes that may/should be included at some point: curvature and solute effects, molecular kinetic effects (for small droplets, continuum description may not be a good approximation), ventilation effects (when a drop is large enough to fall trough the vapor field, the equilibrium assumption for the water vapor field in the drop's vicinity may not be well justified).}}
 
 
 \section{Sedimentation of Droplets}
@@ -146,11 +189,11 @@ The magnitudes (z-components) of these forces are given by:
 \begin{aligned}
     F_B &= \frac{4}{3} \pi r^3 \rho_a g \\
     F_D &= C_D \frac{1}{2} \rho_a v^2 A \\
-    F_G &= -\frac{4}{3} \pi r^3 \rho_w g
+    F_G &= -\frac{4}{3} \pi r^3 \rho_l g
 \label{eq:forces_definitions}
 \end{aligned}
 \end{equation}
-where $r$ is the droplet radius, $\rho_a$ is the air density, $\rho_w$ is the density of water, $C_D$ is the drag coefficient, $v$ is the droplet's vertical velocity, and $A = \pi r^2$ is the droplet's cross-sectional area.
+where $r$ is the droplet radius, $\rho_a$ is the air density, $\rho_l$ is the density of water, $C_D$ is the drag coefficient, $v$ is the droplet's vertical velocity, and $A = \pi r^2$ is the droplet's cross-sectional area.
 When the right-hand side of equation~(\ref{eq:forces_falling_droplet}) vanishes, we have that $\frac{d\mathbf{u}}{dt} = 0$, i.e., the droplet falls at constant velocity relative to the surrounding air. This steady-state (or terminal) settling  velocity, denoted $v_s$, is obtained by setting the left-hand side of equation~(\ref{eq:forces_falling_droplet}) to zero and solving for $v$. This yields
 \begin{equation}
     v_s = \sqrt{\frac{8 g r}{3 \, C_{D}} \left( \frac{\rho_{w} - \rho_a}{\rho_a} \right)}
@@ -158,22 +201,21 @@ When the right-hand side of equation~(\ref{eq:forces_falling_droplet}) vanishes,
 \end{equation}
 Note that the drag coefficient depends itself on the velocity, so in the general case, equation~(\ref{eq:settling_velocity}) represents an implicit equation for $v_s$. There are different approximations and empirical formulas for determining the settling velocities of droplets of various sizes falling at different pressure levels. For example, in the Stokes regime (Reynolds numbers $\ll 1$), inertial forces can be ignored, and the drag is given by $F_D = 6 \pi \eta r v_s$ (where $\eta$ is the dynamic viscosity of air). In this regime, which is a good approximation for falling cloud droplet of less than a few tens of micrometers in radius, the drag force is thus  proportional to the speed (rather than the square of the speed), and $v_s$ is given explicitly by:
 \begin{equation}
-    v_{s, Stokes} = \frac{2 r^2 g (\rho_w - \rho_a)}{9 \eta}
+    v_{s, Stokes} = \frac{2 r^2 g (\rho_l - \rho_a)}{9 \eta}
 \label{eq:settling_velocity_stokes}
 \end{equation}
 For larger drops, there are no simple drag expressions, and drag coefficients have to be modelled using machine learning and/or experimental results.
 
 Another point worth mentioning is that we assume cloud and raindrops to always fall at their terminal velocities, whereas in reality it takes some time for each drop to reach its terminal velocity. Since the terminal velocity represents an upper bound to a drop's fall speed, this assumption will lead to an overestimation of the average droplet fall speed.
 
-With the expression for $v_s$ derived in this section and writing it as a function of mass instead of radius (for a spherical water droplet with radius $r$, $m = \frac{4 \pi}{3} r^3 \rho_w$), the moments' form of the contribution of sedimentation under the influence of gravity becomes:
+With the expression for $v_s$ derived in this section and writing it as a function of mass instead of radius (for a spherical water droplet with radius $r$, $m = \frac{4 \pi}{3} r^3 \rho_l$), the moments' form of the contribution of sedimentation under the influence of gravity becomes:
 
 \begin{equation}
 \begin{aligned}
     \frac{\partial M_k}{\partial t} \biggr\rvert_{sedi} &= -\frac{\partial}{\partial z}\int_0^\infty m^k v_s(m) f(m) \text{d}m \\
-                                                        &= -\frac{\partial}{\partial z}\int_0^\infty m^k \sqrt{\frac{8 g \left(\frac{3 m}{4 \pi \rho_w}\right)^{\frac{1}{3}}}{3 C_{D}} \left( \frac{\rho_{w} - \rho_a}{\rho_a} \right)} f(m) \text{d}m
+                                                        &= -\frac{\partial}{\partial z}\int_0^\infty m^k \sqrt{\frac{8 g \left(\frac{3 m}{4 \pi \rho_l}\right)^{\frac{1}{3}}}{3 C_{D}} \left( \frac{\rho_{w} - \rho_a}{\rho_a} \right)} f(m) \text{d}m
 \end{aligned}
 \label{eq:sedimentation_moments}
-
 \end{equation}
 
 
