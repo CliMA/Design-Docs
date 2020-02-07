@@ -259,6 +259,182 @@ source\footnote{see
 \texttt{\url{https://github.com/climate-machine/CLIMA/blob/master/src/DGmethods}}}
 in the function \texttt{NumericalFluxes.jl}.
 
+\section{Boundary condition treatment for advection-diffusion}
+Consider the following scalar advection-diffusion equation
+\begin{align}
+  \label{eqn:AD}
+  \diff{\rho}{t} + \diff{\rho}{x} = \diff{^2\rho}{x^2},~ -1 \le x \le 1
+\end{align}
+with Dirichlet boundary conditions
+\begin{align}
+  \rho(-1, t) = \rho(1, t) = 0.
+\end{align}
+Following the DG approach outlined above, the auxiliary variable
+$\sigma = \diff{\rho}{x}$ is introduced so that \eqref{eqn:AD1} becomes
+\begin{align}
+  \label{eqn:AD:split}
+  \diff{\rho}{t} + \diff{\rho}{x} &= \diff{\sigma}{x},\\
+  \sigma - \diff{\rho}{x} &= 0.
+\end{align}
+Since the motivation here is to discuss boundary treatment, it is sufficient to
+take the domain $-1 < x < 1$ to be discretized with a single element. In this
+case, a discretization of~\eqref{eqn:AD:split} is then
+\begin{align}
+  \label{eqn:AD:1}
+  \int_{-1}^{1} \left(\psi \diff{\rho}{t}
+  + \frac{1}{2}\left(\psi \diff{\rho}{x} - \diff{\psi}{x} \rho\right)
+  + \diff{\psi}{x} \sigma\right) &= {\left[\psi\left(\sigma^{*} - \rho_{1}^{*} +
+  \frac{1}{2} \rho^{-}\right)\right]}_{-1}^{1},\\
+  \label{eqn:AD:2}
+  \int_{-1}^{1} \left(\phi \sigma - \phi\diff{\rho}{x}\right)
+  &= {\left[\phi\left(\rho_{2}^{*} - \rho^{-}\right) \right]}_{-1}^{1}.
+\end{align}
+Here $\sigma^{*}$, $\rho_{1}^{*}$, and $\rho_{2}^{*}$ are the numerical fluxes through
+which the boundary conditions are imposed. Note that if more than one element
+was used, the form of the DG scheme would be same, except Jacobian determinant
+terms would arise to take into account the mapping between the reference element
+and physical element, and the numerical fluxes would be used to imposed
+continuity of the solution as opposed to the boundary conditions.
+
+Our primary concern is to determine how to choose the numerical fluxes in a
+stable manner. To do this we want to pick the numerical fluxes so that they are
+consistent with the boundary conditions and lead to a non-increasing energy
+(norm) of the solution. To do this we define the energy of the solution as
+\begin{align}
+  E = \frac{1}{2}\int_{-1}^{1} \rho^2,
+\end{align}
+and seek to show that $dE/dt \le 0$. Considering this derivative gives
+\begin{align}
+  \frac{d E}{dt} &= \int_{-1}^{1} \rho \rho_{t}.
+\end{align}
+Using~\eqref{eqn:AD:1} with $\psi = \rho$ this can then be rewritten as
+\begin{align}
+  \notag
+  \frac{d E}{dt} &=
+  -\int_{-1}^{1} \left(
+  \frac{1}{2}\left(\rho \diff{\rho}{x} - \diff{\rho}{x} \rho\right)
+  + \diff{\rho}{x} \sigma\right) + {\left[\rho^{-}\left(\sigma^{*} - \rho_{1}^{*} +
+  \frac{1}{2} \rho^{-}\right)\right]}_{-1}^{1}\\
+  \label{eqn:AD:E:1}
+  &=
+  -\int_{-1}^{1} \left(\diff{\rho}{x} \sigma\right) +
+  {\left[\rho^{-}\left(\sigma^{*} - \rho_{1}^{*} + \frac{1}{2}
+  \rho^{-}\right)\right]}_{-1}^{1}.
+\end{align}
+Using~\eqref{eqn:AD:2} with $\phi = \sigma$ gives
+\begin{align}
+  \int_{-1}^{1} \sigma\diff{\rho}{x} =
+  \int_{-1}^{1} \sigma^2 -
+  {\left[\sigma^{-}\left(\rho_{2}^{*} - \rho^{-}\right) \right]}_{-1}^{1}.
+\end{align}
+which allows~\eqref{eqn:AD:E:1} to be rewritten as
+\begin{align}
+  \frac{d E}{dt} &=
+  -\int_{-1}^{1} \sigma^2
+  +{\left[\sigma^{-}\left(\rho_{2}^{*} - \rho^{-}\right)
+  +
+  \rho^{-}\left(\sigma^{*} - \rho_{1}^{*} + \frac{1}{2}
+  \rho^{-}\right)\right]}_{-1}^{1}.
+\end{align}
+Since $\sigma^{2} > 0$ the volume integral leads to energy dissipation and only
+the boundary terms need to be considered. Since we
+Since we have no boundary condition on $\sigma$ it is natural to choose
+$\sigma^{*} = \sigma^{-}$, and the boundary term becomes
+\begin{align}
+  {\left[\sigma^{-}\left(\rho_{2}^{*} - \rho^{-}\right)
+  +
+  \rho^{-}\left(\sigma^{*} - \rho_{1}^{*} + \frac{1}{2}
+  \rho^{-}\right)\right]}_{-1}^{1}
+  =
+  {\left[\sigma^{-}\rho_{2}^{*}
+  -
+  \rho^{-}\rho_{1}^{*} + \frac{1}{2}
+  {\left(\rho^{-}\right)}^{2}\right]}_{-1}^{1}.
+\end{align}
+
+Let's consider a few different choices for $\rho^{*}_{1}$ and $\rho^{*}_{2}$.
+
+\medskip
+\noindent{\bf Try 1:} $\rho^{*}_{1} = \rho^{*}_{2} = 0$.\\
+Making this choice the boundary term becomes
+\begin{align}
+  \notag
+  {\left[\sigma^{-}\rho_{2}^{*}
+  -
+  \rho^{-}\rho_{1}^{*} + \frac{1}{2}
+  {\left(\rho^{-}\right)}^{2}\right]}_{-1}^{1}
+  &=
+  \frac{1}{2}
+  {\left.
+  {\left(\rho^{-}\right)}^{2}
+  \right|}_{-1}^{1}\\
+  &=
+  \frac{1}{2}
+  \left(
+  {\left.
+  {\left(\rho^{-}\right)}^{2}
+  \right|}_{x=1}
+  -
+  {\left.
+  {\left(\rho^{-}\right)}^{2}
+  \right|}_{x=-1}
+  \right).
+\end{align}
+The contribution at $x=-1$ is negative but the contribution at $x=1$ is positive
+which means that we cannot guarantee that $dE/dt \le 0$.
+
+\medskip
+\noindent{\bf Try 2:} $\rho^{*}_{1} = \rho^{*}_{2} = \rho^{-}/2$.\\
+This choice is essentially saying that we will use an average of the internal
+value and the boundary condition. This is consistent because if the exact
+solution is used $\rho^{-} = 0$.
+Making this choisce the boundary term becomes
+\begin{align}
+  \notag
+  {\left[\sigma^{-}\rho_{2}^{*}
+  -
+  \rho^{-}\rho_{1}^{*} + \frac{1}{2}
+  {\left(\rho^{-}\right)}^{2}\right]}_{-1}^{1}
+  &=
+  \frac{1}{2}
+  {\left[\sigma^{-}\rho^{-}
+  -
+  {\left(\rho^{-}\right)}^{2} +
+  {\left(\rho^{-}\right)}^{2}\right]}_{-1}^{1}\\
+  &=
+  \frac{1}{2} {\left.\sigma^{-}\rho^{-} \right|}_{-1}^{1}.
+\end{align}
+Since nothing can be said about the sign of $\sigma^{-}\rho^{-}$ nothing can be
+said about the sign of the contribution and there is no guarantee that $dE/dt <
+0$.
+
+\noindent{\bf Try 3:} $\rho^{*}_{1} = \rho^{-}/2$ and $\rho^{*}_{2} = 0$.\\
+This choice is essentially saying that we will use an average of the internal
+value and the boundary condition for $\rho^{*}_{1}$ and directly impose the
+boundary condition for $\rho^{*}_{2}$.
+Making this choisce the boundary term becomes
+\begin{align}
+  \notag
+  {\left[\sigma^{-}\rho_{2}^{*}
+  -
+  \rho^{-}\rho_{1}^{*} + \frac{1}{2}
+  {\left(\rho^{-}\right)}^{2}\right]}_{-1}^{1}
+  &=
+  \frac{1}{2}
+  {\left[
+  -
+  {\left(\rho^{-}\right)}^{2} +
+  {\left(\rho^{-}\right)}^{2}\right]}_{-1}^{1}
+  = 0.
+\end{align}
+Thus with this approach, the contribution from the boundary is zero and we have
+that
+\begin{align}
+  \frac{d E}{dt} &=
+  -\int_{-1}^{1} \sigma^2
+  \le 0.
+\end{align}
+
 \section{Boundary Conditions}
 \label{sec:boundary_conditions}
 
