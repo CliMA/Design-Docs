@@ -1,5 +1,7 @@
 \documentclass{report}
 
+\newcommand{\hlc}[2][yellow]{ {\sethlcolor{#1} \hl{#2}} }
+
 \include{CLIMA_Macros}
 \usepackage[inline]{enumitem}
 
@@ -12,10 +14,11 @@
 \maketitle
 \tableofcontents
 
+\hl{[simon]:  can we add a table of terms, and their corresponding symbols and function names in the code?}
 
 \chapter{Space Discretization}
 
-\hl{2019/09/19: I (Jeremy) am working on rewriting this. Still have some things to add, so it should be seen as a work in progress\dots}
+%\hl{2019/09/19: I (Jeremy) am working on rewriting this. Still have some things to add, so it should be seen as a work in progress\dots}
 
 \section{Problem Formulation}
 
@@ -31,7 +34,7 @@ Here,
 \begin{equation}
     \vec{\Sigma} = \diffusive(\vec{Y}, \nabla \gradvariables(\vec{Y}, \vec{x}, t), t)
 \end{equation}
-is an auxiliary variable that has been introduced to account for terms that depend on the gradient of the state vector $\vec{Y}$. The function $\gradvariables$ transforms the state prior to the variables to have the gradient taken, and the function $\diffusive$ is used to transform to the auxiliary variables. In principle $\diffusive$ could be applied in $\Fdiff$, but this formulation allows the most flexibility in terms of enforcing continuity of the solution, namely $\vec{\Sigma}$ should be the quantity that continuity is enforced on.
+is an auxiliary variable that has been introduced to account for terms that depend on the gradient of the state vector $\vec{Y}$ (i.e., it is the auxiliary variable that represents the derivative of a quantity in the LDG formulation). The function $\gradvariables$ transforms the state prior to the variables to have the gradient taken, and the function $\diffusive$ is used to transform to the auxiliary variables. In principle $\diffusive$ could be applied in $\Fdiff$, but this formulation allows the most flexibility in terms of enforcing continuity of the solution, namely $\vec{\Sigma}$ should be the quantity that continuity is enforced on.
 
 For the spatial discretization, we use variants of the discontinuous Galerkin (DG) method with tensor-product bases (see, e.g., \citealt{giraldo:2008a,abdi:2016}). We use hexahedral (cube) elements in three dimensions.  The nodal tensor-product DG methods are extremely accurate and efficient.  For example, using a basis comprised of $N$-th degree Lagrange polynomials results in approximately an accuracy of $\order(\Delta x^{N+1})$. Furthermore, using inexact integration results in a per-element complexity of $\order(N^{d+1})$ for constructing derivatives, where $d$ denotes the dimension of the space. For both the global and LES models, we use fully three-dimensional DG methods.
 
@@ -82,7 +85,7 @@ reference element. In 3-D the solution inside the element is taken to be
   l_{i}(\xi_{1}) l_{j}(\xi_{2}) l_{k}(\xi_{3})
   \vec{Y}_{ijk}^{(e)}(t),
 \end{align}
-Here $l_{i}(\vec{x})$ are 1-D Lagrange polynomials associate with a set of
+Here $l_{i}(\vec{x})$ are 1-D Lagrange polynomials associated with a set of
 abscissae ${\{\hat{\xi}_{k}\}}_{k=0}^{N}$ (which should not be confused with
 $\xi_{k}$ which is a component of $\vec{\xi}$). In terms of the physical
 coordinate $\vec{x}$ the solution inside the element is then
@@ -114,7 +117,8 @@ such that
   -
   \nabla\vec{\Psi} \cdot
   \Fdiff
-  \right)\\\notag
+  \right)
+  \label{eq:dg_formulation/governing_equations} \\\notag
   &\quad\quad\quad =
   \int_{e} \vec{\Psi}^T \Source
   -
@@ -140,15 +144,19 @@ such that
   \diffusive^{*} - \diffusive\left(\vec{Y}^{-},
   \nhat^{-}\gradvariables^{-}, t\right)
   \right),
+  \label{eq:dg_formulation/auxiliary_equations}
 \end{align}
+\hl{[simon]: is there a reason we write $\nhat^{-}$ instead of just $\vec{n}$? It would make it slightly cleaner.}\\
+\hl{[jeremy]: main reason I did this is to make it clear that the normal is not with respect to the face, but the element. Some folks use a unique face normal for each face, whereas we define the normal with respect to the element on the minus side. I've seen it both ways in the literature.}
+\fxg{We could use $\nhat$ with a statement that it is the normal on the interior side and use other notation when not the case.  It does break the symmetry a bit when we have both plus and minus sides in an equation. We can do away with the plus side normals entirely then. I'm OK either way. If we agree to remove plus and minuses from the normals, I can clean this up to reflect this change.} 
+
 for all $\vec{\Psi} \in \mathbb{Q}^{N}(\hat{e})$ and $\vec{\Phi} \in
-\mathbb{Q}^{N}(\hat{e})$.  Here it is understood that $\Fnondiff =
+\mathbb{Q}^{N}(\hat{e})$.  Looking at these equations, it can be seen that we treat Eq.\ \eqref{eq:dg_formulation/governing_equations} in weak form\footnote{The \emph{weak} form means that we use integration by parts to move the gradient from the flux function to the basis function as shown in the volume integral ($e$) of Eq.\ \eqref{eq:dg_formulation/governing_equations}.} and Eq.\ \eqref{eq:dg_formulation/auxiliary_equations} in strong form \footnote{The \emph{strong} form means that we use a second integration by parts to move the gradient back to the flux function, which results in the extra term in the surface integral ($\partial e$) of Eq.\ \eqref{eq:dg_formulation/auxiliary_equations}.}. Here it is understood that $\Fnondiff =
 \Fnondiff(\vec{Y}, t)$, $\Fdiff = \Fdiff(\vec{Y}, \vec{\Sigma}, t)$, and
-$\gradvariables = \gradvariables(\vec{Y}, t)$. In the surface integrals, the
-terms with a subscript $-$ are evaluated inside the element and the terms with a
-subscript $*$ are the numerical fluxes which enforce continuity of the solution
-across element interfaces and are used to enforce boundary conditions. At
-interior element interfaces the numerical flux functions have the following
+$\gradvariables = \gradvariables(\vec{Y}, t)$. In the surface integrals, for any quantity $q$, the
+terms $q^-$ are evaluated inside the element $e$, $q^+$ on the face neighbor, and $q^*$ are the numerical fluxes which enforce continuity of the solution
+across element faces and are used to enforce boundary conditions. At
+interior element faces the numerical flux functions have the following
 dependencies:
 \begin{align}
   {\left(\nhat^{-} \cdot \Fnondiff\right)}^{*}
@@ -170,13 +178,9 @@ dependencies:
   \vec{Y}^{-}, \vec{Y}^{+}, \nhat^{-}, t
   \right).
 \end{align}
-The numerical fluxes are implemented in the CLIMA
-source\footnote{see
-\texttt{src/DGmethods/NumericalFluxes.jl} at
-\url{https://github.com/climate-machine/CLIMA/blob/master/src/DGmethods/NumericalFluxes.jl}}
-in the following functions:
 
-\begin{table}[h]
+
+\begin{table}[htbp]
   \centering
   \begin{tabular}{cl}
     ${\left(\nhat^{-} \cdot \Fnondiff\right)}^{*}$ & \texttt{numerical\_flux\_nondiffusive!}\\
@@ -187,67 +191,100 @@ in the following functions:
 
 \section{Numerical Flux}
 A variety of choices can be made for the numerical flux functions, and here we
-outline the choices made by \citet{bassi:1997nse} which we currently follow
-in CLIMA\@.
+outline the choices made by \citet{bassi:1997nse} which we follow in CLIMA.
 
 The numerical flux for the non-diffusive flux\footnote{In \citet[Eq.
 (10)]{bassi:1997nse} this is the function $\vec{h_{e}}$.} is set using the
 Rusanov (or Local Lax-Friedrichs) flux:
+\begin{equation}
+  \left( \nhat^{-} \cdot \Fnondiff\right)^{*} =
+  \frac{\nhat^{-}}{2} \cdot 
+  \left[ \left(\Fnondiff\right) ^{+} +
+  \left(\Fnondiff\right)^{-}
+  -
+  \lambda \nhat^{-} \left( \vec{Y}^{+} - \vec{Y}^{-} \right) 
+  \right],
+  \label{eq:nondiff_flux}
+\end{equation}
+\comment{
 \begin{align}
   {\left(
   \nhat^{-} \cdot \Fnondiff\right)}^{*} =
-  \frac{\nhat^{-} \cdot \left(
-  {\left(\Fnondiff\right)}^{-} +
-  {\left(\Fnondiff\right)}^{+}\right)
-  +
-  \lambda
-  \left(
-  \vec{Y}^{-}
+  \frac{\nhat^{-}}{2} \cdot 
+  \left[
+  {\left(\Fnondiff\right)}^{+} +
+  {\left(\Fnondiff\right)}^{-}
   -
-  \vec{Y}^{+}
-  \right)}{2},
+  \lambda \nhat^{-} \left( \vec{Y}^{+} - \vec{Y}^{-} \right) 
+  \right],
+  \label{eq:nondiff_flux}
 \end{align}
+}
 where $\lambda = \lambda(\vec{Y}^{-}, \vec{Y}^{+})$ is an estimate of the
 maximum wavespeed, i.e., the maximum eigenvalue of the Jacobian of the flux
-function $\Fnondiff$. Here the subscript $+$ denotes the value on face of the
-opposing element. As noted in \citet{bassi:1997nse} other choices of the
+function $\Fnondiff$. 
+%Here the subscript $+$ denotes the value on the face of the opposing element. 
+As noted in \citet{bassi:1997nse} other choices of the
 non-diffusive numerical flux are possible such as Roe, Engquist-Osher, HLLE
 (Harten, Lax, Van Leer, Einfeldt), and exact Godunov.
 
 The numerical flux for the diffusive flux\footnote{In \citet[Eq.
 (15)]{bassi:1997nse} this is the function $\vec{h_{v}}$.} is set using the
 central flux:
+\begin{equation}
+  \left( \nhat^{-} \cdot \Fdiff\right)^{*} =
+  \frac{\nhat^{-}}{2} \cdot \left[
+  \left(\Fdiff\right)^{+} + \left(\Fdiff\right)^{-} \right].
+   \label{eq:diff_flux}
+\end{equation}
+\comment{
 \begin{align}
   {\left(
   \nhat^{-} \cdot \Fdiff\right)}^{*} =
-  \frac{\nhat^{-} \cdot \left(
-  {\left(\Fdiff\right)}^{-} + {\left(\Fdiff\right)}^{+}
-  \right)}{2}.
+  \frac{\nhat^{-}}{2} \cdot \left[
+  {\left(\Fdiff\right)}^{+} + {\left(\Fdiff\right)}^{-}
+  \right].
+   \label{eq:diff_flux}
 \end{align}
-
+}
 The numerical flux for the auxiliary equation\footnote{In \citet[Eq.
 (13)]{bassi:1997nse} this is the function $\vec{H_{s}}$.} is set using the
 central flux:
-\begin{align}
-  \diffusive^{*} = \frac{ \diffusive^{-} + \diffusive^{+} }{2}.
-\end{align}
+\begin{equation}
+  \diffusive^{*} = \frac{1}{2} \left( \diffusive^{+} + \diffusive^{-} \right).
+  \label{eq:D_flux}
+\end{equation}
+The numerical fluxes are implemented in the CLIMA
+source\footnote{see
+\texttt{\url{https://github.com/climate-machine/CLIMA/blob/master/src/DGmethods}}}
+in the function \texttt{NumericalFluxes.jl}.
 
 \section{Boundary Conditions}
-For faces on the boundary of the domain the numerical fluxes are set so that the
-boundary condition is enforced weakly. Currently, in CLIMA this is done by
-calling the same numerical flux functions except with the exterior (or ghost)
-states $\vec{Y}^{+}$ and $\vec{\Sigma}^{+}$ set based on the interior state
-$\vec{Y}^{-}$ and $\vec{\Sigma}^{-}$ and boundary condition type. For all three
+\label{sec:boundary_conditions}
+
+\hl{[TS: To structure this section and make clear how to implement the boundary conditions, I suggest the following:
+
+(1) Work through Dirichlet conditions (e.g., no-slip, $\vec{u}  = 0$) completely. (This is essentially there in what follows below.) 
+
+(2) Work through impenetrable conditions, i.e., no normal advective flux ($\vec{n} \cdot \rho \vec{u} = 0$), completely. (Most is there in what follows, but it is mixed up with other conditions that need to be separated from the impenetrability condition.) 
+
+(3) Work through a boundary condition for a diffusive scalar flux (e.g., energy or water) completely. (This is incomplete below.)
+
+In each case, provide sufficient detail that the boundary conditions can easily be implemented in our code. It is important not to conflate these boundary conditions, that is, do not mix discussion of diffusive flux conditions with other conditions, and do not specify other state variables that are not needed in the above 3 cases (e.g., do not specify energy when you only need to specify impenetrability conditions). It will help with the implementation and to ensure physical and mathematical consistency to carry this conceptual separation through, as is done in the atmosphere design document.]}
+
+For faces on the boundary of the domain, the numerical fluxes are set so that the
+boundary condition is enforced weakly. In CLIMA this is done by
+calling the numerical flux functions given by Eqs.\ \eqref{eq:nondiff_flux}, \eqref{eq:diff_flux}, and \eqref{eq:D_flux} except with the exterior (or ghost)
+states $\vec{Y}^{+}$ and $\vec{\Sigma}^{+}$ based on the interior states
+$\vec{Y}^{-}$ and $\vec{\Sigma}^{-}$, and boundary condition type. For all three
 numerical fluxes this is done with the function \texttt{boundary\_state!} with
-multiple dispatch used to distinguish between the different fluxes\footnote{see
-\texttt{src/DGmethods/NumericalFluxes.jl} at
-\url{https://github.com/climate-machine/CLIMA/blob/master/src/DGmethods/NumericalFluxes.jl}}.
+multiple dispatch used to distinguish between the different fluxes.
+%\footnote{see \texttt{src/DGmethods/NumericalFluxes.jl} at \url{https://github.com/climate-machine/CLIMA/blob/master/src/DGmethods/NumericalFluxes.jl}}.
 
 Generally speaking, there is no generic way to do this for all boundary
-conditions and each boundary condition must be handled separately. Following,
-\citet{bassi:1997nse} here a few different boundary treatments are outlined for
+conditions and each boundary condition must be handled separately. Let us outline a few different boundary treatments for
 compressible Navier-Stokes. In this case we take the state vector $\vec{Y}$ and
-diffusive variables $\vec{\Sigma}$ to be
+diffusive variables $\vec{\Sigma}$ to be 
 \begin{align}
   \vec{Y} &=
   \begin{pmatrix}
@@ -259,14 +296,60 @@ diffusive variables $\vec{\Sigma}$ to be
   \vec{\Sigma} &= \rho \vec{\tau}
 \end{align}
 
+Following \citet{bassi:1997nse}, the general strategy for imposing boundary conditions is to impose the flux directly whenever possible, e.g., for the diffusive fluxes we should use these numerical fluxes at the boundary
+\begin{subequations}
+\begin{equation}
+    \diffusive^{*} = \diffusive^{bc}
+    \label{eq:diffusive_bcs/Ddiff}
+\end{equation} 
+\begin{equation}
+{\left( \nhat^{-} \cdot \Fdiff\right)}^{*}={\left( \nhat^{-} \cdot \Fdiff\right)}^{bc},
+\label{eq:diffusive_bcs/Fdiff}
+\end{equation}
+\label{eq:diffusive_bcs}
+\end{subequations}
+and impose the boundary condition on the state vector, e.g., 
+$\vec{Y}^{+}=\vec{Y}^{bc}$, when it is not possible to impose it directly on the flux. 
+
+An example of when it is not possible to impose the boundary condition directly on the flux is the case of Dirichlet boundary conditions for the non-diffusive flux; in this case we have to use  
+\begin{equation}
+\left( \nhat^{-} \cdot \Fnondiff\right)^{*} =
+  \left( \nhat^{-} \cdot \Fnondiff\right)^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right)
+  \label{eq:nondiffusive_bcs},
+\end{equation}
+that is, we use the values of $\vec{Y}$ at the boundary to construct the flux function $\Fnondiff$.
+ For the diffusive flux, we can impose Dirichlet boundary conditions directly to the approximation of the auxiliary variables $\diffusive^{*}$ using Eq.\ \eqref{eq:diffusive_bcs/Ddiff}. On the other hand, if we only know the Neumann boundary conditions (e.g., we need to impose a diffusive flux), we still need a boundary condition on $\vec{Y}$ at the boundary in order to construct $\diffusive^{*}$. In this situation, we use the transmissive boundary conditions defined below. \hl{[TS: This doesn't seem generally right to me (see below). If we need to specify boundary conditions on state variables when we impose diffusive fluxes---we shouldn't need to do that when we specify diffusive fluxes directly---then the boundary condition on $\vec{Y}$ should be consistent with the diffusive fluxes, i.e., it should be consistent with the implied gradients normal to the boundary that give the correct diffusive flux. Otherwise we are overspecifying the problem.]}
+
+\subsubsection{Transmissive Boundary Conditions}
+The transmissive boundary condition for compressible Navier-Stokes says
+that $\vec{Y}^{+} = \vec{Y}^{-}$ and $\vec{\Sigma}^{+} = \vec{\Sigma}^{-}$. 
+This is summarized as follows
+\begin{align}
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{-}, \nhat^{-}, t\right),\\
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
+  {\left( \nhat^{-} \cdot \Fdiff\right)}^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{-}, \vec{\Sigma}^{-}, \vec{\Sigma}^{-},
+  \nhat^{-}, t\right),\\
+  \diffusive^{*} &=
+  \diffusive^{*}
+  \left(\vec{Y}^{-}, \vec{Y}^{-}, \nhat^{-}, t\right).
+\end{align}
+This boundary condition is used to allow the information to \emph{transmit} through the boundary.  
+%For low order (finite volume) methods, this is the boundary condition used to impose non-reflecting boundary conditions.
+This is the proper boundary condition to use when no boundary condition is required for the state variables and gradients. In the impermeable wall boundary conditions below, we use the transmissive boundary for the scalar state variables (i.e., density and energy). \hl{[TS: This isn't generally right for scalars: We need to specify fluxes (diffusive) of energy and all other scalars (except density) across the boundary. The diffusive fluxes need to be consistent with Neumann conditions. Only when the fluxes are zero, this amounts to homogeneous Neumann conditions, hence conditions on normal gradients consistent with the conditions stated here (which imply zero gradients). Otherwise, the 'transmissive' conditions here seem inconsistent with the inhomogeneous  Neumann conditions implied by nonzero diffusive fluxes. --- More generally, I'm not sure why we need this subsection: (1) It does not generally apply to scalars other than density, and we are not differencing density itself, so why would we need to specify it on ghost points? (2) There is no case for `transmissive` boundary conditions in the atmosphere design document. They are not physically called for, and they seem to overspecify the problem mathematically.]}
+
 \subsubsection{Inflow and Outflow Boundary Conditions}
 The inflow and outflow boundary condition for compressible Navier-Stokes says
-that $\vec{Y} = \vec{Y}^{\rm bc}$ is known on the boundary. To enforce this, in the
-non-diffusive and diffusive numerical $\vec{Y}^{+} = \vec{Y}^{\rm bc}$ is set and in
-the diffusive numerical flux $\vec{S}^{+} = \vec{S}^{-}$. In the gradient
+that $\vec{Y} = \vec{Y}^{\rm bc}$ is known on the boundary. To enforce this, the
+non-diffusive and diffusive numerical fluxes are set as follows: $\vec{Y}^{+} = \vec{Y}^{\rm bc}$ and $\vec{\Sigma}^{+} = \vec{\Sigma}^{-}$. 
+%\fxg{changed $\vec{S}$ to $\vec{\Sigma}$}. 
+In the gradient
 numerical flux, $\vec{Y}^{+} = 2\vec{Y}^{\rm bc} - \vec{Y}^{-}$ so that
-$\diffusive^{*} = \diffusive^{\rm bc}$ after the central flux has been applied.
-This is summarized as:
+$\diffusive^{*} = \diffusive^{\rm bc}$ after the central flux has been applied \eqref{eq:D_flux}.
+This is summarized as follows
 \begin{align}
   {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
   {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
@@ -280,14 +363,17 @@ This is summarized as:
   \left(\vec{Y}^{-}, 2\vec{Y}^{\rm bc}-\vec{Y}^{-}, \nhat^{-}, t\right).
 \end{align}
 
-\subsubsection{No Flux / Flow Boundary Conditions}
-In no flux/flow boundary conditions, the condition to enforce is that $\nhat
+\subsubsection{Impermeable Wall Boundary Conditions}
+
+\hl{[A detail: I suggest distinguishing impermeable from impenetrable. Here we only need impenetrable (no normal mass flux). A boundary that is impenetrable may still be permeable (e.g., for vapor, energy fluxes). It's just good for clarity to stay consistent with the atmosphere design document and general use of the terms.]}
+
+On impermeable boundaries, the condition to enforce is that $\nhat
 \cdot \vec{u} = 0$ along with either
 \begin{enumerate*}[label = (\roman*)]
-  \item no boundary condition on $\vec{\Sigma}$; or
-  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$.
+  \item no boundary condition on $\vec{\Sigma}$ \hl{[TS: What are the circumstances when we wouldn't specify boundary conditions on $\vec{\Sigma}$ on an impenetrable wall? I can't think of any where we would not have diffusive fluxes that need boundary conditions.]}; or
+  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$. \hl{[TS: I suggest you separate the diffusive flux boundary conditions from the impermeability condition, as in the atmosphere design document.]}
 \end{enumerate*}
-To enforce these conditions it is convenient define
+To enforce these conditions it is convenient to define
 \begin{align}
   \vec{Y}^{\rm bc}
   =
@@ -296,67 +382,108 @@ To enforce these conditions it is convenient define
     \left(\vec{I} - 2 \nhat^{-} {\left(\nhat^{-}\right)}^{T}\right)
     {\left(\rho \vec{u}\right)}^{-}\\
     {\left(\rho e^{\rm tot}\right)}^{-}
-  \end{pmatrix}.
+  \end{pmatrix}
 \end{align}
+which is a combination of transmissive boundary conditions for the scalars and a reflecting boundary condition for the momentum. \hl{[TS: Why do we need the full state vector here? Seems to result in overspecification of boundary conditions, given that in all cases I can think of, we will have specified diffusive fluxes, and hence normal gradients for scalars. All we really need is to ensure that $\vec{n} \cdot \rho \vec{u}=0$ is enforced. \textbf{Impenetrable boundary conditions are silent about other state variables.}]}
 Importantly since the momentum component is just a Householder reflection of the
 ${\left(\rho \vec{u}\right)}^{-}$ across the plane defined by $\nhat^{-}$, the
 norm is preserved, in particular $\|\vec{u}^{-}\|_{2} = \|\vec{u}^{\rm
 bc}\|_{2}$. This means that pressure computed from $\vec{Y}^{-}$ and
-$\vec{Y}^{\rm bc}$ will be the same. Additionally, when $\vec{u}^{-}$ and
+$\vec{Y}^{\rm bc}$ will be the same \hl{[TS: this depends on moisture variables too. But more importantly, it assumes that there is zero physical distance between the points on which $\vec{Y}^{-}$ and
+$\vec{Y}^{\rm bc}$ live; otherwise, the pressure should vary. If no physical separation is generally assumed in the discussion, it would be good to make it clear somewhere. Otherwise, pressure variations come about through variations in energy and moisture near the boundary (between the `-` and `bc` states), and those would be physical.]}. Additionally, when $\vec{u}^{-}$ and
 $\vec{u}^{\rm bc}$ are averaged the result has no normal component:
 \begin{align}
   \frac{1}{2}\nhat\cdot\left(\vec{u}^{-} + \vec{u}^{\rm bc}\right) = 0,
 \end{align}
-which is the desired boundary condition (other component are not modified
+which is the desired boundary condition (other components are not modified
 including the tangential velocity).
 
+\hl{[simon]: so I take this to mean that it is possible that $(\nhat^{-}) \cdot (\vec{u}^{-}) \neq 0 $, but that under our nondiffusive equation set the terms will cancel so that the Rusanov numerical flux will just be:}
+\begin{align}
+  \left( \nhat^{-} \cdot \Fnondiff\right)^{*} =
+  \begin{pmatrix}
+    0\\
+    \lambda \nhat^{-} (\nhat^{-})^{T}
+    {\left(\rho \vec{u}\right)}^{-}\\
+    0
+  \end{pmatrix}
+\end{align}
+\hl{i.e. we are sort of upwinding to correct for any cases where 
+$(\nhat^{-}) \cdot (\vec{u}^{-}) \neq 0 $. Is that correct?}
+\fxg{Simon, maybe easier to discuss over the phone but for no-flux boundaries, the term you wrote above should cancel by construction.}
+
 For the non-diffusive and diffusive fluxes, the exterior state is set as
-$\vec{Y}^{+} = \vec{Y}^{\rm bc}$ and in the gradient transform
+$\vec{Y}^{+} = \vec{Y}^{\rm bc}$ and in the gradient transform 
 $\vec{Y}^{+} = 2\vec{Y}^{\rm bc} - \vec{Y}^{-}$; this is the same as in the
 inflow/outflow case after setting $\vec{Y}^{\rm bc}$ as above.
 
+
 In the case of no boundary condition on $\vec{\Sigma}$ the exterior value is set
-as $\vec{\Sigma}^{+} = \vec{\Sigma}^{-}$ and the numerical fluxes are:
+as $\vec{\Sigma}^{+} = \vec{\Sigma}^{-}$ (i.e., transmissive boundary condition) and the numerical fluxes are
 \begin{align}
   {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
   {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
-  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right),\\
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right)
+  \label{eq:impermeable_bc/nondiff_flux1}\\
   {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
   {\left( \nhat^{-} \cdot \Fdiff\right)}^{*}
   \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \vec{\Sigma}^{-}, \vec{\Sigma}^{-},
-  \nhat^{-}, t\right),\\
+  \nhat^{-}, t\right)
+  \label{eq:impermeable_bc/nondiff_flux2}\\
   \diffusive^{*} &=
   \diffusive^{*}
   \left(\vec{Y}^{-}, 2\vec{Y}^{\rm bc}-\vec{Y}^{-}, \nhat^{-}, t\right).
+  \label{eq:impermeable_bc/nondiff_flux3}
 \end{align}
 
-In the case of a boundary condition on $\vec{\Sigma}$ the exterior value is set
+In the case of a boundary condition on $\vec{\Sigma}$, the exterior value is set
 as $\vec{\Sigma}^{+} = \vec{\Sigma}^{\rm bc}\left(\vec{Y}^{\rm bc}, t\right)$
-and the numerical fluxes are:
+and the numerical fluxes are
 \begin{align}
   {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*} &=
   {\left( \nhat^{-} \cdot \Fnondiff\right)}^{*}
-  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right),\\
+  \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \nhat^{-}, t\right)
+   \label{eq:impermeable_bc/diff_flux1} \\
   {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
   {\left( \nhat^{-} \cdot \Fdiff\right)}^{*}
   \left(\vec{Y}^{-}, \vec{Y}^{\rm bc}, \vec{\Sigma}^{-}, \vec{\Sigma}^{\rm bc}
   \left(\vec{Y}^{\rm bc}, t\right),
-  \nhat^{-}, t\right),\\
+  \nhat^{-}, t\right) 
+   \label{eq:impermeable_bc/diff_flux2} \\
   \diffusive^{*} &=
   \diffusive^{*}
   \left(\vec{Y}^{-}, 2\vec{Y}^{\rm bc}-\vec{Y}^{-}, \nhat^{-}, t\right).
+  \label{eq:impermeable_bc/diff_flux3}
 \end{align}
-\hl{Should $\vec{Y}^{\rm bc}$, $\vec{Y}^{\rm -}$, or an average be used here?
---- Jeremy}
+%\hl{Should $\vec{Y}^{\rm bc}$, $\vec{Y}^{\rm -}$, or an average be used here? --- Jeremy}
+%\fxg{I think this is the best way to do it. Of course, we could impose $\diffusive^{*} = \diffusive^{bc}$ directly but then we would need to add another case in \texttt{boundary\_state}. Jeremy, if you agree, we can remove these comments.}.
+Note that with a modification to the current \texttt{boundary\_state!}\ function, if we know $\vec{Y}^{\rm bc}$ then Eqs.\ \eqref{eq:impermeable_bc/nondiff_flux3} and \eqref{eq:impermeable_bc/diff_flux3} can be written as $\diffusive^{*} =
+  \diffusive^{\rm bc}$.
+  
+\hl{[simon]: for some atmosphere cases (e.g. the bulk drag law, or prescribed surface temperature) it is difficult to specify the diffusive conditions directly in terms of a $\vec{\Sigma}^{\rm bc}$, but we can write the diffusive fluxes across the normal, i.e. $(\nhat^{-}\cdot \Fdiff)^{\rm bc}$. Would it be valid to use}
+\begin{align}
+    {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
+    \tfrac{1}{2} \left( 
+     (\nhat^{-}\cdot \Fdiff)^{\rm bc}(\vec{Y}^{+})
+      +
+      \nhat^{-}\cdot (\Fdiff(\vec{Y}^{-}, \vec{\Sigma}^{-}, t))
+    \right)
+\end{align}
+\hl{or just applying it directly, i.e.}
+\begin{align}
+    {\left( \nhat^{-} \cdot \Fdiff\right)}^{*} &=
+      (\nhat^{-}\cdot \Fdiff)^{\rm bc}(\vec{Y}^{+})
+\end{align}
+\hl{(which is what the comment at the start of the section about applying it directly would suggest)? I'm honestly lost here, and would really appreciate a worked example for something like temperature (e.g. do we replace both terms in the energy diffusive flux?).  Maybe Rayleigh-Bernard problem?}
 
 \subsubsection{No Slip Conditions}
 In no slip boundary conditions, the condition to enforce is that $\vec{u} =
 \vec{0}$ along with either
 \begin{enumerate*}[label = (\roman*)]
-  \item no boundary condition on $\vec{\Sigma}$; or
-  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$.
+  \item transmissive boundary conditions on $\vec{\Sigma}$ or
+  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$. \hl{[TS: As above, I suggest separating no-slip conditions from conditions on diffusive fluxes, as in the atmosphere design document. Physically, when there is no slip, there have to be viscous momentum fluxes across the boundary. All we need here is $\vec{u} = 0$.]}
 \end{enumerate*}
-To enforce these conditions it is convenient define
+To enforce these conditions it is convenient to define
 \begin{align}
   \vec{Y}^{\rm bc}
   =
@@ -366,12 +493,14 @@ To enforce these conditions it is convenient define
     {\left(\rho e^{\rm tot}\right)}^{-}
   \end{pmatrix}.
 \end{align}
-As in the no flux / flow case, the norm is preserved and the pressure is
+As in the impermeable wall case, the norm is preserved and the pressure is
 preserved.  Additionally, when $\vec{u}^{-}$ and
 $\vec{u}^{\rm bc}$ are averaged the result is a zero velocity,
-which is the desired boundary condition (other component are not modified).
+which is the desired boundary condition (other components are not modified).
 
-The remainder of the implementation is the same as in the no flux / flow case.
+The remainder of the implementation is the same as in the impermeable wall case, i.e., we use Eqs.\ \eqref{eq:impermeable_bc/nondiff_flux1}-\eqref{eq:impermeable_bc/nondiff_flux3} and \eqref{eq:impermeable_bc/diff_flux1}-\eqref{eq:impermeable_bc/diff_flux3}.
+
+\hl{[simon]: it would also be useful to see a worked example (and code) of a simple diffusion with prescribed Neumann boundary conditions, e.g. for the land model we have $\frac{\partial{\rho c T}}{\partial t} = \frac{\partial}{\partial z} \lambda \frac{\partial T}{\partial z}$, taking $\rho$, $c$, $\lambda$ to be constant, with a prescribed flux at the top, and zero flux at the bottom.}
 
 \section{Implementation Details (aka Quadrature and Variational Crimes)}
 \hl{FILL ME\@!}
@@ -471,7 +600,8 @@ Usually, the reference state $\vec{Y}_r$ is chosen so that the tendency of the r
 
 \section{Reference State for Linearization}
 
-Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates or time. We enforce hydrostatic balance, and assume the reference state is dry, so that the reference state variables are obtained as described in section~\ref{s:initial_conditions} with zero relative humidity ($\mathrm{RH}=0$): the pressure is obtained from \eqref{eq:hydro_pressure}, the density from \eqref{eq:hydro_density}, and the total specific humidity is set to zero, $q_{t,r}=0$.
+Solving for the fastest waves implicitly by a linear solve requires linearization of the fastest tendency terms. We generally use reference states characterized by a temperature $T_r(z)$ that may depend on height $z$ but does not depend on horizontal coordinates or time. We enforce hydrostatic balance, and assume the reference state is dry.
+%so that the reference state variables are obtained as described in section~\ref{s:initial_conditions} with zero relative humidity ($\mathrm{RH}=0$): the pressure is obtained from \eqref{eq:hydro_pressure}, the density from \eqref{eq:hydro_density}, and the total specific humidity is set to zero, $q_{t,r}=0$.
 
 Because the reference temperature and thus the reference pressure are assumed to be constant in the horizontal, the reference state is assumed at rest, $\vec{u}_r = 0$, consistent with geostrophic balance. Because the reference state is assumed dry, $q_k= 0$ for $k \in \{ t, v, l, i, p\}$ in the reference state.
 
@@ -524,7 +654,9 @@ In the tendency \eqref{eq:3d-imex/tendencies}, the terms that need to be lineari
 \vdots
 \end{pmatrix}.
 \end{equation}
-This is linear with respect to \textcolor{blue}{$\rho$} and \textcolor{blue}{$\rho \vec{u}$} (all state variables and linear functions thereof are colored \textcolor{blue}{blue}; all other terms are constants or fixed functions of height $z$). For it to be a linear function of all state variables, the pressure \textcolor{blue}{$p_L$} needs to be expressed as a linear function of state variables. To derive a linear approximation for the pressure, we use the ideal gas law $p = R_m (\rho T)$ and the expression derived from Eq.~\eqref{eq:temperature} for $\rho T$ in terms of the internal energy and specific humidities,
+This is linear with respect to \textcolor{blue}{$\rho$} and \textcolor{blue}{$\rho \vec{u}$} (all state variables and linear functions thereof are colored \textcolor{blue}{blue}; all other terms are constants or fixed functions of height $z$). For it to be a linear function of all state variables, the pressure \textcolor{blue}{$p_L$} needs to be expressed as a linear function of state variables. To derive a linear approximation for the pressure, we use the ideal gas law $p = R_m (\rho T)$ and the expression derived from the temperature equation 
+%Eq.~\eqref{eq:temperature} 
+for $\rho T$ in terms of the internal energy and specific humidities,
 \begin{equation}\label{e:pressure}
 \begin{split}
 p &= R_m (\rho T) \\
@@ -535,7 +667,7 @@ where we have used the relation $I = e^{\mathrm{tot}} - \Phi - 0.5 \|\vec{u}\|^2
 \begin{equation}\label{eq:pressure_linear}
 \textcolor{blue}{p_L} = \textcolor{blue}{\rho} R_d T_0 + \frac{R_d}{c_{vd}} \bigl[ \textcolor{blue}{\rho e^{\mathrm{tot}}} - \textcolor{blue}{\rho} \Phi - (\textcolor{blue}{\rho q_t} - \textcolor{blue}{\rho q_l})I_{v,0} + (\textcolor{blue}{\rho q_i}) (I_{i,0} + I_{v,0}) \bigr].
 \end{equation}
-If only the total specific humidity $q_t$ is available as a prognostic variable and condensate is determined by saturation adjustment, the condensate specific humidities $q_l$ and $q_i$ in this linearized expression for the pressure can be set to zero. Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy \eqref{e:internal_energies}}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes when the density vanishes. 
+If only the total specific humidity $q_t$ is available as a prognostic variable and condensate is determined by saturation adjustment, the condensate specific humidities $q_l$ and $q_i$ in this linearized expression for the pressure can be set to zero. Note that the temperature $T_0$ that appears here is the \emph{reference temperature in the definition of internal energy}, a model constant; it is \emph{not} the temperature $T_r$ of the reference state about which we linearized. In fact, the linearized pressure \eqref{eq:pressure_linear} does not depend on the reference state: the zeroth-order term $p_r$ in the linearization cancels the terms involving the reference state in the linear term, which ensures that the linearized pressure vanishes when the density vanishes. 
 
 We can now see that the sum of the terms involving the reference state in the decomposition \eqref{e:imex_linearization} vanishes,
 \[
@@ -562,11 +694,13 @@ The nonlinear term follows as the residual
 \end{pmatrix}.
 \end{split}
 \end{equation}
-We can verify that the nonlinear residual is small relative to the linear tendency term, as is required for an IMEX approach, as follows. The full pressure (Eq.~\ref{e:pressure}) differs from its linearized counterpart (Eq.~\ref{eq:pressure_linear}) in the inclusion of the kinetic energy term $0.5 \|\vec{u} \|^2$ and of the effects of moisture on the gas constant and specific heat. Relative to the internal energy, the kinetic energy is of order $\|\vec{u}\|^2/c_s^2$ (where $c_s$ is the speed of sound; see section~\ref{s:energy_balance}), and the moisture effects on the gas constant and specific heat are of order $q_t$. Thus, the nonlinear residual $p-p_L$ is small relative to the full pressure $p$: typically of order $10^{-3}$ in Earth's atmosphere. The nonlinear residual in the energy equation depends on the choice of reference state. With a reference temperature $T_r(z)$ that depends on height $z$ only, one may expect $T - T(z) \lesssim 30~\mathrm{K}$ in Earth's atmosphere. Because the internal energy deviation from the reference state dominates the residual $e^{\mathrm{tot}} - e^{\mathrm{tot}}_r$, one may expect a size of the residual $e^{\mathrm{tot}} - e^{\mathrm{tot}}_r$ relative to the full total energy $e^{\mathrm{tot}}$ of order $30~\mathrm{K}/300~\mathrm{K} = 10^{-1}$. Hence, the nonlinear residual in the energy equation is likewise small compared with the linear tendency term. 
+We can verify that the nonlinear residual is small relative to the linear tendency term, as is required for an IMEX approach, as follows. The full pressure (Eq.~\ref{e:pressure}) differs from its linearized counterpart (Eq.~\ref{eq:pressure_linear}) in the inclusion of the kinetic energy term $0.5 \|\vec{u} \|^2$ and of the effects of moisture on the gas constant and specific heat. Relative to the internal energy, the kinetic energy is of order $\|\vec{u}\|^2/c_s^2$ (where $c_s$ is the speed of sound; 
+%see section~\ref{s:energy_balance})
+and the moisture effects on the gas constant and specific heat are of order $q_t$. Thus, the nonlinear residual $p-p_L$ is small relative to the full pressure $p$: typically of order $10^{-3}$ in Earth's atmosphere. The nonlinear residual in the energy equation depends on the choice of reference state. With a reference temperature $T_r(z)$ that depends on height $z$ only, one may expect $T - T(z) \lesssim 30~\mathrm{K}$ in Earth's atmosphere. Because the internal energy deviation from the reference state dominates the residual $e^{\mathrm{tot}} - e^{\mathrm{tot}}_r$, one may expect a size of the residual $e^{\mathrm{tot}} - e^{\mathrm{tot}}_r$ relative to the full total energy $e^{\mathrm{tot}}$ of order $30~\mathrm{K}/300~\mathrm{K} = 10^{-1}$. Hence, the nonlinear residual in the energy equation is likewise small compared with the linear tendency term. 
  
 The decomposition of $\Tvector_I$ up to this point is general and holds for 3D-IMEX and 1D-IMEX, with the appropriate differential operator substituted for $\nabla_{1/3}$.
 
-\subsubsection{3D IMEX}
+\subsection{3D IMEX}
 
 For 3D IMEX, $\nabla_{3} = \nabla$. The only nonzero linear tendencies in Eq.~\eqref{e:IMEX_linear} are those for 
 \begin{enumerate}
@@ -576,7 +710,7 @@ For 3D IMEX, $\nabla_{3} = \nabla$. The only nonzero linear tendencies in Eq.~\e
 \end{enumerate}
 that is, for 5 scalars. All other scalars (e.g., specific humidity variables) do not enter the implicit linear solve. 
 
-\subsubsection{1D IMEX}
+\subsection{1D IMEX}
 
 For 1D IMEX, $\nabla_{3} = \vec{k} \partial/\partial z$. The only nonzero linear tendencies in Eq.~\eqref{e:IMEX_linear} are those for 
 \begin{enumerate}
@@ -585,8 +719,6 @@ For 1D IMEX, $\nabla_{3} = \vec{k} \partial/\partial z$. The only nonzero linear
     \item Energy $e^{\mathrm{tot}}$,
 \end{enumerate}
 that is, for 3 scalars. The linear tendencies of the horizontal velocity components vanish. Hence, these do not enter the implicit linear solve, and neither do other scalars. 
-
-\hl{[\textbf{Toby}: Please check the derivations up to this point carefully.}
 
 \section{Additive Runge-Kutta IMEX Methods}
 
@@ -633,9 +765,7 @@ In Alg.\ \ref{alg:3d-imex_v1}, the fastest waves (e.g., acoustic and gravity wav
 \label{eq:butcher_tableau}
 \end{equation}
 Here, $A=a_{ij}, \; i,j=1,\ldots S$, and $c_i=\sum_{j} a_{ij}$ represent the time when the right-hand side is evaluated; that is, we evaluate it at each stage which occurs at the time interval $t+c_i \dt$.
-In addition, $b=\wt{b}$ is necessary in order to conserve all linear invariants \citep{giraldo:2013}.
-
-If we now include the fast terms denoted by $\Tvector_{+f}$ then we can modify Alg.\ \ref{alg:3d-imex_v1} as summarized in Alg.\ \ref{alg:3d-imex_v2}, where for simplicity we assume a 3-partition IMEX multirate strategy based on Euler's method.
+In addition, $b=\wt{b}$ is necessary in order to conserve all linear invariants \citep{giraldo:2013}. If we now include the fast terms denoted by $\Tvector_{+f}$ then we can modify Alg.\ \ref{alg:3d-imex_v1} as summarized in Alg.\ \ref{alg:3d-imex_v2}, where for simplicity we assume a 3-partition IMEX multirate strategy based on Euler's method.
 \begin{algorithm}
 \label{alg:3d-imex_v2}
 \begin{algorithmic}
@@ -720,8 +850,7 @@ For any of these 3D IMEX time stepping strategies, the maximum eigenvalue of the
 \end{algorithm}
 In Alg.\ \ref{alg:3d-imex_v2}, $\Delta \tau=\frac{\Delta t c_i}{M_{steps}}$ where $c_i=\sum_{j=1}^{i-1} a_{i,j}$.
 Note that in Alg.\ \ref{alg:3d-imex_v2}, the $m$-loop can be replaced by another RK loop with stage-order greater than or equal to $S$. If the stage-order of this loop is chosen to be $S$ then we can effectively increase the stability of the method by a factor of 2 with respect to time-step (this means that the terms in $\Tvector_{+f}$ can be twice as fast as those in $\Tvector_{d'}$.
-[\fxg{In progress. Need to know what is in $\Tvector_{+f}$ in order to see how to fractional-step or substep properly and accurately.  E.g., are these entirely separate processes or do they contain the prognostic variables that we have in the other operators.}]
-}
+[\fxg{In progress. Need to know what is in $\Tvector_{+f}$ in order to see how to fractional-step or substep properly and accurately.  E.g., are these entirely separate processes or do they contain the prognostic variables that we have in the other operators.}] \hl{[TS: The most important case is where the fast explicit tendencies contain the horizontal sound and gravity waves; that is, the vertical components are solved for implicitly, but the horizontal components are advanced with explicit substeps. So it's the horizontal components of the same tendency terms whose vertical components are included in the implicit solve.]}}
 
 \comment{
 To discretize the equations in time using an ARK method, we first compute the stage values \hl{\textbf{Frank}: This subsection below here needs work. A number of things are unclear/incorrect/} [\fxg{Yes, unclear and incorrect. However, some of what is here I did not write. Let me try to fix this after the substepping.}]
@@ -848,10 +977,63 @@ To avoid this situation, we split the $\vec{\mathcal{T}}$ operator directly into
 
 % \hl{[Important points to keep in mind here: (1) For a global model, we usually use domain decompositions that leave atmospheric columns on one node. This means there is no sizable inter-node communication overhead for 1D-IMEX. The problem for 3D IMEX is that the linear solve can involve states distributed across nodes, and hence involves inter-node communication. This may not scale well, and split-explicit schemes may be preferable in that case. We need to test to find out. We should implement all of this such that it is relatively straightforward to go from 3D-IMEX to some form of split-explicit (or multirate), and make it part of the model configuration what to choose here. (2) It would be good to start working on an implementation of a split-explicit method as alternative to IMEX very soon. We'll need multirate explicit methods in the end anyway. (3) We'll need 1D balance law solvers, for example, for the land and sea ice models. So implementing them for 1D IMEX makes sense.]}
 
+\subsection{Stability Region}
+The ARK(2,3,2) method presented in \citep{giraldo:2013} has the double Butcher tableau given in Table \ref{table:time_integration/imex/ark232} where the free parameter $a_{32}=\frac{1}{6} \left( 3 + 2 \sqrt{2} \right)$ (which we call ARKA(2,3,2)) or $a_{32}=\frac{1}{2}$ (which we call ARKB(2,3,2)).
+Figure \ref{fig:time_integration/imex_stability} shows the amplification factor for the ARKA(2,3,2), ARKB(2,3,2), and ARK(1,2,1) methods for wave numbers $k_s \in [-2,2]$ for the slow waves and $k_f \in [0,20]$ for the fast waves. The Butcher tableau for ARK(1,2,1) is given in Table \ref{table:time_integration/imex/ark121}. 
+\begin{figure}[htbp]
+\begin{center}
+\subfigure[ARKA(2,3,2)]{\includegraphics[width=1.5in]{figures/ARKA232_IMEX_Stability_ks=02_kf=20.eps}}
+\subfigure[ARKB(2,3,2)]{\includegraphics[width=1.5in]{figures/ARKB232_IMEX_Stability_ks=02_kf=20.eps}}
+\subfigure[ARK(1,2,1)]{\includegraphics[width=1.5in]{figures/ARK121_Stability_ks=02_kf=20.eps}}
+\end{center}
+\caption{Stability regions for ARKA(2,3,2), ARKB(2,3,2), and ARK(1,2,1) for $k_s \in [-2,2]$ and $k_f \in [0,20]$.}
+\label{fig:time_integration/imex_stability}
+\end{figure}
+Note that ARKB(2,3,2) has the typical wedge-shape stability region where the explicit part of the stability region (horizontal axis) allows larger wave speeds for the slow component than expected as we handle larger wave speeds for the fast component (vertical axis).  However, this occurs because the waves are damped (e.g., blue region). In contrast, the ARKA(2,3,2) and ARK(1,2,1) methods are attractive because at the stability limit of the method (red region) we are able to get a solution that is not damped but at the cost of adhering to smaller wave speeds for the explicit (slow) component ($\lvert k_s \lvert < 2$); the advantage of ARKA(2,3,2) over ARK(1,2,1) is that the method is second order for nonlinear terms and third order for linear terms.
+\begin{table}[htbp]
+\caption{Butcher tableau for a second-order IMEX Runge-Kutta ARK(2,3,2) method.}
+\centering
+\begin{tabular}{c|cccc}
+\ST 0 & 0 & & \\
+ \ST $2 - \sqrt{2}$ & $2-\sqrt{2}$ & 0 &  \\
+ \ST $1$ & $1- a_{32}$  &  $a_{32}$ &  $0$  \\
+ \hline
+\ST  & $\frac{1}{2\sqrt{2}}$ &  $\frac{1}{2\sqrt{2}}$ & $1 - \frac{1}{\sqrt{2}}$ \\
+\end{tabular}
+\hspace{0.25in}
+\begin{tabular}{c|cccc}
+\ST 0 & 0 & & \\
+ \ST $2 - \sqrt{2}$ & $1-\frac{1}{\sqrt{2}}$ & $1-\frac{1}{\sqrt{2}}$ &  \\
+ \ST $1$ & $\frac{1}{2\sqrt{2}}$  &  $\frac{1}{2\sqrt{2}}$ &  $1 - \frac{1}{\sqrt{2}}$  \\
+ \hline
+\ST  & $\frac{1}{2\sqrt{2}}$ &  $\frac{1}{2\sqrt{2}}$ & $1 - \frac{1}{\sqrt{2}}$ \\
+\end{tabular}
+\label{table:time_integration/imex/ark232}
+\end{table}
+\begin{table}[ht]
+\caption{Butcher tableau for a first-order IMEX Runge-Kutta ARK(1,2,1) method.}
+\centering
+\begin{tabular}{c|cccc}
+\ST 0 && 0 && \\
+ \ST $1$ && $1$ && 0  \\
+ \hline
+\ST  && 0 &&  $1$ \\
+\end{tabular}
+\hspace{0.5in}
+\begin{tabular}{c|cccc}
+\ST 0 &&  0 &&  \\
+ \ST $1$ && 0 && $1$  \\
+ \hline
+\ST  && 0 &&  $1$ \\
+\end{tabular}
+\label{table:time_integration/imex/ark121}
+\end{table}
+\clearpage
+
 \section{Fully Explicit Multirate Method: Substepping}
 \label{sec:substepping}
 
-\subsubsection{Split-Explicit as in Wicker-Skamarock}
+\subsection{Split-Explicit as in Wicker-Skamarock}
 To discretize the equations in time using a simple partitioned Runge-Kutta method (as in Wicker-Skamarock MWR 2002), let us describe the method using the following 3-partition system of ordinary differential equations:
 \[
 \diff{\vec{Y}}{t}= L_I(\vec{Y}) + \Tvector_{d'} + \Tvector_{-s}
@@ -943,7 +1125,7 @@ In Alg.\ \ref{alg:4-prk_v2}
 $\Delta \tau=\frac{\Delta t}{M} a_i^I a_j^J a_k^K$.
 }
 
-\subsubsection{Multirate as in Wensch-Knoth}
+\subsection{Multirate as in Wensch-Knoth}
 The approach presented previously has been used in various nonhydrostatic codes and has been shown to work effectively to increase the time-to-solution of the problem.  However, the Butcher tableaux required in that approach is rather limited (only one type of RK method was originally proposed and forward Euler was used in the inner/fast loop which is not ideal for high-order spatial discretization methods).  A general approach was introduced by Wensch and Knoth in order to give split-explicit methods a more formal mathematical formulation.  Wensch and Knoth generalized this approach further to yield multirate methods that have better than 1st order convergence rates which we now describe in Alg.\ \ref{alg:general_explicit_multirate} for the following three-partitioned equation
 \[
 \diff{\vec{Y}}{t}= L_I(\vec{Y}) +  \Tvector_{d'} + \Tvector_{-s}.
@@ -986,7 +1168,7 @@ and
 \]
 with $a$, $b$, and $c$ being the Butcher tableau coefficients found in Eq.\ \eqref{eq:butcher_tableau} and $s$ denotes the number of stages.  The only constraint on this algorithm is that the coefficients $c$ increase monotonically. If they do not, we can still use this approach but Alg.\ \ref{alg:general_explicit_multirate} would have to be modified.  Using this approach, the order of the scheme is min(order(I),order(J)) where  order(I) and order(J) are the orders of the RK methods with respect to the $I$ and $J$ loops.
 
-\subsubsection{Multirate as in Wensch-Knoth for Low-Storage Methods}
+\subsection{Multirate as in Wensch-Knoth for Low-Storage Methods}
 Algorithm \ref{alg:general_explicit_multirate} represents a general multirate time-integration form that can be used with any comnbination of methods provided that they are written in Butcher tableau form.  However, the Butcher form requires the storage of stage values which may not be ideal on GPUs. Instead, we now rewrite this algorithm for low-storage RK methods which we describe below.
 \begin{algorithm}
 \label{alg:general_explicit_multirate/lsrk}
@@ -1007,6 +1189,41 @@ Algorithm \ref{alg:general_explicit_multirate} represents a general multirate ti
 \end{algorithm}
 The multirate LSRK presented in Alg.\  \ref{alg:general_explicit_multirate/lsrk} is the method currently implemented in CLIMA where the 5-stage (Kennedy-Carpenter) and 14-stage (Niegemann et al.) LSRK methods are included, where the coefficients $A$ and $B$ are the typical coefficients in Williamson low-storage form.
 
+\section{Stability of Explicit Methods in CLIMA}
+Figure \ref{fig:time_integration/explicit_stability} shows the explicit stability region of some of the time-integrators available in CLIMA; for comparison, the classical RK4 is included.  Figure \ref{fig:time_integration/explicit_stability}(a) shows the stability region per-stage whereas \ref{fig:time_integration/explicit_stability}(b) shows the total stability region.  In these figures, the vertical axis represents the stability for thd non-dissipative components (e.g., 1st order hyperbolic operators) whereas the horizontal axis the dissipative components (e.g., second order elliptic operators and the dissipation introduced by the Rusanov numerical flux).  Although we cannot use these figures to predict the exact Courant numbers for each of the methods, we can use these figures to get a sense of the difference in the stability regions for each of the time-integrators. For example, we can see that the explicit tableau for the IMEX ARK(2,3,2) method is much smaller than that for the LSRK(14,4) method. In fact, Fig.\ \ref{fig:time_integration/explicit_stability}(b) shows that the LSRK(14,4) method has a particularly large stability region (compared to the other methods) for the dissipative components.
+\begin{figure}[htbp]
+\begin{center}
+\subfigure[Per-stage Stability]{\includegraphics[width=2.25in]{figures/Stability_CLIMA_RK_Methods_Per_stage_Stability.eps}}
+\subfigure[Total Stability]{\includegraphics[width=2.25in]{figures/Stability_CLIMA_RK_Methods_Total_Stability.eps}}
+\end{center}
+\caption{Explicit stability regions for the some time-integrators in CLIMA. Panel (a) shows the stability region per stage while panel (b) shows the total stability region.
+\hlc[green]{Toby: I think one section we need here and that would be useful generally is would contain rules of thumb for the best stable Courant number based on horizontal spacing for each time stepping method used in the ClIMA code. Example: Currently, as default, we use a 1D-IMEX with the ARK2GKC time stepper and a courant number of 0.4. One can see this in the CLIMA master branch src/Driver/Driver.jl l.210 and src/Driver/Configurations.jl l.31. I think having this in the design doc and matching the codebase would be fantastic}
+}
+\fxg{Thomas is working on this}
+\label{fig:time_integration/explicit_stability}
+\end{figure}
+
+\section{Guidelines for Selecting the Time-Step}
+The time-step restriction for an explicit method must satisfy the stable Courant number for the specific time-integrator and must be selected from the following constraints
+\[
+\Delta t_{\mathrm{explicit}} = min \left( \frac{C \Delta s_i}{u_i + a}, \frac{C \Delta s_i^2}{\nu} \right)
+\]
+where $C$ is the stable Courant number, $u_i$ denotes the velocity components, $a$ the speed of sound, $\Delta s_i$ the grid spacing along the direction ($x_1,x_2,x_3$), and $\nu$ the kinematic viscosity. The first term on the right is the time-step condition due to the non-dissipative components while the second term to the dissipation. For explicit time-integrators, we have to find the minimum time-step that satisfies this condition along all three spatial directions.
+
+In the case of 3D-IMEX, the largest stable time-step is obtained from the conditions
+\[
+\Delta t_{\mathrm{3D-IMEX}} = min \left( \frac{C \Delta s_i}{u_i}, \frac{C \Delta s_i^2}{\nu} \right)
+\]
+where we now are unconditionally stable with respect to the speed of sound (since these terms are solved implicitly) and where we assume here that the diffusion is handled fully explicitly.
+
+In the case of 1D-IMEX along the vertical direction, the largest stable time-step is obtained from the conditions
+\[
+\Delta t_{\mathrm{1D-IMEX}} = min \left( \frac{C \Delta s_H}{u_H+a}, \frac{C \Delta s_V}{u_V}, \frac{C \Delta s^2}{\nu} \right)
+\]
+where the subscripts $H$ and $V$ denote the \emph{horizontal} and \emph{vertical} components. Again,here we assume that the viscosity is handled fully explicitly.
+
+\hl{Akshay: We currently have MultirateRungeKutta.jl which allows a model to be split into its fast / slow components (we have the isentropic vortex example demonstrating use of this, and I have an example with the Rayleigh-Benard case with two explicit rates, and an LES example with IMEX + 1 horizontal rate: (a)does the current setup allow us to use more than 2 rates in the horizontal (if so, where in the source code should I be looking? (We'd like to move towards vertical implicit solve + 2 horizontal explicit rates) (b)The explicit solver type supported by MultirateRungeKutta is restricted to the LSRK2N type; is this the recommended solver in the default case given the stability margins? (c)The CFL calculator would help in setting up a general method for multirate timestepping. (see solver setup() in Driver.jl))?}
+\fxg{Akshay, let me check on this for you.}
 %-------Bibliography
 \bibliographystyle{agufull08}
 \bibliography{Giraldo_refs,CLIMA-refs}

@@ -5,9 +5,14 @@
 \newcommand{\PD}{\partial}
 \newcommand{\I}{I}
 \newcommand{\IL}{I_{\lambda}}
-\newcommand{\HOM}{\hat{\Omega}}
-\newcommand{\tom}{\tidle{\omega}}
-
+\newcommand{\PhaseFun}[3]{P_{#1}(#2,#3)}
+\newcommand{\OM}{\Omega}
+\newcommand{\OMP}{\Omega^{'}}
+\newcommand{\SRC}[1]{J_{#1}}
+\newcommand{\RAD}[1]{I_{#1}}
+\newcommand{\ka}{k_{\mathrm{abs}}}
+\newcommand{\ks}{k_{\mathrm{scatter}}}
+\newcommand{\SSA}{\tilde{\omega}}          % Single scattering albedo
 
 \title{CLIMA Radiative Transfer} 
 \author{ }
@@ -18,13 +23,26 @@
 \tableofcontents
 
 \chapter{Radiative Transfer Equation}
-Accounting for scattering, the spectral radiative transfer equation, and the phase function, $p(\HOM',\HOM)$, normalization condition, is:
+
+The radiative transfer equation under Thermodynamic Equilibrium (TE) in differential form is 
 \begin{equation}\begin{aligned}
-\frac{\PD \IL(\HOM)}{\PD \tau} = \IL(\HOM) - (1 - \tom) B - \frac{\tom}{4 \pi} \int_{4 \pi} p(\HOM',\HOM) \IL(\HOM) d \omega' \\
-\frac{1}{4\pi} \int_{4\pi} p(\HOM',\HOM) d\omega'=1
-\end{aligned}\end{equation}
-
-
+   \frac{d\RAD{\nu}}{\rho k(\nu) ds} = -\RAD{\nu} + \SRC{\nu}
+\end{aligned}
+\end{equation}
+here $\RAD{\nu}$ is monochromatic intensity, $\RAD{\nu}$ is the spectral source function and $k(\nu) = \ka(\nu) + \ks(\nu)$. Define the single scattering albedo and the normalized phase function as below:
+\begin{align}
+\SSA(\nu) = \frac{\ks(\nu)}{k(\nu)}\\
+\frac{1}{4\pi}\int \PhaseFun{\nu}{\OM}{\OMP} d\OMP=1
+\end{align}
+The phase function tells the fraction of radiation scattering by an individual particle from $\OMP$ to $\OM$, the direction of $\RAD{\nu}$. Then $\SRC{\nu}$ can be written as 
+\begin{align}
+    \SRC{\nu} = (1-\SSA(\nu)) B_{\nu}(T) + \frac{\SSA(\nu)}{4\pi}\int_{4\pi} \RAD{\nu}(\OMP)\PhaseFun{\nu}{\OM}{\OMP}d\OMP
+\end{align}
+If we define the optical depth $d\tau$ as opposite to ds, i.e., $d\tau = -\rho k(\nu)$ds. Therefore, the radiative transfer equation is equivalent to 
+\begin{align}
+    \frac{d\RAD{\nu}(\OM)}{d\tau} = \RAD{\nu}(\OM) - (1-\SSA(\nu))B_{\nu}(T) - \frac{\SSA(\nu)}{4\pi}\int_{4\pi} \RAD{\nu}(\OMP)\PhaseFun{\nu}{\OM}{\OMP}d\OMP
+\end{align}
+The terms of right hand side is the attenuation by absorption and scattering, emission, and scattering, respectively. 
 %-------Bibliography
 \bibliographystyle{agufull08}
 \bibliography{Giraldo_refs,CLIMA-refs}

@@ -22,7 +22,7 @@ This chapter introduces one consistent set of thermodynamic approximations for a
     \item Showing how to construct consistent sets of thermodynamic equations that either (i) assume equilibrium of the phases and require only one prognostic water variable, or (ii) do not assume equilibrium of the phases and require prognostic variables for all water phases.
     \item Showing how to obtain temperatures from energy variables under either phase equilibrium assumptions (by ``saturation adjustment'') or phase non-equilibrium assumptions (by a closed-form expression for temperature).
 \end{itemize}
-The resulting thermodynamic functions are implemented in MoistThermodynamics.jl.\footnote{\url{https://github.com/climate-machine/CLIMA/tree/master/src/Common/MoistThermodynamics}}
+The resulting thermodynamic functions are implemented in \href{https://github.com/climate-machine/CLIMA/tree/master/src/Common/MoistThermodynamics}{MoistThermodynamics.jl}.
 
 \section{Working Fluid and Equation of State}
 
@@ -259,13 +259,25 @@ obtained from the definition \eqref{e:specific_heat} of the specific heat of moi
 \end{equation}
 obtained from the Clausius-Clapeyron relation \eqref{e:Clausius_Clapeyron} and the relation \eqref{eq:sat_shum} between specific humidity and vapor pressure. 
 
-The resulting successive Newton approximations $T_n$ generally converge quadratically. Because condensate specific humidities are usually small, $T_1$ provides a close initial estimate, and few iterations are needed. Even the first-order approximation $T\approx T_2$ often suffices. However, convergence may not be achieved near the phase transition at the freezing temperature $T_{\mathrm{freeze}}$ because the derivative of $I^*$ with respect to temperature is discontinuous there. In that case, the number of iterations needs to be limited. In general, limiting the number of iterations to 3 suffices. \hl{[Charlie: it would be good to test this.]}
+The resulting successive Newton approximations $T_n$ generally converge quadratically. Because condensate specific humidities are usually small, $T_1$ provides a close initial estimate, and few iterations are needed. Even the first-order approximation $T\approx T_2$ often suffices. However, convergence may not be achieved near the phase transition at the freezing temperature $T_{\mathrm{freeze}}$ because the derivative of $I^*$ with respect to temperature is discontinuous there. In that case, the number of iterations needs to be limited (2--3 iterations generally suffice). 
 
 Using saturation adjustment makes it possible to construct a moist dynamical core that has the total specific humidity $q_t$ as the only prognostic moisture variable. The price for this simplicity is the necessity to solve a nonlinear problem iteratively (or approximately) at each time step, and being confined to an equilibrium thermodynamics framework which cannot adequately account for non-equilibrium processes. Using explicit tracers for the condensates $q_l$ and $q_i$ in addition to $q_t$ avoids iterations at each time step and allows the inclusion of explicit non-equilibrium processes, such as those leading to the formation of supercooled liquid in mixed-phase clouds. 
 
 \section{Auxiliary Thermodynamic Functions}
 
 Several auxiliary thermodynamic functions are commonly used. 
+
+\subsection{Relative Humidity} 
+
+The relative humidity is defined as the ratio of the partial pressure of water vapor $p_v$ to the saturation vapor pressure $p_v^*$,
+\[
+\mathrm{RH} = \frac{p_v}{p_v^*}.
+\]
+Using the ideal gas law for water vapor, $p_v = q_v \rho R_v T$, this can be written as
+\begin{equation}
+    \mathrm{RH} = \frac{q_v \rho R_v T}{p_v^*},
+\end{equation}
+where $p_v^*$ is the saturation vapor pressure \eqref{eq:sat_vapor_pressure}. Over a mixture of ice and liquid, the saturation vapor pressure \eqref{eq:sat_vapor_pressure} is evaluated with a specific latent heat $L = \lambda_p L_v + (1-\lambda_p) L_s$ that is a weighted sum of those for vaporization and sublimation.
 
 \subsection{Potential Temperature} The potential temperature $\theta$ is the temperature an air mass would have if brought adiabatically from pressure $p$ and temperature $T$ to some reference pressure $p_0$ (typically taken to be mean sea level pressure):
 \begin{equation}\label{e:pot_temp_press_T}
@@ -406,12 +418,16 @@ from vapor, liquid, and ice to precipitation.
 
 The vector invariant form of the conservation law for momentum in a coordinate system rotating with constant angular velocity $\vec{\Omega}$ is 
 \begin{multline}
-\diff{(\rho\vec{u})}{t} + \divergence \left( \rho\vec{u} \otimes \vec{u} + p \vec{I}_3\right) =
-- \rho \grad\Phi - 2\vec{\Omega} \times \rho\vec{u} \\
+\diff{(\rho\vec{u})}{t} + \divergence \left[ \rho\vec{u} \otimes \vec{u} + (p - p_r) \vec{I}_3\right] =
+- (\rho - \rho_r) \grad\Phi - 2\vec{\Omega} \times \rho\vec{u} \\
 - \divergence (\rho \vec{\tau}) - \divergence\left( \vec{d}_{q_t} \otimes \rho\vec{u} \right) + \divergence \left( q_c w_c \vec{k} \otimes \rho \vec{u} \right) + \rho \vec{F}_{\vec{u}}
 \label{eq:governing_equations/momentum}
 \end{multline}
-where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS momentum flux tensor (negative of viscous or SGS stress tensor); and $\vec{F}_{\vec{u}}$ (typically with $\vec{F}_{\vec{u}}\cdot\vec{u}<0$, so that $\vec{F}_{\vec{u}}$ represents a momentum sink) is any other drag force that may be applied. The tensors involving the diffusive flux of water, $\vec{d}_{q_t}$, and the condensate sedimentation velocity,  $w_c$, represent the momentum fluxes carried by water that is diffusing or condensate that is settling; they are usually very small. Mechanical interactions between the gas phases and falling precipitation or sedimenting cloud condensate, giving rise to frictional drag on the fluid in shear zones around falling particles \citep{Pauluis00}, are taken to be included in the momentum flux tensor $\vec{\tau}$. Momentum and kinetic energy transport by precipitating hydrometeors is neglected; it is 3--4 orders of magnitude smaller than other terms in the budgets \citep{Romps08a}. \hl{[TS: Would be good to check whether this is internally consistent: on the one hand, we neglect the water velocities in the  momentum and energy budgets. We include a terminal velocity and fluxes associated with diffusion and sedimentation of water. But, for example, we are not explicitly including the Stokes term balancing gravity in the terminal velocity, which should appear by Newton's third law \dots. None of this matters much, but would be nice to get right.]} 
+where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS momentum flux tensor (negative of viscous or SGS stress tensor); and $\vec{F}_{\vec{u}}$ (typically with $\vec{F}_{\vec{u}}\cdot\vec{u}<0$, so that $\vec{F}_{\vec{u}}$ represents a momentum sink) is any other drag force that may be applied. To improve numerical stability, we have factored out a reference state with a pressure $p_r(z)$ and density $\rho_r(z)$ that only depend on altitude $z$ and are in hydrostatic balance (chapter~\ref{c:reference_state}), so that they satisfy
+\[
+\divergence (p_r \vec{I}_3)  = - \rho_r \grad\Phi. 
+\]
+The tensors involving the diffusive flux of water, $\vec{d}_{q_t}$, and the condensate sedimentation velocity,  $w_c$, represent the momentum fluxes carried by water that is diffusing or condensate that is settling; they are usually very small. Mechanical interactions between the gas phases and falling precipitation or sedimenting cloud condensate, giving rise to frictional drag on the fluid in shear zones around falling particles \citep{Pauluis00}, are taken to be included in the momentum flux tensor $\vec{\tau}$. Momentum and kinetic energy transport by precipitating hydrometeors is neglected; it is 3--4 orders of magnitude smaller than other terms in the budgets \citep{Romps08a}. \hl{[TS: Would be good to check whether this is internally consistent: on the one hand, we neglect the water velocities in the  momentum and energy budgets. We include a terminal velocity and fluxes associated with diffusion and sedimentation of water. But, for example, we are not explicitly including the Stokes term balancing gravity in the terminal velocity, which should appear by Newton's third law \dots. None of this matters much, but would be nice to get right.]} 
 
 These are the general, deep-atmosphere equations for a moist, nonhydrostatic atmosphere, without the thin-shell approximation traditionally made in climate models. (The thin-shell approximation assumes that in the formulation of the angular momentum, the distance from any point in the atmosphere to the barycenter of the planet is a constant and equal to the mean planetary radius.)
 
@@ -526,7 +542,7 @@ where  $r_{\mathrm{geo}}$ is the local radius of the geoid (i.e., $\Phi(r_{\math
 
 At neither GCM nor LES resolutions is it feasible to resolve all relevant scales of turbulent motion. Hence, it is necessary to have subgrid-scale (SGS) models for unresolved dynamics. While SGS models are usually diffusive to represent the turbulent enhancement of molecular diffusion,  what they need to achieve differs between GCM and LES configurations, and so does their structure.  For LES configurations, the relevant turbulence is three-dimensional, and thus the SGS models are too. For GCM configurations, the relevant turbulence has characteristics of two-dimensional turbulence, because of stratification and rotation effects. Therefore, SGS models diffuse primarily in the horizontal. Because it is the cascade of enstrophy (vorticity variance) rather than energy that needs to be absorbed at the smallest resolved scale, and enstrophy damping increases relative to energy damping with the order of the diffusion operator, biharmonic ($\nabla^4$) or higher-order diffusion is typically used in GCMs. Additionally, in both LES and GCMs, it may be necessary to damp unwanted sound waves, which are not meteorologically significant but can pose severe restrictions on time steps. To do so, diffusive damping of divergent flow components, which contain the sound waves, is often employed. 
 
-This chapter outlines the structure and properties of various SGS models that may be used in GCM or LES configurations to achieve these purposes. The SGS models are implemented in turbulence.jl.\footnote{\url{https://github.com/climate-machine/CLIMA/blob/master/src/Atmos/Model/turbulence.jl}} Subgrid-scale (SGS) models for ``physics'' such as radiative transfer, microphysics, and convection parameterizations for coarse-resolution configurations are discussed in  separate documents. 
+This chapter outlines the structure and properties of various SGS models that may be used in GCM or LES configurations to achieve these purposes. The SGS models are implemented in \href{https://github.com/climate-machine/CLIMA/blob/master/src/Atmos/Model/turbulence.jl}{turbulence.jl}. Subgrid-scale (SGS) models for ``physics'' such as radiative transfer, microphysics, and convection parameterizations for coarse-resolution configurations are discussed in  separate documents. 
 
 \section{General Form of Diffusive SGS Fluxes}\label{s:sgs_fluxes_form}
 
@@ -692,7 +708,22 @@ Additionally, the presence of a boundary also limits the mixing length. This can
 
 \section{Vreman Low Dissipation Model}
 
-\citep{vreman2004}
+The Vreman \citep{vreman2004} eddy-viscosity model characterised by low dissipation near wall-boundaries and transitional flow regimes. The eddy viscosity for this model is given by 
+\begin{equation}\label{eq:vreman-sgs}
+\nu_{e} = 2.5 C_{s}^2 \sqrt{\frac{B_{\beta}}{\alpha_{ij}\alpha_{ij}}} 
+\end{equation}
+where
+\begin{align}
+B_{\beta} = \beta_{11}\beta_{22} + \beta_{11}\beta_{33} + \beta_{22}\beta_{33} - (\beta_{13}^2 + \beta_{12}^2 + \beta_{23}^2) \\
+\beta_{ij} = \Delta_{m}^2 \alpha_{mi} \alpha_{mj} \\
+\alpha_{ij} = \frac{\partial u_{j}}{\partial x_{i}} \\
+i,j = (1,2,3)
+\end{align}
+$C_s$ is the constant Smagorinsky coefficient and $u_{i}$ represent the components of the resolved scale velocity vector. $\Delta_{m}$ is the mixing length, determined in a manner consistent with that of the anisotropic Smagorinsky-Lilly model. Corrections for stratified flows are also applied as stated in equation  \ref{eq:Lilly_strat}. Eddy-diffusivity is then given $D_{e} = \frac{\nu_{e}}{Pr_{t}}$. No explicit filtering is prescribed in this model.
+
+
+
+
 
 \hl{[summarize]}
 
@@ -725,7 +756,9 @@ In the momentum equation \eqref{eq:governing_equations/momentum}, divergence dam
 \begin{equation}
 \vec{F}_{\vec{u}} = \rho^{-1} \vec{\nu}_D \circ \grad\left[\divergence (\rho \vec{u}) \right],
 \end{equation}
-so that when the divergence of the momentum equation is taken, a divergence equation of the form \eqref{e:divergence} results \citep[cf.][]{Jablonowksi11a}. NICAM uses no divergence damping in the vertical ($\vec{\nu}_D \cdot \vec{k}=0$) because the resulting time-step restrictions would be severe, with vertical grid spacings being much smaller than horizontal grid spacings \citep{tomita:2004}. It uses $\nu_{D, h} \approx 0.1 c_{s, 0}^2 \Delta t_s$ for the horizontal components at $O(100~\mathrm{km})$ horizontal resolution, where $c_{s,0}$ is a reference speed of sound and $\Delta t_s$ is the explicit substep in time for horizontal sound waves in their horizontally explicit and vertically implicit (HEVI) time stepping strategy, with substepping for horizontal sound and gravity waves. 
+so that when the divergence of the momentum equation is taken, a divergence equation of the form \eqref{e:divergence} results \citep[cf.][]{Jablonowksi11a}. 
+
+In GCM configurations with much larger horizontal than vertical mesh scales, vertical diffusion may impose severe time step restrictions. Therefore, an anisotropic viscosity for divergence damping is desirable. NICAM uses no divergence damping in the vertical ($\vec{\nu}_D \cdot \vec{k}=0$) and $\nu_{D, h} \approx 0.1 c_{s, 0}^2 \Delta t_s$ for the horizontal viscosity components at $O(100~\mathrm{km})$ horizontal resolution \citep{tomita:2004}. Here, $c_{s,0}$ is a reference speed of sound and $\Delta t_s$ is the explicit substep in time for horizontal sound waves in their horizontally explicit and vertically implicit (HEVI) time stepping strategy, with substepping for horizontal sound and gravity waves. In LES configurations, an isotropic viscosity for divergence damping may be used.
 
 \section{Local Spectral Filters}
 
@@ -745,30 +778,32 @@ All boundary conditions can be represented as inhomogeneous Dirichlet or Neumann
     \[
     \vec{Y}_a\bigl|_\mathrm{bdry} = A_\mathrm{bc}.
     \]
+    This is implemented as a condition on a state variable on the boundary. 
     \item \textbf{Neumann boundary condition}: The gradient of some state variable $\vec{Y}_b$ normal to the boundary is specified at the boundary,
     \[
     \vec{n} \cdot \grad\vec{Y}_b\bigl|_\mathrm{bdry} = B_\mathrm{bc},
     \] 
-    where $\vec{n}$ is the \emph{inward} pointing unit normal vector at the boundary. This generally arises from a flux boundary condition on a diffusive flux (such as the moisture flux $\vec{\mathcal{D}}_t \circ \grad q_t$) and is best implemented as a condition on the flux.
+    where $\vec{n}$ is the \emph{inward} pointing unit normal vector at the boundary. This generally arises from a flux boundary condition on a diffusive flux (such as the moisture flux $-\vec{\mathcal{D}}_t \circ \grad q_t$) and is implemented as a condition on the flux (rather than a condition on the gradient itself).
 \end{enumerate}
-From a generic implementation of these two types of boundary conditions, all others can be constructed. For example, these two types of boundary conditions can occur in mixed form for velocity vectors. A typical situation is that the normal component of velocities vanishes at a boundary (Dirichlet condition) but diffusive fluxes of tangential components, and hence normal gradients of tangential components, assume values that are a functions of state variables (Neumann condition). Different types of boundary conditions can also occur in different regions of the domain (e.g., over land vs.\ ocean).
+From these two types of boundary conditions, all others can be constructed. For example, these two types of boundary conditions can occur in mixed form for velocity vectors. A typical situation is that the normal component of velocities vanishes at a boundary (Dirichlet condition) but diffusive fluxes of tangential components, and hence normal gradients of tangential components, assume values that are a function of state variables (Neumann condition). Different types of boundary conditions can also occur in different regions of the domain (e.g., over land vs.\ ocean).
 
 \section{Boundary Conditions at Rigid Surfaces}
 
 \subsection{Velocities}
 
-At rigid surfaces, at the minimum the normal component of the velocity vanishes, and in general, the velocity vanishes entirely. Thus, we generally distinguish two cases:
+At rigid surfaces, the velocities in any minimally viscous flow vanish (the no-slip condition). However, when the no-slip condition is not numerically resolved (because no grid points lie within the thin viscous sublayer near the surface), only the normal component of the velocity is taken to vanish, so that no fluid penetrates into the rigid surface. Thus, we distinguish two cases:
 \begin{enumerate}
-    \item \textbf{Impenetrable}: The normal component of the velocity vanishes at surface,
-    \[
-    \vec{n} \cdot \vec{u}\bigl|_\mathrm{sfc}  = 0.
-    \]
-    In particular, this implies that all normal components of advective fluxes (e.g., advective mass and energy fluxes) vanish at the surface. It amounts to homogeneous Dirichlet conditions on normal velocity components.
     \item \textbf{No slip}: All velocity components vanish at the surface:
     \[
     \vec{u}\bigl|_\mathrm{sfc} =  0.
     \]
-    This amounts to homogeneous Dirichlet conditions on all velocity components. However, the no-slip condition applies only in the viscous sublayer, whose thickness is order millimeters or less in the atmosphere; hence, the no-slip condition is usually not resolved either in GCMs or LES.
+    This amounts to homogeneous Dirichlet conditions on all velocity components. The no-slip condition applies only in the viscous sublayer, whose thickness is order millimeters or less in the atmosphere; hence, the no-slip condition is generally not resolved in GCMs or LES. 
+    \item \textbf{Impenetrable}: The normal component of the velocity vanishes at surface,
+    \[
+    \vec{n} \cdot \vec{u}\bigl|_\mathrm{sfc}  = 0.
+    \]
+    In particular, this implies that all normal components of advective fluxes (e.g., advective mass and energy fluxes) vanish at the surface. It amounts to homogeneous Dirichlet conditions on normal velocity components. This is satisfied at any rigid surface.
+    
 \end{enumerate}
 
 \subsection{Momentum Flux}
@@ -777,11 +812,11 @@ While the advective momentum flux normal to a rigid surface vanishes, the viscou
 \[
 \vec{n} \cdot (\rho \vec{\tau}) = - \vec{n} \cdot \left[2\rho \vec{\nu}_t \circ \vec{S}(\vec{u}_p)\right],
 \]
-may not vanish. Here, $\vec{S}(\vec{u}_p)$ is the strain rate tensor \eqref{e:strain_rate} of the velocity component parallel to the surface,
+may not vanish. Here, $\vec{S}(\vec{u}_p)$ is the strain rate tensor \eqref{e:strain_rate} of the near-surface velocity component parallel to the surface,
  \[
     \vec{u}_p = \vec{n} \times (\vec{u} \times \vec{n}).
 \]
-We distinguish two cases:
+(Recall that the velocity component normal to a rigid surface vanishes.) We distinguish two cases:
 \begin{enumerate}
     \item \textbf{Free Slip}: There is no viscous or SGS momentum transfer between the atmosphere and the surface,
     \[
@@ -800,9 +835,22 @@ We distinguish two cases:
     \[
     C_{d, \mathrm{int}} = C_d(\vec{Y}; \vec{x}_\mathrm{int})
     \]
-    can depend parameterically on state variables $\vec{Y}$ and on the position $\vec{x}_\mathrm{int}$ of the interior point relative to the surface. The drag law boundary condition amounts to inhomogeneous Neumann boundary conditions on velocity components parallel to the surface.
+    can depend parameterically on state variables $\vec{Y}(\vec{x}, t)$ and on the position $\vec{x}_\mathrm{int}$ of the interior point relative to the surface. The drag law boundary condition amounts to inhomogeneous Neumann boundary conditions on velocity components parallel to the surface.
 \end{enumerate}
-The drag law formulation for momentum transfer results from relating the surface stress to the velocity $\vec{u}_{p, \mathrm{int}}$ at an interior point $\vec{x}_\mathrm{int}$ a small distance away from the surface, assuming a similarity profile for the variations of $\vec{u}_p$ in the direction normal to the surface, and taking the velocity at the surface itself to vanish, $\vec{u}_\mathrm{sfc} =0$: this is the no-slip condition, which is generally not explicitly resolved because the viscous sublayer is not resolved. The drag coefficient  $C_d$ is a function of distance from the surface, orientation of the surface, and of the similarity profile for the velocity near the surface, which in turn depends, e.g., on the stratification of the atmosphere and other near-surface flow characteristics; it is usually determined from Monin-Obukhov similarity theory or extensions thereof \citep{Foken06a}. This is adequate as long as the lowest model point lies within the constant-flux layer (below about 50~m altitude). Care must be taken in how quantities in the lowest model layer are interpreted in finite-volume discretizations  \citep{Nishizawa18a}.
+The drag law formulation for momentum transfer results from relating the surface stress to the velocity $\vec{u}_{p, \mathrm{int}}$ at an interior point $\vec{x}_\mathrm{int}$ a small distance away from the surface, assuming a similarity profile for the variations of $\vec{u}_p$ in the direction normal to the surface, and taking the velocity at the surface itself to vanish, $\vec{u}_\mathrm{sfc} =0$: this is the no-slip condition, which is generally not explicitly resolved because the viscous sublayer is not resolved. The drag coefficient  $C_d$ is a function of distance from the surface, orientation of the surface, and of the similarity profile for the velocity near the surface, which in turn depends, e.g., on the stratification of the atmosphere and other near-surface flow characteristics; it is usually determined from Monin-Obukhov similarity theory or extensions thereof \citep{Foken06a}.\footnote{The module \href{https://github.com/climate-machine/CLIMA/tree/master/src/Atmos/Parameterizations/SurfaceFluxes}{SurfaceFluxes.jl} computes the drag coefficient and other bulk exchange coefficients at the surface.} This is adequate as long as the interior point $\vec{x}_\mathrm{int}$ lies within the constant-flux layer (below about 50~m altitude). Care must be taken in how quantities in the lowest model layer are interpreted with a given discretization scheme \citep{Nishizawa18a}.
+
+%\subsubsection{Pressure}
+
+%The pressure $p$ also appears in a ``flux'' in the momentum balance \eqref{eq:governing_equations/momentum}. The pressure is computed diagnostically from the thermodynamic state specified by density $\rho$, temperature $T$, and the specific humidities $q$ (see below). Temperature depends on internal energy $I$ at the surface, which is determined from total energy $e^{\mathrm{tot}}$ at the surface assuming a vanishing velocity at the surface (the no-slip condition, which is physically demanded at a surface with any minimally viscous fluid). 
+
+\subsubsection{Sedimentation Flux of Momentum}
+
+The sedimentation flux of momentum at the surface
+\fxg{what is $\vec{k}$? TS: vertical unit vector, defined in section 2.1.}
+\[
+ q_c w_c \vec{n} \cdot (\vec{k} \otimes \rho \vec{u}_p) = q_c w_c (\vec{n} \cdot \vec{k}) \rho \vec{u}_p
+\]
+represents the momentum associated with velocities parallel to the surface transferred onto the surface by condensate sedimenting down the vertical unit vector $\vec{k}$. The sedimentation flux $q_c w_c$ generally satisfies an outgoing boundary condition (i.e., the sedimentation flux is assumed to continue ``into'' the surface unchanged), and the boundary condition on the velocity component parallel to the surface is one of the ones above. This specifies the boundary condition on the sedimentation flux. (However, this flux is generally 3--4 orders of magnitude smaller than the bulk surface stress and hence is usually neglected.)
 
 \subsection{Moisture Flux}\label{s:bc_moisture_flux}
 
@@ -816,7 +864,7 @@ implying homogeneous Neumann boundary conditions ($\vec{n}\cdot\grad q_l = \vec{
 \]
 with evaporation (or condensation if negative)
 \[
-E = \vec{n} \cdot (\rho \vec{d}_{q_{v}})\bigl|_\mathrm{sfc} = -\vec{n} \cdot (\rho \vec{\mathcal{D}}_t \circ \grad q_t).
+E = \vec{n} \cdot (\rho \vec{d}_{q_{v}})\bigl|_\mathrm{sfc} = -\vec{n} \cdot (\rho \vec{\mathcal{D}}_t \circ \grad q_t)\bigl|_\mathrm{sfc}.
 \]
 
 For the evaporation $E$ of water vapor at the surface (units of $\mathrm{kg~m^{-2}~s^{-1}}$), we distinguish four cases:
@@ -840,19 +888,22 @@ For the evaporation $E$ of water vapor at the surface (units of $\mathrm{kg~m^{-
      \[
     q_{v, \mathrm{sfc}} =q_v^*(T_\mathrm{sfc}, \rho_\mathrm{sfc}).
     \]
-    The saturation specific humidity $q_v^*(T_\mathrm{sfc}, \rho_\mathrm{sfc})$ depends on the temperature $T_\mathrm{sfc}(\vec{x}_\mathrm{sfc}, t)$ and density $\rho_\mathrm{sfc}(\vec{x}_\mathrm{sfc}, t)$ of air in contact with the surface. The surface temperature $T_\mathrm{sfc}$ is taken as a given function of space and time, and the density can be calculated from $T_\mathrm{sfc}$ and the temperature $T_\mathrm{int} = T(\vec{x}_\mathrm{int}, t)$ and density $\rho_\mathrm{int} = \rho(\vec{x}_\mathrm{int}, t)$ at an interior point near the surface by assuming an adiabatic stratification between the interior point and the surface:
+    The saturation specific humidity $q_v^*(T_\mathrm{sfc}, \rho_\mathrm{sfc})$ depends on the temperature $T_\mathrm{sfc}(\vec{x}_\mathrm{sfc}, t)$ and density $\rho_\mathrm{sfc}(\vec{x}_\mathrm{sfc}, t)$ of air in contact with the surface. The surface temperature $T_\mathrm{sfc}$ is a given function of space and time, and the density can be calculated from $T_\mathrm{sfc}$ and the temperature $T_\mathrm{int} = T(\vec{x}_\mathrm{int}, t)$ and density $\rho_\mathrm{int} = \rho(\vec{x}_\mathrm{int}, t)$ at an interior point near the surface by assuming an adiabatic stratification between the interior point and the surface:
     \begin{equation}\label{e:sfc_density}
     \rho_\mathrm{sfc} \approx \rho_\mathrm{int} \left( \frac{T_\mathrm{sfc}}{T_\mathrm{int}} \right)^{c_{vm}(q_\mathrm{int})/R_m(q_\mathrm{int})},
     \end{equation}
     Here, $q_\mathrm{int}$ stands for the tuple of specific humidities at the interior point.
 \end{enumerate}
 
-Additionally, while diffusive and advective condensate fluxes normal to the surface are assumed to vanish, condensate with sedimentation velocity $w_{l/i}$ may sediment onto the surface, contributing to the precipitation rate at the surface:
-\begin{equation}
-    P_{\mathrm{liq}} = \rho q_{l} w_{l} (\vec{k} \cdot \vec{n}) \quad \text{and} \quad  P_{\mathrm{ice}} = \rho q_{i} w_{i} (\vec{k} \cdot \vec{n}).
-\end{equation}
-Along with precipitating condensate, these sedimentation rates contribute to the total precipitation rate.
+\subsubsection{Sedimentation Fluxes of Condensate}
 
+While diffusive and advective condensate fluxes normal to the surface are assumed to vanish, condensate with sedimentation velocity $w_{l/i}$ may sediment onto the surface. This corresponds to an outgoing boundary condition on the fluxes,
+\begin{equation}
+    P_{\mathrm{liq}} = \rho q_{l} w_{l} (\vec{k} \cdot \vec{n}) \quad \text{and} \quad  P_{\mathrm{ice}} = \rho q_{i} w_{i} (\vec{k} \cdot \vec{n}),
+\end{equation}
+with fluxes continued from the interior ``into'' the surface. The fluxes $P_{\mathrm{liq}}$ and $P_{\mathrm{ice}}$ into the surface contribute to the total precipitation rate.
+
+%%FXG Here 1/12/20
 \subsection{Energy Flux}
 
 As for momentum and humidity, the advective energy fluxes normal to a rigid surface vanish, but the diffusive or SGS flux of total enthalpy normal to the surface (units of $\mathrm{W~m^{-2}}$),
@@ -912,6 +963,14 @@ The dry static energy flux represents the portion of the total moist static ener
 
 Note that we make the (common) assumption that total specific humidity and total enthalpy have the same bulk exchange coefficient $C_h$, which allowed us to derive the functional forms above for the individual fluxes $\vec{J}$ and $\vec{D}$ at the surface.  However, the exchange coefficient for momentum, $C_d$, may differ because momentum exchange is affected by pressure fluctuations, whereas scalar exchange is not affected by them.
 
+\subsubsection{Sedimentation Fluxes of Energy}
+
+Condensate that sediments onto the surface with a sedimentation velocity $w_{l/i}$ carries energy with it, again corresponding to an outgoing boundary condition on the sedimentation energy flux
+\[
+\left. \rho W_c\right|_\mathrm{sfc} = \rho W_c (\vec{k} \cdot \vec{n}).
+\]
+The energy carried by sedimenting condensate is generally small but can be taken into account in the surface energy balance.
+
 \subsection{Precipitation Fluxes}
 
 Like the diffusive/SGS fluxes of suspended condensate \eqref{e:sfc_condensate_flux}, the diffusive/SGS fluxes of precipitation species $q_{p, i}$ normal to the surface are taken to vanish
@@ -920,8 +979,9 @@ Like the diffusive/SGS fluxes of suspended condensate \eqref{e:sfc_condensate_fl
 \end{equation} 
 However, while the normal component of the advective velocity for moist air $\vec{n} \cdot \vec{u}$ vanishes at the surface, the vertical sedimentation velocity $w_{p,i}$ does not generally vanish. The normal component of the sedimentation flux is just the precipitation rate for species $i$ (units $\mathrm{kg~m^{-2}~s^{-1}}$),
 \begin{equation}
-    P_i = \rho q_{p, i} w_{p, i} (\vec{k} \cdot \vec{n}).
+    P_i = \rho q_{p, i} w_{p, i} (\vec{k} \cdot \vec{n}),
 \end{equation}
+which, like other sedimentation fluxes, satisfies an outgoing boundary condition. 
 
 \subsection{Tracer Fluxes}
 
@@ -931,16 +991,19 @@ The diffusive/SGS flux of tracer $\chi_i$ normal to the surface takes the form
 \end{equation} 
 where the exchange coefficient $C_h$ is the same as that for water vapor and $\delta_{\chi_i}$ is the diffusivity ratio. Like for water vapor, the surface tracer concentration $\chi_{i, \mathrm{sfc}}$ is that in a microscopic air layer in contact with the surface.
 
-If the tracer has a nonzero sedimentation velocity $w_{\chi, i}$, the normal component of the sedimentation flux gives a surface sedimentation rate for tracer $\chi_i$ (units $\mathrm{kg~m^{-2}~s^{-1}}$),
+\subsubsection{Sedimentation Flux of Tracers}
+
+If the tracer has a nonzero sedimentation velocity $w_{\chi, i}$, the normal component of the sedimentation flux gives a surface sedimentation rate for tracer $\chi_i$ (units $\mathrm{kg~m^{-2}~s^{-1}}$), 
 \begin{equation}
-    \mathrm{Sedimentation~Rate}(\chi_i) = \rho \chi_{i} w_{\chi, i} (\vec{k} \cdot \vec{n}).
+    \mathrm{Sedimentation~Rate}(\chi_i) = \rho \chi_{i} w_{\chi, i} (\vec{k} \cdot \vec{n}),
 \end{equation}
+which again satisfies an outgoing boundary condition. 
 
 \section{Top Boundary Conditions} 
 
 Generally, the model top is a rigid lid, which means. it is:
 \begin{itemize}
-    \item \textbf{Impenetrable} (normal velocity)
+    \item \textbf{Impenetrable} (velocity)
     \item \textbf{Free slip} (momentum flux)
     \item \textbf{Vapor impermeable} (moisture flux)
     \item \textbf{Insulating} (energy flux)
@@ -951,7 +1014,7 @@ A rigid lid at the top is used in lieu of radiation boundary conditions, which w
 
 Bottom boundary conditions are more varied. Commonly they are
 \begin{itemize}
-    \item \textbf{Impenetrable} (normal velocity)
+    \item \textbf{Impenetrable} (velocity)
     \item \textbf{Drag law} (momentum flux)
     \item \textbf{Given evaporation}, \textbf{surface humidity}, or \textbf{saturated surface} (moisture flux)
     \item \textbf{Given MSE flux} or \textbf{given temperature} and \textbf{surface humidity} or \textbf{saturated surface} (energy flux)
@@ -963,10 +1026,10 @@ Any combination of these types of boundary conditions gives a consistently formu
 Lateral boundary conditions do not arise on the sphere. However, several forms of lateral boundary conditions arise in LES configurations: We want to be able to configure the model with the following lateral boundary conditions:
 \begin{itemize}
     \item \textbf{Doubly periodic}: Periodic boundary conditions on the sides are a special case of Dirichlet conditions, where all state variables at a boundary face are equal to the state variables at the opposing boundary face.
-    \item \textbf{Re-entrant channel}: Impenetrable, vapor impermeable, insulating, free-slip walls on two sides, and periodic boundary conditions at the other two sides. 
+    \item \textbf{Re-entrant channel}: Impenetrable, vapor impermeable, insulating, free-slip walls on two opposing sides (side walls of channels), and periodic boundary conditions at the other two sides, with outflow out of one side being equal to inflow through the opposite side. \fxg{Why is this called re-entrant but the inflow normal velocity is zero? TS: The inflow normal is not zero on the two opposing sides that are re-entrant; the boundary conditions at those two sides are periodic. So the topology is a torus.}
     \item \textbf{Prescribed state and fluxes}: Prescribed states and fluxes (e.g., from a GCM simulation) at all lateral boundaries. 
 \end{itemize}
-With prescribed state and fluxes on lateral boundaries, transparent radiation boundary conditions would be desirable. In principle they can be achieved with upwind schemes \citep{Davies14a}. An simpler alternative are relaxation layers that prevent the unwanted reflection of fast waves, as in sponge layers \citep{Davies76a}.
+With prescribed state and fluxes on lateral boundaries, transparent radiation boundary conditions would be desirable. In principle they can be achieved with upwind schemes \citep{Davies14a}. A simpler alternative is relaxation layers that prevent the unwanted reflection of fast waves, as in \textit{sponge} layers \citep{Davies76a}.
 
 \section{Sponge Layer}\label{s:sponge}
 
@@ -990,28 +1053,35 @@ A simple form of the relaxation coefficient that ensures a smooth onset of the s
 %    \frac{1}{2}\left[1 - \cos\left(\frac{z - z_D}{z_T - z_D}\pi\right) %\right] &  0\leq \frac{z - z_D}{z_T - z_D} \leq \frac{1}{2},\\
 %    \frac{1}{2}\left[1 + \cos\pi\left(\frac{z - z_D}{z_T - z_D} - \frac{1}{2}\right) \right]  &  \frac{1}{2}\leq \frac{z - z_D}{z_T - z_D} \leq 1,\\
 \end{equation}
-for a sponge layer at the top of the domain at altitude $z_T$. The parameters in this formulation are the altitude $z_D$ where the sponge starts and the maximum relaxation coefficient $\alpha_{\max}$. Empirically, maximum relaxation coefficients around $\alpha_{\max} = (20 \Delta t)^{-1}$, with the model time step $\Delta t$, have been found to work well.
+for a sponge layer at the top of the domain at altitude $z_T$. The parameters in this formulation are the altitude $z_D$ where the sponge starts and the maximum relaxation coefficient $\alpha_{\max}$. Empirically, maximum relaxation coefficients around $\alpha_{\max} = (20 \Delta t)^{-1}$, with the model time step $\Delta t$, have been found to work well \citep{Jablonowksi11a}.
 
 If the reference velocity $\vec{u}_0$ is chosen to be the zonal mean velocity $\vec{\Bar u}(z, t)$ in a GCM, or the horizontal domain mean velocity in an LES, the Rayleigh damping layer only damps fluctuations about the mean. Thus, it exerts no zonal-mean or horizontal-mean drag.  
 
 \subsection{Alternatives to Sponge Layers}
 
 Alternatives to sponge layers include:
+\comment{
 \begin{itemize}
     \item One may use an extrapolation condition, whereby the Riemann solver is modified to let flow move out of the domain. This is what is typically used with Godunov methods. 
     \item One may use the approach recently proposed by Benacchio and Bonaventura: they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
     \item Another option is the simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[From Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
 \end{itemize}
+}
+ \begin{itemize}
+    \item an extrapolation condition, whereby the Riemann solver is modified to let flow move out of the domain. This is what is typically used with Godunov methods. 
+    \item the approach recently proposed by Benacchio and Bonaventura: they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
+    \item the simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[From Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
+\end{itemize}
     
-\chapter{Initial Conditions and Reference State}\label{s:initial_conditions}
+\chapter{Reference State and Initial Conditions}\label{c:reference_state}
 
-Initial conditions are usually case specific. But a situation that arises often is having an initial state that is at rest, hydrostatic, and has a specified temperature profile $T(z)$ that varies only with height $z$. To reduce spin-up times, for example, of a global model, we may also wish to specify an initial constant relative humidity (with $\mathrm{RH} < 1$ to avoid saturation in the initial state). That same state is also convenient for linearizations needed in implicit solves for fast wave modes in the governing equations.
+In the momentum balance \eqref{eq:governing_equations/momentum}, we factored out a hydrostatic reference state with pressure $p_r(z)$ and density $\rho_r(z)$. While initial conditions are usually case specific, such a reference state often is also used as an initial condition. Here we consider a class of reference states that are at rest, hydrostatic, and have a specified temperature profile $T_r(z)$ that varies only with altitude $z$. To reduce spin-up times, for example, of a global model, we may also wish to specify an initial constant relative humidity (with $\mathrm{RH} < 1$ to avoid saturation in the initial state). That same state is also convenient for linearizations needed in implicit solves for fast wave modes in the governing equations.
 
 \section{Temperature}
 
 A simple temperature profile that covers many cases is
 \begin{equation}\label{e:ref_temperature}
-    T(z) = \max \left( T_{\mathrm{sfc}} - \Gamma z, T_{\min} \right),
+    T_r(z) = \max \left( T_{\mathrm{sfc}} - \Gamma z, T_{\min} \right),
 \end{equation}
 with parameters
 \begin{itemize}
@@ -1029,33 +1099,33 @@ z_{t} = \frac{T_{\mathrm{sfc}} - T_{\min}}{\Gamma}.
     \caption{(a) An isothermal temperature profile (blue) and a temperature profile \eqref{e:ref_temperature} (red) with surface temperature $T_{\mathrm{sfc}} = 300~\mathrm{K}$, ``stratospheric'' temperature $T_{\min} = 200~\mathrm{K}$, and ``tropospheric'' temperature lapse rate $\Gamma = 6.5~\mathrm{K~km^{-1}}$---values roughly representative of Earth's tropical atmosphere. (b) The corresponding hydrostatically balanced pressure profiles \eqref{eq:hydro_pressure_iso} and \eqref{eq:hydro_pressure_lapse}, with $p_{\mathrm{MSLP}} = 10^5~\mathrm{Pa}$.}
     \label{f:hydrostatic_state}
 \end{figure}
-The temperature is constant and equal to $T_{\min}$ above $z_t$. See Fig.~\ref{f:hydrostatic_state}a for an example. The resulting temperature profile is a rough approximation of a tropospheric temperature profile with lapse rate $\Gamma$ and a ``tropopause'' at height $z_t$, overlain by a ``stratosphere'' with constant temperature $T_{\min}$. For $\Gamma = g/c_{pd}$, the ``tropospheric'' temperature profile is dry adiabatic. 
+The temperature is constant and equal to $T_{\min}$ above $z_t$. See Fig.~\ref{f:hydrostatic_state}a for an example. The resulting temperature profile is a rough approximation of a tropospheric temperature profile with lapse rate $\Gamma$ and a ``tropopause'' at height $z_t$, overlain by a ``stratosphere'' with constant temperature $T_{\min}$. For $\Gamma = g/c_{pd}$, the ``tropospheric'' temperature profile is dry adiabatic (isentropic), i.e., has constant (dry) potential temperature. 
 
 \section{Pressure}
 
-We obtain the pressure $p(z)$ consistent with the temperature profile $T(z)$ by combining hydrostatic balance ($\partial_z p(z) = - \rho g$) with the ideal gas law ($p=\rho R_d T$, neglecting the effect of any moisture on the gas constant), giving
+We obtain the pressure $p_r(z)$ consistent with the temperature profile $T_r(z)$ by combining hydrostatic balance ($\partial_z p(z) = - \rho g$) with the ideal gas law ($p=\rho R_d T$, neglecting the effect of any moisture on the gas constant). This gives
 \begin{equation}\label{eq:hydro_pressure}
-p(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right).
+p_r(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right).
 \end{equation}
 Here,
 \begin{equation}
-H(z)  = \frac{R_d T(z)}{g}
+H(z)  = \frac{R_d T_r(z)}{g}
 \end{equation}
-is the scale height, and we chose for the pressure $p(0)$ at height $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. 
+is the scale height, and we chose for the pressure $p_r(0)$ at altitude $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. 
 
 It helps here to distinguish the cases of an isothermal atmosphere and of an atmosphere with nonzero lapse rate:
 \begin{itemize}
 \item \textbf{Isothermal Atmosphere ($\Gamma = 0$, $T_{\mathrm{sfc}} \ge T_{\min}$).} 
 In this case, the pressure becomes 
 \begin{equation}\label{eq:hydro_pressure_iso}
-    p(z) = p_{\mathrm{MSLP}} \exp \left(-\frac{z}{H_{\mathrm{sfc}}} \right), \qquad H_{\mathrm{sfc}} = \frac{R_d T_{\mathrm{sfc}}}{g} = \mathrm{const}.
+    p_r(z) = p_{\mathrm{MSLP}} \exp \left(-\frac{z}{H_{\mathrm{sfc}}} \right), \qquad H_{\mathrm{sfc}} = \frac{R_d T_{\mathrm{sfc}}}{g} = \mathrm{const}.
 \end{equation}
 See See Fig.~\ref{f:hydrostatic_state}b (blue line) for an example.
 
 \item \textbf{Nonzero Lapse Rate ($\Gamma \ge 0$, $T_{\mathrm{sfc}} \ge T_{\min}$).}
 Integrating the general expression \eqref{eq:hydro_pressure} for the hydrostatic pressure for a temperature profile \eqref{e:ref_temperature} with nonzero lapse rate yields
 \begin{equation}\label{eq:hydro_pressure_lapse}
-p(z) = p_{\mathrm{MSLP}} \times
+p_r(z) = p_{\mathrm{MSLP}} \times
 \begin{cases}
 \left(1 - \frac{\Gamma z}{T_{\mathrm{sfc}}} \right)^{g/(R_d \Gamma)} & \text{for } z \le z_t, \\[1.5ex]
   \left(\frac{T_{\min}}{T_{\mathrm{sfc}}} \right)^{g/(R_d \Gamma)}
@@ -1071,26 +1141,26 @@ is the ``stratospheric'' scale height. See See Fig.~\ref{f:hydrostatic_state}b (
 
 \section{Density}
  
-Given the temperature $T(z)$ and hydrostatic pressure $p(z)$, the reference density $\rho(z)$ follows from the ideal gas law as
+Given the temperature $T_r(z)$ and hydrostatic pressure $p_r(z)$, the reference density $\rho_r(z)$ follows from the ideal gas law as
 \begin{equation}\label{eq:hydro_density}
-    \rho(z) = \frac{p(z)}{R_d T(z)}.
+    \rho_r(z) = \frac{p_r(z)}{R_d T_r(z)}.
 \end{equation}
 
 \section{Specific Humidity}
 
-And the total specific humidity $q_t(z)$ for a given relative humidity, temperature $T(z)$, and density $\rho(z)$ is
+And the total specific humidity $q_t(z)$ for a given relative humidity, temperature $T_r(z)$, and density $\rho_r(z)$ is
 \begin{equation}
-    q_t(z) = \mathrm{RH} \, q_v^*\bigl( T(z), \rho(z) \bigr),
+    q_{t,r}(z) = \mathrm{RH} \, q_v^*\bigl( T_r(z), \rho_r(z) \bigr),
 \end{equation}
-where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}. Corresponding to $\mathrm{RH} < 1$, we set the condensate specific humidities to zero ($q_l = q_i = 0$).
+where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}. Corresponding to $\mathrm{RH} < 1$, we set the condensate specific humidities to zero ($q_l = q_i = 0$). \hl{[Note that this is an approximation of the RH definition. Modify or discuss.]}
 
 \section{Energy}
 
-From the above quantities, we can compute the specific internal energy $I$ using Eq.~\eqref{eq:total_internal_energy} and with that the total specific energy $e^{\mathrm{tot}} = I + \Phi$ corresponding to a state of rest ($\vec{u}=0$). This completes the specification of the model state.
+From the above quantities, we can compute the specific internal energy $I_r$ in the reference state using Eq.~\eqref{eq:total_internal_energy} and with that the total specific energy $e^{\mathrm{tot}}_r = I_r + \Phi$ corresponding to a state of rest ($\vec{u}=0$). This completes the specification of the reference state.
 
 \section{Noise}
 
-It is common to add a small amount of random noise, e.g., to the initial density at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of $\rho(0)$.
+It is common to add a small amount of random noise, e.g., to the initial density at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of $\rho_r(0)$.
 
 \chapter{Abstraction of Model Formulation}\label{s:abstract_model_formulation}
 
@@ -1127,7 +1197,7 @@ The advective flux is generally of the form ``$\rho \times \mathrm{scalar} \time
  \label{e:adv_flux}
  \Fndiff=\left( \begin{array}{c}
  \rho \vec{u} \\
- \rho \vec{u} \otimes \vec{u} + p \vec{I}_3 \\
+ \rho \vec{u} \otimes \vec{u} + (p - p_r) \vec{I}_3 \\
  \rho e^{\mathrm{tot}} \vec{u} + p \vec{u}\\
  \rho q_k \vec{u}\\
  \rho q_{p,i} \vec{u} \\
@@ -1190,10 +1260,10 @@ The right-hand side of the balance law \eqref{e:eom_compact} has the source-sink
 \Source(\vec{Y})= 
  \left( \begin{array}{c}
  -\rho C(q_t \rightarrow q_p) \\
-  -\rho \grad\Phi - 2 \vec{\Omega} \times \rho\vec{u}  + \rho \vec{F}_{\vec{u}} \\
+  -(\rho - \rho_r) \grad\Phi - 2 \vec{\Omega} \times \rho\vec{u}  + \rho \vec{F}_{\vec{u}} \\
  \rho Q - \sum_{j\in\{v,l,i\}} (I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M \\% + \rho \vec{u} \cdot \vec{F}_{\vec{u}}  \\
 \rho C(q_p \rightarrow q_k) + \rho \sum_j \rho C(q_j \rightarrow q_k) \\
-\rho \sum_k C(q_k \rightarrow q_{p, i}) - \rho \sum_j C(q_{p, i} \rightarrow q_{p, j})\\
+    \rho \sum_k C(q_k \rightarrow q_{p, i}) - \rho \sum_j C(q_{p, i} \rightarrow q_{p, j})\\
 \rho \mathcal{S}_{\chi_i}
 \end{array}
 \right)
@@ -1211,7 +1281,7 @@ Here we describe a suite of test cases for dry and moist atmospheres, and for co
 
 \subsection{Initial Condition}
 
-The initial condition for the Held-Suarez benchmark is an isothermal atmosphere at rest, with $T(t=0) = 300~\mathrm{K}$. Hydrostatically balanced initial density and pressure fields are calculated from the initial temperature according to section~\ref{s:initial_conditions}, and some small random perturbations are added to the density field to break the symmetry of the initial state and allow 3D baroclinic waves to develop. Baroclinic waves develop within a few simulated days in this benchmark calculation, and they begin to equilibrate after around 20--30~days. 
+The initial condition for the Held-Suarez benchmark is an isothermal atmosphere at rest, with $T(t=0) = 300~\mathrm{K}$. Hydrostatically balanced initial density and pressure fields are calculated from the initial temperature according to section~\ref{c:reference_state}, and some small random perturbations are added to the density field to break the symmetry of the initial state and allow 3D baroclinic waves to develop. Baroclinic waves develop within a few simulated days in this benchmark calculation, and they begin to equilibrate after around 20--30~days. 
 
 \subsection{Boundary Conditions}
 
@@ -1239,11 +1309,11 @@ is a normalized pressure. (Usually, $\sigma$ is taken to be normalized by the te
     \item $k_f = 1~\mathrm{day^{-1}}$: drag coefficient at the surface
 \end{itemize}.
 
-\hl{Note that the momentum source appears in the momentum and energy equations. The Rayleigh drag only acts on the horizontal velocity components and is zero in the vertical. Need to fix this in code.}
+\hl{Note that the Rayleigh drag should only act on the horizontal velocity components and is zero in the vertical. Need to fix this in code.}
 
 \subsubsection{Heating/cooling}
 
-Radiative heating/cooling is represented by linear relaxation of temperatures toward a radiative-equilibrium state with temperature \hl{[Note that here $p/p_{\mathrm{MSLP}}$ should be this, with a constant pressure for normalization. So generally, this is not equal to $\sigma$ above; it is only with the simplified $\sigma$ above.]}
+Radiative heating/cooling is represented by linear relaxation of temperatures toward a radiative-equilibrium state with temperature \hl{[Note that here $p/p_{\mathrm{MSLP}}$ should be this, with a constant pressure for normalization. So generally, this is not equal to $\sigma$ above; it is only equal with the simplified $\sigma$ above.]}
 \begin{multline}
     T_{\mathrm{eq}} = \max \\
     \left\{ T_{\mathrm{top}}, \left[ T_{\max} - (\Delta T)_y \sin^2 \phi - (\Delta \theta)_z \log\left(\frac{p}{p_{\mathrm{MSLP}}}\right) \cos^2 \phi \right]
@@ -1285,7 +1355,13 @@ Hence, the SGS mixing needs to be strongly anisotropic, e.g., as outlined in sec
 \label{pressureDistrib}
 p = p_{0}\left(1-\frac{g}{c_p{\theta_{0}}}z\right)^{c_p/R}.
 \end{equation}
-The domain is $[-5000~\mathrm{m},5000~\mathrm{m}]\times[0,10000~\mathrm{m}]$. The flow is triggered by a Gaussian-shaped potential temperature perturbation with a flat region at the center, defined as
+The domain is $[-5000~\mathrm{m},5000~\mathrm{m}]\times[0,10000~\mathrm{m}]$. 
+
+We consider two different ways of triggering a rising thermal, either through a buoyant bubble specified in the initial condition, or through boundary fluxes that drive a thermal.
+
+\subsection{Buoyant Bubble in Initial Condition}
+
+This is the case originally considered by \cite{robert1993}. The flow is triggered by a Gaussian-shaped potential temperature perturbation with a flat region at the center, defined as
 \begin{equation}
  \Delta\theta = \left\{ \begin{array}{ll}
  \theta_c & \text{if } r \leq a\\
@@ -1293,17 +1369,43 @@ The domain is $[-5000~\mathrm{m},5000~\mathrm{m}]\times[0,10000~\mathrm{m}]$. Th
 \end{array} \right.
 \label{eq:robertIni}
 \end{equation}
-where $r = \sqrt[]{(x-x_{c})^{2} + (z-z_{c})^{2}}$, $(x_c,z_c) = (500,260)\,\mathrm{m}$, $a=50~\mathrm{m}$, $\sigma = 100~\mathrm{m}$, and $\theta_c=0.5~\mathrm{K}$.
-
-\begin{figure}[htbp]
-\includegraphics[width=\textwidth]{figures/RTB-Robert--smgo-5mX5m-1080s0000.png}
-\caption{2D rising thermal bubble (Robert, 1993) stabilized via a constant coefficient Smagorinsky-Lilly SGS: Potential temperature $\theta$ at $t=1080\,\mathrm{s}$. Grid resolution: $\Delta x = \Delta z = 5\,\mathrm{m}$.}
-\label{fig:benchmarks/robert5msmago}
+where $r = \sqrt[]{(x-x_{c})^{2} + (z-z_{c})^{2}}$, $(x_c,z_c) = (500,260)\,\mathrm{m}$, $a=50~\mathrm{m}$, $\sigma = 100~\mathrm{m}$, and $\theta_c=0.5~\mathrm{K}$. Results of a simulation of this flow are shown in Fig.~\ref{fig:benchmarks/robert_bubble}.
+\begin{figure}
+\centerline{\includegraphics[width=0.7\textwidth]{figures/RTB-Robert--smgo-5mX5m-1080s0000.png}}
+\caption{Simulation of 2D rising thermal bubble triggered by initial perturbation. What is shown is the potential temperature $\theta$ at $t=1080\,\mathrm{s}$. The grid resolution is $\Delta x = \Delta z = 5\,\mathrm{m}$. \fxg{which polynomial order?} The simulation is stabilized with a constant coefficient Smagorinsky-Lilly SGS model.}
+\label{fig:benchmarks/robert_bubble}
 \end{figure}
 
-\hl{What follows is still incomplete.}
+\subsection{Thermal Driven by Boundary Fluxes}
+
+An alternative way of driving a thermal is by specifying a heat flux at the lower boundary. This amounts to specifying the moist static energy flux at the surface,
+\begin{equation}
+    \vec{n} \cdot \rho (\vec{J} + \vec{D})_\mathrm{sfc} = \mathrm{MSEF}(\vec{x}, t).
+\end{equation}
+To mimic the structure of the thermal bubble specified through the initial condition, we use the moist static energy flux
+\begin{equation}
+     \mathrm{MSEF}(\vec{x}, t) =  F_0(t) \times \left\{ \begin{array}{ll}
+ 1 & \text{if } r \leq a\\
+ e^{-(x - a)^2/\sigma^2} & \text{if } r > a,\\
+\end{array} \right.
+\end{equation}
+where $r = |x-x_{c}|$, $x_c = 500\,\mathrm{m}$, $a=50~\mathrm{m}$, and $\sigma = 100~\mathrm{m}$. The amplitude of the surface energy flux $F_0(t)$ varies with time as
+\begin{equation}
+   F_0(t) =
+   200~\mathrm{W~m^{-2}}\times 
+   \left\{ \begin{array}{ll}
+ 0 & \text{if } t \leq t_0\\
+ 1 & \text{if } t_0 < t < t_1,\\
+ 0 & \text{if } t > t_1,
+ \end{array}\right.
+\end{equation}
+where $t_0=0$ and $t_1 = 500~\mathrm{s}$ (that is, the energy flux at the surface has a top-hat profile in time). \hl{[You may want to experiment with the amplitude of the flux and the duration for which it's on, to see when you get a reasonable bubble.]}
+
+The surface stress is taken to be zero (free-slip boundary condition). In the standard dry case, evaporation is also taken to be zero. Generalizations with nonzero evaporation, to trigger a moist thermal and possibly a cloud as in section~\ref{s:rtb_moist}, are also possible. 
 
 \section{2D Density Current}
+
+\hl{What follows is still incomplete.}
 This test is described in \cite{strakaWilhelmson1993}. It consists of a flow that is triggered by the cold perturbation of a neutrally stratified atmosphere at initially uniform potential temperature $\theta_0 = 300$ K
 and in hydrostatic equilibrium such that the pressure decreases with $z$ as:
 \begin{equation}
@@ -1323,7 +1425,7 @@ where $r = \sqrt[]{(x-x_{c})^2/r_x^{2} + (z-z_{c})^{2}/r_z^2}$, $(x_c,z_c) = (0,
 
 \begin{figure}[htbp]
 \includegraphics[width=1.2\textwidth]{figures/DC-smgo-25mx25m-900s0000.png}
-\caption{2D density current stabilized via a constant coefficient Smagorinsky-Lilly SGS. Potential temperature $\theta$ at $t=900\,\mathrm{s}$ (top) and at $t=1200\,\mathrm{s}$ (bottom). Grid resolution: $\Delta x = \Delta z = 25\,\mathrm{m}$.
+\caption{2D density current stabilized via a constant coefficient Smagorinsky-Lilly SGS. Potential temperature $\theta$ at $t=900\,\mathrm{s}$ (top) and at $t=1200\,\mathrm{s}$ (bottom). Grid resolution: $\Delta x = \Delta z = 25\,\mathrm{m}$. \fxg{I assume this is the 900 second plot - there is no other plot. Which polynomial order?}
 }
 \label{fig:benchmarks/dc25msmago}
 \end{figure}
@@ -1331,7 +1433,7 @@ where $r = \sqrt[]{(x-x_{c})^2/r_x^{2} + (z-z_{c})^{2}/r_z^2}$, $(x_c,z_c) = (0,
 
 %%
 \section{Rising Thermal Bubble in a Saturated Atmosphere}
-\label{rtb3D}
+\label{s:rtb_moist}
 The moist dynamics is tested by means of the saturated rising bubble test described in \cite{Pressel15a}. The initial conditions are setup as follows:
 
 \begin{itemize}
@@ -1468,16 +1570,27 @@ The interaction of the resolved flow with SGS fluxes is crucial for a successful
 
 \section{3D Squall Line}
 \label{sq3D}
-The three-dimensional simulation of a squall line is defined in the domain 
-$80\times 80\times20\,\mathrm{km}^3$. 
-The initial background state is given by the sounding of \cite{gabersekGiraldoDoyle2012}.
-To initiate the vertical transport of water vapor to a level of condensation (and hence trigger a cloud formation, the initial background is forced by a temperature anomaly $\theta'$ $3$ K warmer than the surrounding environment. 
+The three-dimensional simulation of a squall line is defined in a domain
+$60\times 60\times24\,\mathrm{km}^3$. 
 
-A stretched grid along $z$ is used to make the resolution higher in the lower atmosphere where convection is triggered.
+\paragraph{Boundary conditions}
+\begin{itemize}
+\item Bottom:
+    \begin{itemize}
+        \item Momentum: free slip b.c. ${\bf u}\cdot{\bf u}= 0$
+        \item \hl{[Energy: nothing as of now. But we need to apply no thermal flux by imposing Neumann on $\nabla T$]}.
+    \end{itemize}
+\item Top: thick sponge (almost 1/3 of the vertical domain.)
+\item Lateral: periodic in both horizontal directions.
+\end{itemize}
+
+\paragraph{Grid resolution} For testing purpuses only, a relatively coarse resolution is the default setting with $(\Delta {\rm horizontal}\times \Delta {\rm vertical}) = (250\,{\rm m}, \times 100\,{\rm m})$. To decrease the number of vertical layers, a stretched grid along $z$ can be used to make the resolution higher in the lower atmosphere where convection is triggered. 
+
+\paragraph{Physical phenomenon}
 The domain is crossed by a horizontal wind along the x-direction with a $12\,\mathrm{m\,s^{-1}}$ shear at $z=2000\,\mathrm{m}$.
-A no-slip condition is applied on the surface boundary while periodic boundaries are defined along $x$ and $y$. 
-To damp the vertically propagating gravity ways triggered by the cloud formation, a Rayleigh absorbing layer is applied at the higher layers of the atmosphere.
-The cloud first forms at approximately 500 s, and is fully develop after 4500 s. 
+The initial background state is given by the sounding of \cite{gabersekGiraldoDoyle2012}.
+To initiate the vertical transport of water vapor to a level of condensation (and hence trigger a cloud formation, the initial background is forced by a temperature anomaly $\theta'$ $3$ K warmer than the surrounding environment. The cloud first forms at approximately 500 s, and is fully develop after 4500 s. 
+
 An instantaneous view of the precipitating squall line is shown in Figure \ref{fig:benchmarks/squall1}. 
 
 \begin{figure}[htbp]
@@ -1515,7 +1628,7 @@ z (m) & $\theta_v$ (K) & $q_{tot}$ $\rm {kg/kg}$ & $u$ (m/s) & $v$ (m/s) & p (Pa
 
 \section{Diagnostics}
 
-A Reynolds decomposition is applied to all quantities for which statistics are computed. For a given quantity $a$, it is split into a mean value, $<a>$  (in either time or space) and a fluctuation, $a'$, around it such that $a' = a - <a>$, where the space or time averaging is simply:
+A Reynolds decomposition is applied to all quantities for which statistics are computed. For a given quantity $a$, it is split into a mean value, $\langle a \rangle$  (in either time or space) and a fluctuation, $a'$, around it such that $a' = a - \langle a \rangle$, where the space or time averaging is simply:
 
 \begin{equation}
     \langle a \rangle = \frac{1}{N} \sum_{i=1}^N a_i

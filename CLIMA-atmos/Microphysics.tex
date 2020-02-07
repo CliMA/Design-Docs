@@ -156,7 +156,7 @@ where $e_*$ is the ``base value'' of $e_{sat}$, i.e., the value for pure water i
 \end{equation}
 with
 \begin{equation}
-    F_K(T) = \frac{L_v \rho_l}{K T} \left(\frac{L_v}{R_vT} - 1\right) `~\textrm{and} ~~ F_D(T) = \frac{R_v T \rho_l}{D_v e_*(T)}
+    F_K(T) = \frac{L_v \rho_l}{K T} \left(\frac{L_v}{R_vT} - 1\right) ~\textrm{and} ~~ F_D(T) = \frac{R_v T \rho_l}{D_v e_*(T)}
 \end{equation}
 Using equation (\ref{eq:condens_dm_dt}), the moments' form of the contribution of condensation and evaporation becomes:
 \begin{equation}
@@ -217,6 +217,46 @@ With the expression for $v_s$ derived in this section and writing it as a functi
 \end{aligned}
 \label{eq:sedimentation_moments}
 \end{equation}
+
+\subsection{Beard 1977 terminal velocity}
+
+\citet{Beard1977} provides formulae for terminal velocities of water drops calculated as a numerical fit  to measurements. Water drops are divided into two categories based on their diameter $ d \in (1 \mu m,  40 \mu m)$ and $d \in (40 \mu m, 6mm)$. The terminal velocity is first computed at the sea level (for $p = 1013 \; hPa$, $T = 293.15 \; K$ and $\rho = 1.194 \; kg/m3$ and then adjusted for the conditions aloft using a correction factor that depends on $T$, $p$ and $d$:
+\begin{equation}
+    v_{B77} = v_{sea} * f_{corr},
+\end{equation}
+where $v_{sea}$ is the terminal velocity at the sea level and $f_{corr}$ is the correction factor.
+The velocity at the sea level is computed as:
+\begin{equation}
+\begin{aligned}
+    v_{sea} &= exp(y),\\
+    y &= \sum_{i=0}^{m} c_i x^i, \\
+    x &= ln(d),
+\end{aligned}
+\end{equation}
+where $d$ is the drop diameter in $\mu m$. The parameters for the two size regimes are: (10.5035,  1.08750, -0.133245, -0.00659969) and (6.5639, -1.0391, -1.4001, -0.82736, -0.34277, -0.083072, -0.010583, -0.00054208). The correction factor for the smaller drops is computed as:
+\begin{equation}
+    f_{corr} = \frac{\eta_0}{\eta} \; \frac{d + 2.51 l}{d + 2.51 l_0},
+\end{equation}
+where $\eta$ is the dynamic viscosity,
+$\eta_0 = 1.818 \;\; 10^{-5} \; Pa \; s$,
+$l$ is the mean free path, and
+$l_0 = 6.62 \; 10^{-8} \; m$.
+The mean free path is computed as:
+\begin{equation}
+l = l_0 \frac{\eta}{\eta_0}  \sqrt{\frac{p_{0} \rho_{0}}{\rho_a p}}
+\end{equation}
+where $p_0 = 1013 \; hPa$ and $\rho_0 = 1.20 \; kg/m3$. {\color{red} TODO - the density is different than the sea level density from table...} The correction factor for the big drop category is computed as:
+\begin{equation}
+f_{corr} = 1 + 1.104 \; \eps_s + ( 1.058 \; \eps_c - 1.104 \; \eps_s) \; (5.52 + ln(d))/5.01),
+\end{equation}
+where
+\begin{equation}
+  \eps_s = \frac{\eta_0}{\eta} - 1,
+\end{equation}
+\begin{equation}
+  \eps_c = \sqrt{\frac{\rho_0}{\rho_a}} - 1.
+\end{equation}
+{\color{red} TODO - figure out what units and what log are used for ln(d)}
 
 
 

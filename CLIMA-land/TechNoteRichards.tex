@@ -1,0 +1,105 @@
+\documentclass{article}
+
+\include{CLIMA_Macros}
+
+\title{Technical note CLIMA Land Model} 
+\author{Pierre Gentine}
+
+\begin{document}
+
+\section{Technical note: continuity of Richards' equation at the unsaturated-saturated interface}
+We note that there is a fundamental issue in the continuity of the Richards' equation at the water table interface. Indeed, $C(\psi)$ goes to zero at the bottom of the unsaturated zone but is a fixed value in the saturated zone (the specific yield), leading to sharp derivative discontinuity. We note that the specific yield is empirical, mainly based on measurements and is close to the soil moisture content at saturation $\theta_s$. We will return to this.
+
+We write the porous medium temporal mass $M$ balance per unit volume as a departure from the hydrostatic pressure, equivalent to $\partial h/\partial z=0$, with $h=z+\psi$. The temporal departure from hydrostatic balance is written as $\psi'$ with corresponding changes in density $\rho'=\rho-\overline\rho$. The water porous medium density conservation reads:
+\begin{equation}
+\frac{\partial \rho \theta}{\partial t} = {\overline{\rho}} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
+\end{equation}
+In which we have neglected the mass of water vapor.
+We expand this into:
+\begin{equation}
+{\overline \rho} \frac{\partial \theta}{\partial t} + \theta \frac{\partial \rho}{\partial t} = {\overline \rho} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
+\end{equation}
+Dividing by $\overline \rho$ gives:
+\begin{equation}
+\frac{\partial \theta}{\partial t} + \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t} = \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
+\end{equation}
+This equation looks like the unsaturated Richards’ equation beside the presence of the second term on the left hand side, related to the compressibility of liquid water: $ \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t}$.
+
+We now use chain’s rule with respect to variations in internal pressure $\psi$ but do not assume that liquid water is incompressible, to write the mass change:
+\begin{equation}
+{\overline \rho} \frac{\partial \theta}{\partial t} + \theta \frac{\partial \rho}{\partial t} 
+\end{equation}
+
+In the unsaturated zone the second term on the lhs is negligible. In the saturated zone, the converse is true and the density term becomes important. At the water table interface, the $\theta=\theta_s=n$, the porosity assumed to be the same as the saturation water content $\theta_{s}$. We therefore further write $\theta$ in terms of the relative saturation content $s=\theta/\theta_s$.
+The liquid water mass balance can be written
+\begin{equation}
+\underbrace{{\overline \rho} n \frac{\partial s}{\partial t} }_\text{\rm unsaturated mass change} + \underbrace{{\overline \rho} s \frac{\partial n}{\partial t}  }_\text{\rm change in porous medium porosity}  
++ 
+\underbrace{\theta \frac{\partial \rho}{\partial t}   }_\text{\rm change in liquid water density}  
+\label{mass_balance:split}
+\end{equation}
+The change in density (assuming negligible temperature and solute impact) can be written:
+\begin{equation}
+\frac{\partial \rho}{\partial t} = \rho \beta \frac{\partial \psi}{\partial t}
+\end{equation}
+with $\psi$ the pressure.
+Assumed an elastic material (and neglecting the change in density of the material) (Bear 2018) and introducing the coefficient of porous medium compressibility $\alpha_{pm}$, with assumed veritcal stress:
+\begin{equation}
+\alpha_{pm}=\frac{1}{V_{pm}} \frac{\partial V_{pm}}{\partial \sigma_z} = \frac{1}{1-n} \frac{\partial n}{\partial \psi}
+\end{equation}
+with $\sigma_z$ the stress tensor in the vertical direction.
+This then lead to the change in porosity due to the porous medium compaction:
+\begin{equation}
+\frac{\partial n}{\partial t} = (1-n)\alpha_{pm}\frac{\partial \psi}{ \partial \psi}
+\end{equation}
+The combined change in mass of the porous medium water can be finally written using equation (\ref{mass_balance:split}) 
+\begin{equation}
+\frac{\partial \theta \rho}{\partial t} = 
+\underbrace{n \rho \frac{\partial s}{ \partial t} }_\text{\rm unsaturated mass change} + \underbrace{s \rho \left[  (1-n)\alpha_{pm} + n\beta \right] \frac{\partial \psi}{\partial t} }_\text{\rm saturated mass change}
+\end{equation}
+We note here that we made a convenient approximation: we used the matric potential $\psi$, instead of the pressure $p$. The rational for that is that far away from the water table the unsaturated term the left hand side domaintes. Within the saturated zone, far from the water table, the lhs vanishes. Yet an advantage is that the equation bcomes continuous at the interface, with continuous and non-vanishing temporal derivatives. Another way to think about this is that the fluid is composed of a mixture of saturated and saturated water at the interface - i.e the interface is not abrupt. 
+Our master equation for the porous medium water conservation then becomes:
+\begin{equation}
+ \left( n \rho \frac{\partial s}{\partial \psi} + s \rho   (1-n)\alpha_{pm} + s n\beta \right) \frac{\partial \psi}{\partial t} = \rho \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
+\label{master_equation_porous_medium}
+\end{equation}
+or dividing by $\rho$
+\begin{equation}
+\red{ n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t} = \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)}
+\label{master_equation_porous_medium}
+\end{equation}
+
+
+
+
+
+
+
+We now integrate the mass balance equation over the depth of the unconfined aquifer i.e. from $z=z_0$ to $z=h+\epsilon$ (with $z=z_0$ the bedrock elevation – not necessarily 0):
+\begin{equation}
+\int_{z_0}^{h+\epsilon} { n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t}  dz = \int_{z_0}^{h+\epsilon} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)} dz
+\end{equation}
+\begin{equation}
+\int_{z_0}^{h+\epsilon} { n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t}  dz =
+K(\psi) \left( \frac{\partial \psi}{\partial z} + 1 \right)_{|z=h+\epsilon} + \nabla_H \cdot \int_{z_0}^{h+\epsilon}  K(\psi) \nabla_H \psi dz
+\end{equation}
+Using Leibniz rule, the lhs can be written as 
+\begin{equation}
+\frac{\partial \int_{z_0}^h \rho \theta_s dz }{\partial t} - \rho \theta_s \frac{\partial h}{\partial t}=
+K(\psi) \left( \frac{\partial \psi}{\partial z} + 1 \right)_{|z=h+\epsilon} \\
++ \nabla_H \cdot \int_{z_0}^{h+\epsilon}  K(\psi) \nabla_H \psi dz
+\end{equation}
+The rhs can be rewritten as:
+\begin{equation}
+\int_{z_0}^h  \nabla \cdot \left( {\overline \rho} K(\psi) \left(\nabla \psi + {\mathbf e_z} \right) \right) dz = {\overline \rho} K(\psi) \left(\nabla \psi + {\mathbf e_z} \right)_{|h}  + \int_{z_0}^h  \nabla_H \left( {\overline \rho} K(\psi) \left(\nabla_H \psi \right) \right) dz
+\end{equation}
+
+Because the rate of change of the water table is much larger than the changes in density, we have: 
+\begin{equation}
+-	\theta_s \frac{\partial h}{\partial t} = 
+ K(\psi) \left(\nabla \psi + {\mathbf e_z} \right)_{|h}  + \int_{z_0}^h  \nabla_H \left( {\overline \rho} K(\psi) \left(\nabla_H \psi \right) \right) dz
+\end{equation}
+
+Using the total derivative of $\theta$, we can write:
+
+\end{document}

@@ -1,0 +1,235 @@
+\documentclass{article}
+
+
+\addtolength{\oddsidemargin}{-.875in}
+\addtolength{\evensidemargin}{-.875in}
+\addtolength{\textwidth}{1.75in}
+\addtolength{\topmargin}{-.875in}
+\addtolength{\textheight}{1.75in}
+
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{amsthm}
+\usepackage{makeidx}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{dsfont}
+\usepackage{comment}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+\definecolor{green(html/cssgreen)}{rgb}{0.0, 0.5, 0.0}
+\definecolor{purple}{rgb}{0.5, 0.0, 0.5}
+\newcommand{\cred}[1]{{\color{red}#1}}
+\newcommand{\cgreen}[1]{{\color{green(html/cssgreen)}#1}}
+\newcommand{\cpurple}[1]{{\color{purple}#1}}
+
+\usepackage{bm}
+\usepackage[utf8]{inputenc}
+
+\newcommand{\A}[2]{\partial_t #1 &= - #2 \cdot \nabla #1}
+\newcommand{\B}[2]{\partial_t #1 &= - #2 \cdot \nabla #1}
+
+\usepackage[colorlinks]{hyperref}
+\hypersetup{citecolor=red}
+\hypersetup{linkcolor=red}
+\hypersetup{urlcolor=red}
+\usepackage{cleveref}
+\title{The hydrostatic primitive equations and how to time-step them}
+\author{CliMA-Ocean}
+\date{}
+
+
+
+
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+The goal of this document is to write down a preliminary ocean model and how one discretizes them in time (leaving the spatial discretization to Discontinuous Galerkin methods).
+
+\section{Equations}
+The state variables are
+\begin{align}
+    u(x,y,z,t)&: \text{zonal velocity} \\
+    v(x,y,z,t)&: \text{meridional velocity}  \\
+    w(x,y,z,t)&: \text{vertical velocity}  \\
+    p(x,y,z,t)&: \text{hydrostatic presusre}  \\
+    \eta(x,y,t)&: \text{free surface height}  \\
+    \theta(x,y,z,t)&: \text{potential temperature} \\
+    S(x,y,z,t)&: \text{salinity}
+\end{align}
+For brevity introduce the following:
+$\bm{u}_h = (u,v,0)$, $\bm{u} = (u,v,w)$, $\nabla = (\partial_x, \partial_y, \partial_z)$ and $\nabla_h = (\partial_x , \partial_y , 0)$. The Hydrostatic equations are then: 
+\begin{align}
+    \partial_t \bm{u}_h + \nabla \cdot \left( \bm{u} \otimes \bm{u}_h  \right) + 2 \Omega \times \bm{u}_h &= - \frac{1}{\rho_c} \nabla_h p + \nabla_h \cdot \left( \nu_h  \nabla_h \bm{u}_h \right) + \partial_z \left( \nu_z \partial_z \bm{u}_h \right) \\
+          w(x,y,z,t) - w(x,y,-H,t) &= - \int_{z' = -H(x,y)}^{z' = z} \left( \nabla_h \cdot \bm{u}_h \right) dz' \\
+      p &= g \rho_c \eta + g\int^{z' = \eta}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) dz' \\
+    \partial_t \eta  &= w|_{z=\eta} +  \left(P - E \right)/\rho_c 
+    \\
+    \partial_t \theta + \nabla \cdot \left( \bm{u} \theta  \right) &= \nabla_h \cdot \left( \nu_h  \nabla_h \theta \right) + \partial_z \left( \nu_z \partial_z \theta \right)
+        \\
+      \partial_t S + \nabla \cdot \left( \bm{u} S  \right) &= \nabla_h \cdot \left( \nu_h  \nabla_h S\right) + \partial_z \left( \nu_z \partial_z  S \right)
+\end{align}
+where $\rho(\theta, S, z')$ is an equation of state, $P$ is precipitation and $E$ is evaporation. For boundary conditions one may assume that $\left. \hat{n} \cdot \bm{u} \right|_{z = -H} = 0$ where the vector normal to the bottom is proportional to $(\partial_x H, \partial_y H, -1)$ (no penetration). The other boundary conditions are usually modelled in some fashion. For example, as either stress-free (or slip) $\hat{n} \cdot \nabla \bm{u} = 0$ boundary conditions or no-slip $\bm{u} = 0$ on the boundary. The temperature and salinity boundary conditions are modelled as well. 
+
+\section{linear free surface and flat bottom}
+For simplicity we can start of with a \textit{linear} free surface, a \textit{flat} bottom, and no evaporation or precipitation, so that the equations are of the form
+\begin{align}
+    \partial_t \bm{u}_h + \nabla \cdot \left( \bm{u} \otimes \bm{u}_h  \right) + 2 \Omega \times \bm{u}_h &= - \frac{1}{\rho_c} \nabla_h p + \nabla_h \cdot \left( \nu_h  \nabla_h \bm{u}_h \right) + \partial_z \left( \nu_z \partial_z \bm{u}_h \right)
+    \\
+          w(x,y,z,t) &= -   \nabla_h \cdot \int_{z' = -H}^{z' = z} \bm{u}_h dz'  
+          \\
+      p &= g \rho_c \eta + g\int^{z' = 0}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) dz' 
+      \\
+    \bm{U} &= \int_{z' = -H}^{z' = 0} \bm{u}_h dz'
+    \\
+    \partial_t \eta  &= - \nabla_h \cdot \bm{U} 
+    \\
+    \partial_t \theta + \nabla \cdot \left( \bm{u} \theta  \right) &= \nabla_h \cdot \left( \nu_h  \nabla_h \theta \right) + \partial_z \left( \nu_z \partial_z \theta \right)
+        \\
+      \partial_t S + \nabla \cdot \left( \bm{u} S  \right) &= \nabla_h \cdot \left( \nu_h  \nabla_h S\right) + \partial_z \left( \nu_z \partial_z S \right)
+\end{align}
+
+The fast modes are due to the $\eta$ term, which can be handled in two primary ways: split-explicit or an implicit 2D solve. [Andre's Comment: It may be the case that split-explicit is a technique for performing an iterative 2D solve].
+
+Let 
+\begin{align}
+    \bm{G}_{\bm{u}} = -  \nabla \cdot \left( \bm{u} \otimes \bm{u}_h  \right) - 2 \Omega \times \bm{u}_h - g \nabla_h \left[ \int^{z' = 0}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) \right] + \nabla_h \cdot \left( \nu_h  \nabla_h \bm{u}_h \right) + \partial_z \left( \nu_z \partial_z \bm{u}_h \right) .
+\end{align}
+Integrating the momentum equation from $z = -H$ to $z= 0$ allows us to derive an equation for $\bm{U}$ of the form 
+\begin{align}
+    \cred{ \partial_t \bm{U} } 
+    &= \cred{-gH \nabla_h \eta} + \cpurple{\bm{G}_{\bm{U}}} \\
+    \cred{ \partial_t \eta } &=\cred{ - \nabla_h \cdot \bm{U}},
+\end{align}
+where
+\begin{align} 
+ \cpurple{\bm{G}_{\bm{U}}} &= \cpurple{ \int_{z'=-H}^{z' = 0} \bm{G}_{\bm{u}} dz' } \\
+     &= 
+     \cpurple{-\nabla_h \cdot \left( \bm{U}_h \otimes \bm{U}_h  \right) }
+     - \cblue{ \int_{z'=-H}^{z' = 0} \nabla_h \cdot \left( \left[ \bm{u}_h- \frac{1}{H}\bm{U}_h \right]  \otimes \left[ \bm{u}_h- \frac{1}{H}\bm{U}_h \right]  \right) dz'}  + \cpurple{ \left. \bm{u}_h \right|_{z = 0}\left(\nabla_h \cdot \bm{U}_h\right) } - \cpurple{ 2 \Omega \times \bm{U}_h } \\
+    & + \cpurple{ \nabla_h \cdot \left( \nu_h  \nabla_h \bm{U}_h \right) } + \cpurple{ \left. \nu_z \partial_z \bm{U}_h \right|_{z=-H}^{z=0} }
+    -  \cblue{ g \int_{z''=-H}^{z'' = 0} \left\{ \nabla_h \left[ \int^{z' = 0}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) dz' \right] dz'' \right\} }  \nonumber
+\end{align}
+These equations are the ones that give rise to the offending mode. The terms in \cblue{blue} are the ones that associated with ``slow" scales, the terms in \cred{red} are the ones associated with ``fast" scales, and the terms in \cpurple{purple} are ``in between" (they could be put with either the fast or the slow time-scales). Furthermore it is \textit{assumed} that the temperature and salinity can also be evolved on the slow time scale.
+
+With the decomposition 
+\begin{align}
+    \cpurple{\bm{u}_h} = \cblue{\bm{v}_h} + \cred{ \frac{1}{H}\bm{U}_h}
+\end{align}
+we may write our full system as 
+\begin{align}
+    \cblue{ \partial_t \bm{v}_h} &=  \cblue{\bm{G}_u - \frac{1}{H} \bm{G}_U }
+    \\
+    \cpurple{w(x,y,z,t)} &= -   \cpurple{ \nabla_h \cdot \int_{z' = -H}^{z' = z} \bm{u}_h dz' } 
+    \\
+     \cblue{p} &= \cblue{g \rho_c \eta + g\int^{z' = 0}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) dz' }
+      \\
+    \cpurple{\bm{u}_h} &= \cblue{\bm{v}_h} + \cred{\bm{U}_h}
+    \\
+    \cred{ \partial_t \bm{U}_h } 
+    &= \cred{-gH \nabla_h \eta} + \cpurple{\bm{G}_{\bm{U}_h}} \\
+    \cred{ \partial_t \eta } &=\cred{ - \nabla_h \cdot \bm{U}},
+    \\
+    \cblue{\partial_t \theta + \nabla \cdot \left( \cpurple{\bm{u}} \theta  \right)} &= \cblue{\nabla_h \cdot \left( \nu_h  \nabla_h \theta \right) + \partial_z \left( \nu_z \partial_z \theta \right)}
+        \\
+      \cblue{\partial_t S + \nabla \cdot \left( \cpurple{\bm{u}} S  \right) } &= \cblue{ \nabla_h \cdot \left( \nu_h  \nabla_h S\right) + \partial_z \left( \nu_z \partial_z S \right) }
+\end{align}
+where the \textit{belief} is that $\cblue{\bm{v}_h}$ and the terms on the right hand side evolve on a \textit{slow} timescale. If this were a linear system that could perhaps be justified; however, on the right hand side of the $\cblue{\bm{v}_h}$ equation there are nonlinear terms like $\cblue{\bm{v}_h} \otimes \cred{\bm{U}_h}$, making such a decomposition requires more justification (perhaps asymptotic?). Explicitly
+\begin{align}
+    \cblue{\bm{G}_u - \frac{1}{H} \bm{G}_U } &= 
+    \cblue{-\nabla_h \cdot \left( \bm{v}_h \otimes \bm{v}_h  \right) } +   \cblue{ \frac{1}{H}\int_{z' = -H}^{z'=0} \nabla_h \cdot \left( \bm{v}_h \otimes \bm{v}_h  \right) dz' }
+    - \cpurple{ \nabla_h \cdot \left( \bm{v}_h \otimes \cred{\frac{1}{H}\bm{U}_h}  \right) } 
+    - \cpurple{ \nabla_h \cdot \left( \cred{\frac{1}{H}\bm{U}_h} \otimes \bm{v}_h  \right) }
+    \\
+    &- \cpurple{\partial_z \left( \cpurple{w} \otimes \cblue{\bm{v}_h} \right)} 
+    + \cpurple{ \frac{1}{H}  \left. \bm{u}_h \right|_{z = 0}\left(\nabla_h \cdot \bm{U}_h\right) } 
+    - \cblue{ 2 \Omega \times \bm{v}_h }  + \cblue{ \nabla_h \cdot \left( \nu_h  \nabla_h \bm{v}_h \right) } + \cpurple{ \frac{1}{H} \left. \nu_z \partial_z \bm{U}_h \right|_{z=-H}^{z=0} }
+    \\
+    &-  \cblue{  g\nabla_h \int^{z' = 0}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) dz' + \frac{1}{H} g \int_{z''=-H}^{z'' = 0} \left\{ \nabla_h \left[ \int^{z' = 0}_{z' = z} \left( \rho(\theta, S, z') - \rho_c \right) dz' \right] dz'' \right\} }  
+\end{align}
+\cblue{(check the signs)}
+\subsection{time stepping}
+Let AB denote an Adam-Bashforth step, a superscript $n$ denote the the value of a field at step $n$
+\begin{align}
+    \bm{G}_u^n &= - \nabla \cdot \left( \bm{u} \otimes \bm{u}_h \right) + \partial_z \left(\nu_z \partial_z \bm{u}_h^n \right) - \frac{1}{\rho_c} \nabla_h P_{hyd}^n \\
+    \bm{G}_u^{n+1/2} &= AB(\bm{G}_u^{n},\bm{G}_u^{n-1},\bm{G}_u^{n-2} )
+    \\
+    \bm{H}_u^{n} &= \int_{-H}^0 \bm{G}_u dz
+    \\
+    \bm{u}^{n+1/2}_h &= AB \left( \bm{u}^n_h, \bm{u}^{n-1}_h, \bm{u}^{n-2}_h \right)
+    \\
+    \bm{u}^*_h &= \bm{u}_h^n + \Delta t \left[ \bm{G}_u^{n+1/2} - 2 \Omega \times \bm{u}^{n+1/2} + \nabla_h \cdot \left(  \nabla_h \bm{u}_h \right)
+   \right]
+   \\
+   \bm{U}_h^{n + (m+1)/N} &= \bm{U}_h^{n + m/N} - \frac{\Delta t}{N} g H \nabla \eta^{n + m /N} - \frac{\Delta t}{N} \left[ 2 \Omega \times \bm{U}_h - \nabla_h \cdot \left(\nu_h \nabla_h \bm{U}_h \right) \right]^{n + m / N} + \frac{\Delta t}{N} \bm{H}_u^{n+1/2} \\
+   \eta^{n + (m+1)/N} &= \eta^{n+m/N} - \frac{\Delta t}{N} \nabla \cdot \bm{U}_h^{n (m+1)/N}
+\end{align}
+The latter two equations are stepped for some amount of time steps, $0 \leq m \leq 2 \times N-1$. One wants to typically want to take time-steps in these modes to overshoot the frozen time. Then one takes a weighted average (with weights $w^m_u$ and $w^m_\eta$) of these modes
+\begin{align}
+    \tilde{\bm{U}}_h^{n} = \sum_m w^m_u \bm{U}_h^{n + m / N} \text{ and } \tilde{\eta}^{n} = \sum_m w^m_\eta \eta^{n + m / N}
+\end{align}
+for example one could uniformly average from time $n+1/2$ to time $n + 3/2$. The one needs to reconciliate the barotropic and baroclinic solutions
+\begin{align}
+    \bm{u}^{n+1}_h =  \bm{u}^*_h + \frac{1}{H} \left[ \tilde{\bm{U}}_h^{n+1} - \int^0_{-H} \bm{u}^*_h dz \right]
+\end{align}
+This last step guarantees
+\begin{align}
+    \int_{-H}^0 \bm{u}^{n+1}_h dz &= \tilde{\bm{U}}_h^{n+1}
+\end{align}
+
+\subsection{Alternatives?}
+% [Andre: This is based on my current understanding of what could be done. Whether it is effective or not I am not sure. Ideally one would be able to derive the algorithm from the previous section, but I have not been able to do so. The closest that I have come is encapsulated in this section and is inspired from talking to Alistair.]
+If one discretizes in time and treats the $\eta$ and $\nabla \cdot \bm{U}$ implicitly, then the resulting linear system may be solved by a Richardson iteration, in which case it looks very similar to the above, but is definitely not the same.
+
+\subsection{abstract problem}
+The split-explicit scheme aims to be a solution to the following kind of problem. Let $\bm{u} \in \mathbb{R}^n$, and $\bm{\eta}, \overline{\bm{u}} \in \mathbb{R}^m$, $\bm{f}: \mathbb{R}^n \rightarrow \mathbb{R}^n$, $\mathcal{D} \in \mathbb{R}^{m \times m}$ (divergence with its adjoint being the nabla operator), $\mathcal{I} \in \mathbb{R}^{m \times n}$ (integral), $\mathcal{L} \in \mathbb{R}^{n \times m}$ (lifting the 2D field into the 3D vector). The system is assumed to have the properties $m \ll n$ (to mimic that 2D is much smaller than 3D), and the following algebraic properties
+\begin{align}
+   \mathcal{I} \mathcal{L} &= h \mathbb{I}_m,
+\end{align}
+where $h$ is a scalar (this is a proxy for the depth of the domain H).
+The constraint mimics the fact that the vertical average of a two dimensional field is just a two-dimensional field. The abstract system 
+\begin{align}
+    \dot{\bm{u}} &= \bm{f}(\bm{u} ) + g \mathcal{L} \mathcal{D}^\dagger \bm{\eta} \\
+    \dot{\bm{\eta}} &= - \mathcal{D} \overline{\bm{u}} \\
+    \overline{\bm{u}} &= \mathcal{I} \bm{u}
+\end{align}
+Here $g$ is a scalar (gravitational constant). 
+Letting the $\mathcal{I}$ operator act on the first equation yields (and utilizing $\mathcal{I} \mathcal{L} =  h \mathbb{I}_m $) yields the following equation for the ``fast" modes
+\begin{align}
+    \dot{\overline{\bm{u}}} &= \mathcal{I}\bm{f}(\bm{u} ) + gh \mathcal{D}^\dagger \bm{\eta} \\
+    \dot{\bm{\eta}} &= - \mathcal{D} \overline{\bm{u}}
+\end{align}
+We can also write the equation for the perturbation away from the barotropic modes (the baroclinic modes) by decomposing the velocity field as 
+\begin{align}
+ \bm{u} = \bm{v} + \frac{1}{h}\mathcal{L}\overline{\bm{u}} 
+\end{align}
+Applying the operator $\mathbb{I}_n - \frac{1}{h}\mathcal{L} \mathcal{I}$ to the $\bm{u}$ equation yields
+\begin{align}
+    \dot{\bm{v}} = \left(\mathbb{I}_n - \frac{1}{h}\mathcal{L} \mathcal{I}\right)\bm{f}(\bm{u})
+\end{align}
+which eliminates the $\bm{\eta}$ variable. Without assuming anything about the structure of $\bm{u}$ we cannot go much further. 
+
+Thus, in the abstract, we have a set of equations of the form
+\begin{align}
+    \dot{\bm{v}} &= \bm{g}(\bm{v}, \bm{w}) \\
+    \dot{\bm{w}} &= \bm{h}(\bm{v}, \bm{w}) + \Omega \bm{w} 
+\end{align}
+where $\Omega^\dagger = - \Omega$.
+We would like to replace this system with a time-averaged system (an average over the fast time scales), of the form
+\begin{align}
+     \partial_t \langle \bm{v} \rangle  &= \bm{g}(\langle \bm{v} \rangle , \langle \bm{w} \rangle ) \\
+    \partial_\tau \bm{w} &= \bm{h}(\langle \bm{v} \rangle, \bm{w}) + \Omega \bm{w} 
+\end{align}
+or 
+\begin{align}
+     \partial_t \langle \bm{v} \rangle  &= \bm{g}(\langle \bm{v} \rangle , \langle \bm{w} \rangle ) \\
+    \partial_\tau \bm{w} &= \bm{h}(\langle \bm{v} \rangle, 
+    \langle \bm{w} \rangle ) + \Omega \bm{w} 
+\end{align}
+Perhaps the appropriate text to reference is ``Averaging Methods in Nonlinear Dynamical Systems" or the paper "Simply improved averaging for coupled oscillators and weakly nonlinear waves" by Molei Tao. 
+\end{document}

@@ -4,9 +4,9 @@
 
 \title{Design Document for the CLIMA Land Model} 
 \author{ }
-
+      
 \begin{document}
-
+      
 \maketitle
 \tableofcontents
 
@@ -14,16 +14,18 @@
 
 This document highlights the design specifications for the land model (CLIMA-land) that is part of the Climate Machine (CLIMA). The model will be designed to run both in standalone mode (e.g., driven by reanalysis data) and coupled to the atmosphere. Because it will be part of a climate model, conservation of energy, water and carbon are essential, both within the land model and for the exchanges with the atmosphere. We will also leave the treatment of atmospheric fluxes (e.g., even within canopies) to the atmosphere model, so that all turbulent fluxes are dealt with consistently within one model component, and that the land model can also be run at large-eddy simulation resolutions, where, e.g., trees and the air flow around them become explicitly resolved. 
 
-The individual components of the land model will be developed in a modular fashion, but with consistent interactions. For example, the canopy model will interact with the soil model through source/sink terms represents processes such as water uptake by roots, and it will interact with turbulent fluxes in the atmospheric near-surface layer, for example, through exchange of momentum, energy, and water. 
+The individual components of the land model will be developed in a modular fashion, but with consistent interactions. For example, the canopy model will interact with the soil model through source/sink terms representing processes such as water uptake by roots, and it will interact with turbulent fluxes in the atmospheric near-surface layer, for example, through exchange of momentum, energy, and water. 
 
 The biophysical part of the land model consists principally of components for soil, snow, and plants.
 \subsection{Interfaces between land modules}
 
 The following section provides a higher-level description of the CliMA land model modules and the associated dependencies. Equations are provided in subsequent sections of this document
 
+\newpage
+\vfill
 
-\begin{figure}[htb]
-\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{CLIMA-land/LM_figures/JPLCLIMA_LM_DESIGN_20191115.png}
+\begin{figure}[]
+\includegraphics[width=10cm,height=10cm,keepaspectratio]{CLIMA-land/LM_figures/JPLCLIMA_LM_DESIGN_20191115.png}
 \caption{Schematic of land model modules and internal + external dependencies. [ALL: please comment + suggest improvements; Pierre's comment: SPAC should include all biophysics, re-name/re-arrange/simmplify boxes]}
 \end{figure}
 % Please add the following required packages to your document preamble:
@@ -68,30 +70,103 @@ CliMA Ocean [O]        & \begin{tabular}[c]{@{}l@{}}River discharge [R] \end{tab
 }
 \caption{\label{tab:LM-modules}Summary of module input, output & functional requirements. Comprehensive list of module inputs, outputs and equations are included in subsequent sections. [MISSING: snow module and associated dependencies. Ensure consistency with rest of CliMA framework]}
 \end{table}
-
+\vfill
+\clearpage
 
 \section{Soil}
 
+\textcolor{blue}{Yujie's comments. (1) In the heat equation, the heat transfer caused by water mass flow is not considered, and it is better to add a mass flow component, i.e. $\dfrac{\delta (C_s T_s)}{\delta t} = \dfrac{\delta \lambda_s}{\delta z} \dfrac{\delta T_s}{\delta z} + \rho_w c_w S_{in} \dfrac{\delta T_{in}}{\delta t} - \rho_w c_w S_{out} \dfrac{\delta T_{out}}{\delta t}$. (2) In the soil moisture equations, it is not clearly stated that soil hydraulic conductivity and soil water content are temperature dependent. Consider the impacts from temperature on (i) viscosity of water and (ii) surface tension of water. And maybe more.}
+
 \subsection{Heat equation}
-In the soil heat will be diffused following a 1D vertical heat diffusion:
+
+\textit{AAbloom comments and changes:  (i) define C in terms of $c_s$ and $\rho_s$--and their dependencies on $\theta$--in "soil heat capacity" section, and (ii) define eq. 1 in terms of volumetric heat capacity.}
+\\
+
+In the soil, heat follows a 1D vertical heat diffusion:
 \begin{equation}
-     \frac{\partial (\rho_s c_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z}
+     \frac{\partial (C_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z}
 \end{equation}
-where the density of the soil $\rho_{s}$ and the soil heat capacity $c_s$ make up the volumetric heat capacity (i.e. $C = \rho_s c_s$), $\lambda_{s}$ is the thermal conductivity of the soil. Both the thermal conductivity and the capacity of the soil are functions of the soil moisture content, $\theta$. Note that the diffusion coefficient, or $\alpha = \lambda_s/(\rho_s c_s)$, has much less moisture dependence because of a compensation of the dependence between $\lambda_s$ and $c_s$. 
-For the conductivity we will first follow the CLM formulation: \\
+where $C_s$--the volumetric heat capacity--is the product of soil density and specific heat capacity, i.e.  $C_s = \rho_s c_s$, and are defined in subsequent sections), and $\lambda_{s}$ is the thermal conductivity of the soil; both $\lambda_{s}$ and $C_s$ are functions of the soil moisture content, $\theta$. Note that the diffusion coefficient ($\alpha = \lambda_s/C_s$) has much less moisture dependence because of a compensation of the dependence between $\lambda_s$ and $C_s$.
+
+\subsubsection{Soil heat capacity ($C_s$)}
+
+\textit{AABloom comments and changes: 
+\\
+- Account for dry soil heat capacity + water heat capacity separately to account for phase change
+\\
+- Introduce fraction of frozen water (e.g. $f_\phi$) to account for this. I *think* this is already defined in eq. form in Marcos Longo's latex doc
+\\
+- Still need clear definition for $rho_s$, and clarification of whether it need be water dependent, or whether its the dry density (and therefore water is independently accounted for)}
+//
+
+*Elias's attempt, from Bonan book*
+
+The heat capacity of the soil is (considering heat of the air to be negligible):
+\begin{equation}
+c_s = (1- \theta_{sat} ) c_{\rm solid} + (\theta_{liquid}) c_{\rm water} + (\theta_{ice}) c_{\rm ice}
+\end{equation}
+where the heat capacity of soil is $c_{\rm solids}$ = 1.926 MJ m$^{-3}$ K$^{-1}$, of water is $c_{\rm water}$ = 4.19 MJ m$^{-3}$ K$^{-1}$, and of ice is $c_{\rm ice}$ = 1.94 MJ m$^{-3}$ K$^{-1}$. 
+
+\subsubsection{Thermal Conductivity ($\lambda_s$)}
+*Elias's attempt, from Bonan book. Pierre: this is the same as CLM - we should just cite the appropriate ref. Farouki 1981*
+
+Soil thermal conductivity is assumed to depend on soil water content:
+\begin{equation}
+\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry},
+\end{equation}
+where $K_e$ is the Kersten number, a function of soil relative humidity $s=\theta/\theta_{\rm sat}$, with $\theta(x,y,z,t)$ the soil moisture content. Those functions are rather empirical. One example of which, we will use:
+\begin{equation}
+K_e = e^{ \gamma(1-s(\gamma-1.33))}
+\end{equation} 
+For  the  deep  ground  layers  (typical  of  saturated  granitic  rock;  Clauser  and  Huenges,  1995), $\lambda_s =  \lambda_{\rm dry} = 3 \rm W  m^{-1}  K^{-1}$ as $K_e=0$.
+For frozen soil, $K_e=S_e$, where $S_e=\theta / \theta_s$, which is the relative wetness, where $\theta$ being the volumetric water content and $\theta_s$ the volumetric water content at capacity (also equal to porosity).
+
+
+The saturation heat conductivity is expressed as:
+\begin{equation}
+\lambda_{sat} = \lambda_{solids}^{(1- \theta_{sat} )}  \lambda_{liquid}^{(f_u \theta_{sat} )}  \lambda_{ice}^{( (1-f_u) \theta_{sat} )} 
+\end{equation}
+where $\lambda_{sat}$ is the thermal conductivity of a saturated soil, and is calculated from the thermal conductivity of the components ($\lambda_{solids}$, $\lambda_{liquid}$, and $\lambda_{ice}$), $\theta_{sat}$ is the volumetric water content at capacity (also equal to porosity), and $f_u = \theta_{liquid} / \theta$ is the fraction of total water that is unfrozen. \st{This equation recognizes that even at temperatures below freezing, the total water consists of unfrozen $\theta_{liquid}$ and frozen $\theta_{ice}$ water ($\theta = \theta_{liquid} + \theta_{ice}$)}. Representative values are $\lambda_{liquid} = 0.57$ W m$^{-1}$ K$^{-1}$ and $\lambda_{ice} = 2.29$ W m$^{-1}$ K$^{-1}$. The thermal conductivity of a soil varies with the quartz content of the soil. The Johansen method described by Farouki (1981) approximates:
+\begin{equation}
+\lambda_{solids} = \lambda_{q}^q \lambda_{o}^{1-q}
+\end{equation},
+where $q$ is the quartz content as a fraction of the total soil solids, $\lambda_{q}$ = 7.7 W m$^{-1}$ K$^{-1}$ is the thermal conductivity of quartz, and $\lambda_{o}$ = 2.0 W m$^{-1}$ K$^{-1}$ is the thermal conductivity of other minerals for soils with $q >$ 0.2 and  $\lambda_{o}$ = 3.0 W m$^{-1}$ K$^{-1}$ for $q <=$ 0.2.
+
+The heat capacity of the soil is:
+\begin{equation}
+c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}
+\end{equation}
+where  $\theta$ is the soil liquid water content. The dry soil heat capacity is a weighted average of pure soil and organic matter heat capacity (Farouki, 1981), 
+\begin{equation}
+c_{\rm dry} = (1-f_{om})c_{soil} + f_{om}c_{om}
+\end{equation}
+
+\begin{equation}
+    c_{soil} = {\rm \frac{2.128 (sand)+ 2.385 (clay)}{(sand) + (clay)}}
+\end{equation}, with sand and clay the sand, clay percentage in the soil, respectively.
+In the bedrock we take $c_{soil,bedrock} = 2 \cdot 10^6 {\rm J m^{-1} K^{-1}}$ as the heat capacity of the bedrock and $c_{s,om} = 2.5 ×10^6 {\rm J m^{-1} K^{-1}}$ the heat capacity of organic matter (Farouki, 1981).
+
 The thermal and hydraulic properties of the soil are assumed to be weighted combinations of a mineral and organic layers of the soil (Lawrence and Slater 2008). The soil layer organic matter fraction $f_{om}$ is 
 \begin{equation}
     f_{om} = \rho_{om}/\rho_{om,{\rm max}}
 \end{equation}
-The thermal conductivity is then $\lambda_s = K_e \lambda_{\rm sat} + (1-K_e) \lambda_{\rm dry}$, with $K_e$ is the Kersten number, a function of soil relative humidity $s=\theta/\theta_{\rm sat}$, with $\theta(x,y,z,t)$ the soil moisture content. Those functions are rather empirical. One example of which is $K_e = \exp \big( \gamma((1-s(\gamma-1.33))\big)$. For  the  deep  ground  layers  (typical  of  saturated  granitic  rock;  Clauser  and  Huenges,  1995) $\lambda_s =  \lambda_{\rm dry} = 3 \rm W  m^{-1}  K^{-1}$ as $K_e=0$.
-
-The heat capacity of the soil is:
-$c_s=\theta c_{\rm liq} + (1-\theta) c_{\rm dry}$, with $\theta$ the soil moisture content.[AAB + ML: this doesn't work in case of phase transition?]
 
 
-The dry soil heat capacity is a weighted average of pure soil and organic matter heat capacity $c_{\rm dry} = (1-f_{om})c_{soil} + f_{om}c_{om}$ (Farouki, 1981).
-$c_{soil} = {\rm \frac{2.128 (sand)+ 2.385 (clay)}{(sand) + (clay)}}$, with sand and clay the sand, clay percentage in the soil, respectively.
-In the bedrock we take $c_{soil,bedrock} = 2 \cdot 10^6 {\rm J m^{-1} K^{-1}}$ as the heat capacity of the bedrock and $c_{s,om} = 2.5 ×10^6 {\rm J m^{-1} K^{-1}}$ the heat capacity of organic matter (Farouki, 1981).
+
+\subsubsection{Phase change}
+
+* Pierre: I don't think this equation is correct - $\theta$ can change simply by precipitation and infiltration - we need to solve two steps . -sensible heating until freezing temperature and then ice change - it seems that the paper by Dall’Amico et al. 2011 The Cryosphere is solving this correctly - I would suggest using this. Agreed?*/ 
+
+TO BE REDONE 
+
+The freezing of soil water or melting of soil ice releases or absorbs energy, respectively. Formation of ice releases latent heat and temperature remains constant at the freezing point while soil water freezes. Similarly, melting ice consumes energy, during which temperature does not increase. Latent heat of fusion is the amount of energy required to convert a unit mass of frozen water to liquid. This transition requires 334 J g$^{-1}$. Freezing liquid water to ice releases a similar amount of energy. The total energy involved in phase change depends on soil moisture. For a volumetric water content $\theta$, the energy (J m$^{-3}$) required to freeze soil is $L_f \rho_{water} \theta$, where $L_f$ = 0.334 MJ kg$^{-1}$ is the latent heat of fusion of water and $\rho_{water}$ = 1000 kg m$^{-3}$ is the density of water.
+
+A simple way to account for freezing and thawing is to add latent heat associated with phase change to the heat conduction equation to yield an apparent heat capacity (Lunardini 1981). Including a latent heat source term as the unfrozen water $\theta_{liquid}$ freezes, the heat conduction equation becomes
+\begin{equation}
+     \frac{\partial (C_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z} - L_f \rho_{water} \frac{\partial (\theta_{liquid}) }{\partial t}
+\end{equation},
+where the second term on the right hand side is a source of energy during freezing ($\partial (\theta_{liquid})/{\partial t} < 0 $) and a sink of energy during melting ($\partial (\theta_{liquid})/{\partial t} > 0 $). For convenience, ... TBC
+
 
 \begin{table}[]
 \resizebox{\textwidth}{!}{%
@@ -137,17 +212,24 @@ $\rho_{om,max}$ [ ??? ]  & Maximum Organic Matter Density &  kg/m$^3$ & 0 - $\in
 \caption{Draft of soil schematic figure}
 \end{figure}
 
+
+
+
+
 \subsection{Moisture equation}
-Moisture conservation is usually divided into two steps: 1) the unsaturated zone where total water storage is related to the relative water content $\theta$ and transport is typically assumed to be 1D in the vertical and 2) the saturated zone where water storage is related to changes in the water head through the storativity (porosity for an unconfined aquifer, and storativity for confined aquifer).
-Let us start with the 3D Richards' equation so we do not lose generality (1D flow is just an approximation similar to shallow water equation). Water storage is written as $S$ (units of $m^3/m^3$). For instance in the unsaturated soil, the storage is related to the water content $S=\theta$. In an unconfined aquifer $dS=S_y dh$, with $S_y$ the unconfined aquifer specific yield, nearly equal to porosity $n$. Finally, in the confined aquifer $dS=S_s dh$, with $S_s$ the aquifer storativity. Note that the concept of aquifer storativity implicitly assumes a vertically-integrated Richards' equation over the thickness of the aquifer $b$. When resolving this vertically a choice might have to be made - TBD later.
+/* Pierre: note that I had not included ice at the time I wrote this - based on the point above it should eb added */
+/* very important: people suusally solve this by splitting the domain into an unsaturated and saturated region - the saturated region is then solved in terms of bul avergae propoerties - we could rather solve it as a continuum - this requires some cahnge of thinking - solving for a compressible fluid and matric below the saturation zone. OK with you all? */
+
+Moisture conservation is usually divided into two steps: 1) the unsaturated zone where total water storage is related to the relative water content $\theta$ and transport is typically assumed to be 1D in the vertical and 2) the saturated zone where water storage is related to changes in the water head through the storativity (porosity for an unconfined aquifer, and storativity for confined aquifer), which is treated as a bulk average over the aquifer thickness. 
+Let us start with the 3D Richards' equation so we do not lose generality (1D flow is just an approximation similar to shallow water equation). Water storage is written as $S$ (units of $m^3/m^3$). For instance in the unsaturated soil, the storage is related to the water content $S=\theta$. In an unconfined aquifer $dS=S_y dh$, with $S_y$ the unconfined aquifer specific yield, nearly equal to porosity $n$. Finally, in the confined aquifer $dS=S_s dh$, with $S_s$ the aquifer storativity. Note that the concept of aquifer storativity implicitly assumes a vertically-integrated Richards' equation over the thickness of the aquifer $b$. 
 
 Without loss of generality we can therefore write the storage as a (nonlinear) function of the head 
 \begin{equation}
-     h=z+\psi
+     h=z+\psi,
 \label{head}
 \end{equation}
 
-, with $\psi$ the matric potential so that $dS = C(\psi)d\psi$. In the unsaturated case C($\psi$)=$\partial \theta /\partial h$ \\ and in the saturated (unconfined aquifer) case it is the specific yield $C(\psi)=S_y$.
+with $\psi$ the matric potential so that $dS = C(\psi)d\psi$. In the unsaturated case C($\psi$)=$\partial \theta /\partial h$ \\ and in the saturated (unconfined aquifer) case it is the specific yield $C(\psi)=S_y$.
 We therefore write the conservation of mass including sinks/sources (such as due to roots but also for instance non-local transport due to preferential flow). 
 So the generic 3D Richards' equation using chain's rule:
 \begin{equation}
@@ -188,11 +270,8 @@ This is then solved typically in the vertical and simplifies to:
 \label{Richards_simple_uns_1D}
 \end{equation}
 with $K(\psi)$, an exponential function of $\psi$.
-We note however that as the horizontal resolution becomes finer and in the presence of rain this assumption is not tenable anymore.
-
-ADD A NOTE - COULD IT BE BETTER TO SOLVE BY DIRECTLY DIVIDING BY dTHETA/DPSI so THAT WE HAVE A DICUSSIION WHICH IS VERY SMOOTH
-
-In an unconfined aquifer, then we will simply replace the storage change by a specific yield $S_y$ (normalized by the aquifer depth):
+\st{We note however that as the horizontal resolution becomes finer and in the presence of rain this assumption is not tenable anymore}.
+In an unconfined aquifer, below the water table, we will use the bulk average equation integrated over the depth of the aquifer, and the storage over the entire depth is written as a function of the specific yield $S_y$:
 \begin{equation}
      \frac{\partial S}{\partial t} = S_y \frac{\partial h}{\partial t}  
 \end{equation}
@@ -248,10 +327,10 @@ $S_{e}$   & Relative Degree of Saturation of the Soil & (-) & 0 - 1  & 0.25 \\
 \caption{List of moisture eqs variables [eventually maybe split into "states" and "parameters" tables]}
 \end{table}
 
-\subsection{Retention curves $\theta=f(\psi)$ and $K(\psi)$ in the unsaturated zone}
+\subsubsection{Retention curves $\theta=f(\psi)$ and $K(\psi)$ in the unsaturated zone}
 \label{SoilMoisture:Retention_Curves}
-\subsubsection{Van Genuchten}
-We will use the van Genuchten's formulation which is better behaved in saturated conditions than the Brooks and Corey relationship 
+    {\bf Van Genuchten} \\
+We will use the van Genuchten formulation as a reference retenstion curve, as it is better behaved in saturated conditions than the Brooks and Corey relationship 
 \begin{equation}
      \theta(\psi) = \theta_r + \frac{\theta_s - \theta_r}{\left[ 1+(\alpha |\psi|)^n \right]^{m}}
 \end{equation}
@@ -266,12 +345,12 @@ with $L$ an empirical parameter assumed to be $L=0.5$. $S_e$ is the relative deg
 \end{equation}
 The derivative of $\theta$ with respect to $\psi$, $C(\psi)$ is:
 \begin{equation}
-     \frac{\partial \theta}{\partial \psi} =   \frac{m n\alpha^n |\psi|^{n-1}}{\left[ 1+(\alpha |\psi|)^n \right]^{m+1}} \left( \theta_s - \theta_r \right) 
+     \frac{\partial \theta}{\partial \psi} =   \frac{m n\alpha^n |\psi|^{n-1}}{\left[ 1+(\alpha |\psi|)^n \right]^{m+1}} \left( \theta_s - \theta_r \right). 
 \end{equation}
 
 
-
-\subsubsection{Brooks and Corey}
+    {\bf Brooks and Corey} \\
+An alternative approach to Van Genuchten will be to use the Brooks-Corey relationships:
 \begin{equation}
      S_e = \frac{\theta(\psi) - \theta_r}{\theta_s - \theta_r} = \left( \frac{\psi}{\psi_{ae}}\right)^{-\lambda}
 \end{equation}
@@ -284,103 +363,8 @@ with $\psi_{ae}$ the air entry point.
 
 
 
-\subsection{Technical note: continuity of Richards' equation at the unsaturated-saturated interface}
-We note that there is a fundamental issue in the continuity of the Richards' equation at the water table interface. Indeed, $C(\psi)$ goes to zero at the bottom of the unsaturated zone but is a fixed value in the saturated zone (the specific yield), leading to sharp derivative discontinuity. We note that the specific yield is empirical, mainly based on measurements and is close to the soil moisture content at saturation $\theta_s$. We will return to this.
 
-We write the porous medium temporal mass $M$ balance per unit volume as a departure from the hydrostatic pressure, equivalent to $\partial h/\partial z=0$, with $h=z+\psi$. The temporal departure from hydrostatic balance is written as $\psi'$ with corresponding changes in density $\rho'=\rho-\overline\rho$. The water porous medium density conservation reads:
-\begin{equation}
-\frac{\partial \rho \theta}{\partial t} = {\overline{\rho}} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
-\end{equation}
-In which we have neglected the mass of water vapor.
-We expand this into:
-\begin{equation}
-{\overline \rho} \frac{\partial \theta}{\partial t} + \theta \frac{\partial \rho}{\partial t} = {\overline \rho} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
-\end{equation}
-Dividing by $\overline \rho$ gives:
-\begin{equation}
-\frac{\partial \theta}{\partial t} + \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t} = \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
-\end{equation}
-This equation looks like the unsaturated Richards’ equation beside the presence of the second term on the left hand side, related to the compressibility of liquid water: $ \frac{\theta}{\overline \rho} \frac{\partial \rho}{\partial t}$.
-
-We now use chain’s rule with respect to variations in internal pressure $\psi$ but do not assume that liquid water is incompressible, to write the mass change:
-\begin{equation}
-{\overline \rho} \frac{\partial \theta}{\partial t} + \theta \frac{\partial \rho}{\partial t} 
-\end{equation}
-
-In the unsaturated zone the second term on the lhs is negligible. In the saturated zone, the converse is true and the density term becomes important. At the water table interface, the $\theta=\theta_s=n$, the porosity assumed to be the same as the saturation water content $\theta_{s}$. We therefore further write $\theta$ in terms of the relative saturation content $s=\theta/\theta_s$.
-The liquid water mass balance can be written
-\begin{equation}
-\underbrace{{\overline \rho} n \frac{\partial s}{\partial t} }_\text{\rm unsaturated mass change} + \underbrace{{\overline \rho} s \frac{\partial n}{\partial t}  }_\text{\rm change in porous medium porosity}  
-+ 
-\underbrace{\theta \frac{\partial \rho}{\partial t}   }_\text{\rm change in liquid water density}  
-\label{mass_balance:split}
-\end{equation}
-The change in density (assuming negligible temperature and solute impact) can be written:
-\begin{equation}
-\frac{\partial \rho}{\partial t} = \rho \beta \frac{\partial \psi}{\partial t}
-\end{equation}
-with $\psi$ the pressure.
-Assumed an elastic material (and neglecting the change in density of the material) (Bear 2018) and introducing the coefficient of porous medium compressibility $\alpha_{pm}$, with assumed veritcal stress:
-\begin{equation}
-\alpha_{pm}=\frac{1}{V_{pm}} \frac{\partial V_{pm}}{\partial \sigma_z} = \frac{1}{1-n} \frac{\partial n}{\partial \psi}
-\end{equation}
-with $\sigma_z$ the stress tensor in the vertical direction.
-This then lead to the change in porosity due to the porous medium compaction:
-\begin{equation}
-\frac{\partial n}{\partial t} = (1-n)\alpha_{pm}\frac{\partial \psi}{ \partial \psi}
-\end{equation}
-The combined change in mass of the porous medium water can be finally written using equation (\ref{mass_balance:split}) 
-\begin{equation}
-\frac{\partial \theta \rho}{\partial t} = 
-\underbrace{n \rho \frac{\partial s}{ \partial t} }_\text{\rm unsaturated mass change} + \underbrace{s \rho \left[  (1-n)\alpha_{pm} + n\beta \right] \frac{\partial \psi}{\partial t} }_\text{\rm saturated mass change}
-\end{equation}
-We note here that we made a convenient approximation: we used the matric potential $\psi$, instead of the pressure $p$. The rational for that is that far away from the water table the unsaturated term the left hand side domaintes. Within the saturated zone, far from the water table, the lhs vanishes. Yet an advantage is that the equation bcomes continuous at the interface, with continuous and non-vanishing temporal derivatives. Another way to think about this is that the fluid is composed of a mixture of saturated and saturated water at the interface - i.e the interface is not abrupt. 
-Our master equation for the porous medium water conservation then becomes:
-\begin{equation}
- \left( n \rho \frac{\partial s}{\partial \psi} + s \rho   (1-n)\alpha_{pm} + s n\beta \right) \frac{\partial \psi}{\partial t} = \rho \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)
-\label{master_equation_porous_medium}
-\end{equation}
-or dividing by $\rho$
-\begin{equation}
-\red{ n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t} = \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)}
-\label{master_equation_porous_medium}
-\end{equation}
-
-
-
-
-
-
-
-We now integrate the mass balance equation over the depth of the unconfined aquifer i.e. from $z=z_0$ to $z=h+\epsilon$ (with $z=z_0$ the bedrock elevation – not necessarily 0):
-\begin{equation}
-\int_{z_0}^{h+\epsilon} { n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t}  dz = \int_{z_0}^{h+\epsilon} \nabla \cdot \left( K(\psi) \left( \nabla \psi + {\mathbf e_z} \right) \right)} dz
-\end{equation}
-\begin{equation}
-\int_{z_0}^{h+\epsilon} { n \left(  \frac{\partial s}{\partial \psi} + s \frac{1-n}{n}\alpha_{pm} + s \beta \right) \frac{\partial \psi}{\partial t}  dz =
-K(\psi) \left( \frac{\partial \psi}{\partial z} + 1 \right)_{|z=h+\epsilon} + \nabla_H \cdot \int_{z_0}^{h+\epsilon}  K(\psi) \nabla_H \psi dz
-\end{equation}
-Using Leibniz rule, the lhs can be written as 
-\begin{equation}
-\frac{\partial \int_{z_0}^h \rho \theta_s dz }{\partial t} - \rho \theta_s \frac{\partial h}{\partial t}=
-K(\psi) \left( \frac{\partial \psi}{\partial z} + 1 \right)_{|z=h+\epsilon} \\
-+ \nabla_H \cdot \int_{z_0}^{h+\epsilon}  K(\psi) \nabla_H \psi dz
-\end{equation}
-The rhs can be rewritten as:
-\begin{equation}
-\int_{z_0}^h  \nabla \cdot \left( {\overline \rho} K(\psi) \left(\nabla \psi + {\mathbf e_z} \right) \right) dz = {\overline \rho} K(\psi) \left(\nabla \psi + {\mathbf e_z} \right)_{|h}  + \int_{z_0}^h  \nabla_H \left( {\overline \rho} K(\psi) \left(\nabla_H \psi \right) \right) dz
-\end{equation}
-
-Because the rate of change of the water table is much larger than the changes in density, we have: 
-\begin{equation}
--	\theta_s \frac{\partial h}{\partial t} = 
- K(\psi) \left(\nabla \psi + {\mathbf e_z} \right)_{|h}  + \int_{z_0}^h  \nabla_H \left( {\overline \rho} K(\psi) \left(\nabla_H \psi \right) \right) dz
-\end{equation}
-
-Using the total derivative of $\theta$, we can write:
-
-
-Dupuit–Forchheimer assumptions: flow is nearly 2D below the water table (similar to shallow water approximation) and hydrostatic i.e. $\partial h/\partial z=0$.
+\st{Dupuit–Forchheimer assumptions: flow is nearly 2D below the water table (similar to shallow water approximation) and hydrostatic i.e. $\partial h/\partial z=0$.}
 
 \subsection{Summary of soil heat and moisture equations for CliMA implementation}
 
@@ -388,7 +372,7 @@ This section contains a summary of all equations needed for implementation of th
 
 [OPTION: list equations in table for succinct description and avoid extra equation numbers in document] \\
 
-\textbf{Soil Heat Equations} \\
+\textbf{Soil Heat Equation} \\
 
 
 \begin{equation}
@@ -430,7 +414,7 @@ c_{soil} = {\rm \frac{2.128 (sand)+ 2.385 (clay)}{(sand) + (clay)}}
 
 (Unsaturated soil)
 \begin{equation}
- dS=\theta 
+ dS=d\theta 
 \end{equation}
 
 (Saturated - Unconfined Aquifer)
@@ -533,6 +517,12 @@ L = 0.5
 \end{equation}
 
 
+\subsection{Soil properties datasets}
+The ISRIC website (https://www.isric.org/explore/soil-geographic-databases) has a long list of soil datasets. A commonly used soil dataset in ESMs is the Harmonized World Soil Database, a 30 arc-second raster database (http://www.fao.org/soils-portal/soil-survey/soil-maps-and-databases/harmonized-world-soil-database-v12/en/) including: organic Carbon, pH, water storage capacity, soil depth, cation exchange capacity of the soil and the clay fraction, total exchangeable nutrients, lime and gypsum contents, sodium exchange percentage, salinity, textural class and granulometry.
+ 
+And a more recent global dataset of soil hydraulic and thermal parameters derived respectively from the Global Soil Dataset for Earth System Models (GSDE) \citep{Shangguan2014} and SoilGrids \citep{Hengl2014,Hengl2017} databases (http://globalchange.bnu.edu.cn/research/soil5d.jsp ). This new dataset is ready to use in CLM (8 soil layers (0 - 0.0451 m, 0.0451 - 0.0906 m, 0.0906 - 0.1655 m, 0.1655 - 0.2891 m, 0.2891 - 0.4929 m, 0.4929 - 0.8289 m, 0.8289 - 1.3828 m, 1.3828 - 3.8019 m)) or JULES (4 soil layers (0 - 0.1 m, 0.1 - 0.35 m, 0.35 - 1.0 m, and 1.0 - 3.0 m)). The spatial resolution is also 30” and includes: volumetric fraction of gravels, volumetric fraction of Soil Organic Matter, volumetric fraction of sand, volumetric fraction of silt, volumetric fraction of clay, volumetric fraction of quartz within mineral soils, saturated water content, log-10 transformation of saturated hydraulic conductivity, saturated suction for the Campbell model \citep{Campbell1974}, pore size distribution index for the Campbell model, residual moisture content for the Van Genuchten  (VG) model \citep{VanGenuchten1980}, the inverse of the air-entry value for the VG model, log-10 transformation of a shape parameter for the VG model, volumetric heat capacity of soil solids in a unit soil volume, thermal conductivity of unfrozen saturated soils, thermal conductivity of frozen saturated soils, and thermal conductivity of dry soils.
+ 
+A global map of bedrock depth up to 250 m can be found in  http://globalchange.bnu.edu.cn/research/dtb.jsp.
 
 
 
@@ -643,20 +633,80 @@ AABLOOM: empirical parametrization for \% snow cover? Should be independent of b
 
 \section{Vegetation}
 
-Multi-layer canopy model
+%Multi-layer canopy model
 
-Include tracers such as 13C, OCS
+%Include tracers such as 13C, OCS
+
+The vegetation model is based on the mSCOPE model \citep{Yang2017}, where leaf spectral properties are calculated based on the PROSAIL framework \citep{Jacquemoud2009} and photosynthesis as in \citet{Farquhar1980}. The RTM simulates the light distribution within the canopy, while the photosynthesis model simulates the energy partitioning in photosystems.
+
+The model mSCOPE includes a vertically heterogeneous vegetation canopy. It follows the same principle of SCOPE \citep{VanderTol2009}, that simulates the spectrum of top of the canopy reflected radiation, fluorescence emission in the viewing direction, and photosynthesis as functions of leaf properties, vegetation structure, and micrometeorological conditions. %Leaf and canopy radiative transfer schemes combined with an energy balance model.%
+At leaf level, Fluspect \citep{Vilfan2016} is used to simulate leaf reflectance, transmittance, and fluorescence. At canopy level, RTM$_{optical}$ and RTM$_{fluorescence}$ \citep{VanderTol2016}, which are two SAIL \citep{Verhoef1984,Verhoef1985} based models, compute the radiative transfer of incident radiation and emitted fluorescence, respectively. 
+
+To overcome the assumption of homogeneity in the horizontal direction made in mSCOPE, this new version incorporates a parameterization scheme of horizontal structural heterogeneity following SPARTACUS-Vegetation 1.1 \citep{Hogan2018}.
 
 \subsection{Radiative transfer}
 
-Let radiation (spectrally resolved) interact with canopy.
+%Let radiation (spectrally resolved) interact with canopy.
 
-Use Monte-Carlo Independent Column Approximation (ICA) to sample from canopy/soil properties, at the same time as sampling from cloud properties (no marginal cost); need assumed distribution of leaf area index to sample
+%Use Monte-Carlo Independent Column Approximation (ICA) to sample from canopy/soil properties, at the same time as sampling from cloud properties (no marginal cost); need assumed distribution of leaf area index to sample
 
-\subsection{River network}
+%\subsubsection{The PROSAIL Model}%
+
+PROSAIL combines the leaf optical properties of the model PROSPECT \citep{Jacquemoud1990,Feret2017} with the turbid medium canopy radiative transfer model SAIL. The models are coupled so that the simulated leaf reflectance and transmittance from PROSPECT are fed into the SAIL model, completed with information about soil optical properties and illumination/observation geometry.
+
+ Extra input parameters of mSCOPE compared with SCOPE include an explicit definitition of LAI and leaf properties per canopy layer. Leaf properties parameters include $C_{ab}$, $C_{dm}$, $C_{w}$, $C_{s}$, $C_{ca}$ and $N$. The main input variables of the integrated model are shown in the Table \ref{tab:prosail}.
+
+\begin{table}[]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllll}
+\hline
+Model & Symbol   & Description     & Unit & Range & Example value\\ \hline
+PROSPECT  & $N$                    & Leaf structure parameter &  - & 1 - 3 & 1.5\\
+  & $C_{ab}$                    & Chlorophyll a + b content &  $\mu$g cm$^{-2}$ & 0 - 100 & 40      
+       \\
+    & $C_{dm}$                    & Leaf mass per unit area &  g cm$^{-2}$  & 0 - 0.02 & 0.01     
+       \\      
+   & $C_{w}$                    & Equivalent water thickness &  cm  & 0 - 0.05 & 0.015   
+       \\
+   & $C_{m}$                    & Dry matter content &  g cm$^{-2}$ & 0 – 0.5 & 0.012      
+       \\
+    & $C_{s}$                    & Senescence material (brown pigments)  &  fraction  & 0 – 1 & 0.1    
+       \\
+  & $C_{ca}$                    & Caratenoid content  &  $\mu$g cm$^{-2}$  & 0 – 30 & 10      
+       \\
+\hline
+SAIL  & $LAI$                    & Leaf area index &  m$^2$.m$^{-2}$ & 0 – 6 & 3       \\
+   & $LIDF_{a}$                    & Leaf inclination distribution function parameter a &  - & -1 – 1 & -0.35       \\
+   & $LIDF_{b}$                    & Leaf inclination distribution function parameter b &  -  & -1 – 1 & -0.15        \\ 
+  & $s_{L}$                    & Hot spot parameter &         \\
+  & $\rho$$_{s}$                    & Soil reflectance assumed Lambertian or not &  -        \\
+    & $SKYL$                    & Ratio of diffuse to total incident radiation &  -  & 0 - 1 & 0.42      \\
+    & $sza$ or $\theta_{s}$               & Solar zenith angle &  deg & 0 - 90 & 45       \\
+    & $vza$ or $\theta_{v}$               & Viewing zenith angle &  deg  & 0 - 90 & 45      \\
+    & $raa$ or $\phi_{sv}$               & Relative azimuth angle &  deg & 0 - 180 & 90       \\
+\hline
+  FLUSPECT & $\epsilon$$_{1}$                    & Fluorescence efficiency of photosystem I &  -  & 0 – 0.01 & 0.004   \\
+ & $\epsilon$$_{2}$                    & Fluorescence efficiency of photosystem II &  -  & 0 – 0.05 & 0.02      \\
+
+\hline
+\end{tabular}%
+}
+\caption{Main variables of PROSAIL. Adapted from \citet{Jacquemoud2009,Yang2017}}
+\label{tab:prosail}
+\end{table}
+
+\subsection{Leaf photosynthesis}
+
+
+
+
+
+
+
+\section{River network}
 https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2019WR024873
 
 \bibliographystyle{agufull08}
-\bibliography{CLIMA-refs}
+\bibliography{Renato_refs,CLIMA-refs}
 
 \end{document}
