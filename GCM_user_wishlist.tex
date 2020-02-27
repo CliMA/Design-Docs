@@ -1,0 +1,69 @@
+\documentclass{report}
+
+\usepackage[inline]{enumitem}
+
+
+\title{GCM User's Wish List} 
+\author{ }
+
+\begin{document}
+
+\maketitle
+
+
+\section{Specs to run}\label{}
+\begin{itemize}
+    \item Type of model (Held-Suarez/ coupled, moist/dry: which models + associated coeff lists)
+    \item Planet parameters (Earth, other)
+    \item Continents / aquaplanet
+    \item 
+    \item CPU/ GPU allocation and MPI config
+    \item Horizontal/vertical resolution
+    \item Simulation time, time step 
+    \item Restart file
+    \item output frequency: 6 hourly/ daily/ monthly averages 
+\end{itemize}
+
+\section{Post-processing variables}\label{}
+
+Post-processing variables (based on lat/lon/z,t, model vars = ro, ro*e, ro*\textbf{u}, ro*q$_{tot}$)
+
+\begin{center}
+\begin{tabular}{ |c|c| } 
+ \hline
+\textbf{ variable  }                   & \textbf{units}  \\ 
+ \hline
+ Currently available & \\
+ \hline
+ u, v, w                      & m/s  \\ 
+ temperature                  & K \\ 
+ spec./rel. humidity          &  kg/kg/\% \\
+ pressure                     & Pa \\ 
+ Sensible/latent surface flux & W/m^2 \\
+ \hline
+ To be addressed & \\
+ \hline
+ vorticity / divergence       & 1/s \\ 
+ Streamfunction               & m^2/s \\
+ Omega                        & Pa/s \\
+ Precipitation, evaporation   & m/s \\
+ Cloud cover                  & \% \\
+ Surface albedo               &   \\
+ Surface/top solar/thermal radiation & W/m^2 \\
+ u-stress, v-stress           & Pa \\
+ Potential vorticity          & 1/s \\
+ Spectral u, v                & m/s \\
+ Topography height            & m \\
+ Select eddy covariances (TBD) & \\     
+ \\
+ \hline
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+    \item Q: are compressed hdf5 sufficient for large output (option if binary instead?), and general enough?
+    \item Q: restart file to be VTK fmt?
+    \item Q: do we want greek characters in output files?
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,33 @@
+\textcolor{blue}{Yujie's comments. (1) In the heat equation, the heat transfer caused by water mass flow is not considered, and it is better to add a mass flow component, i.e. $\dfrac{\delta (C_s T_s)}{\delta t} = \dfrac{\delta \lambda_s}{\delta z} \dfrac{\delta T_s}{\delta z} + \rho_w c_w S_{in} \dfrac{\delta T_{in}}{\delta t} - \rho_w c_w S_{out} \dfrac{\delta T_{out}}{\delta t}$. (2) In the soil moisture equations, it is not clearly stated that soil hydraulic conductivity and soil water content are temperature dependent. Consider the impacts from temperature on (i) viscosity of water and (ii) surface tension of water. And maybe more.}
+\textit{AAbloom comments and changes:  (i) define C in terms of $c_s$ and $\rho_s$--and their dependencies on $\theta$--in "soil heat capacity" section, and (ii) define eq. 1 in terms of volumetric heat capacity.}
+
+
+\textit{AABloom comments and changes: 
+\\
+- Account for dry soil heat capacity + water heat capacity separately to account for phase change
+\\
+- Introduce fraction of frozen water (e.g. $f_\phi$) to account for this. I *think* this is already defined in eq. form in Marcos Longo's latex doc
+\\
+- Still need clear definition for $rho_s$, and clarification of whether it need be water dependent, or whether its the dry density (and therefore water is independently accounted for)}
+//
+
+*Elias's attempt, from Bonan book*
+*Elias's attempt, from Bonan book. Pierre: this is the same as CLM - we should just cite the appropriate ref. Farouki 1981*
+
+\subsubsection{Phase change}
+
+* Pierre: I don't think this equation is correct - $\theta$ can change simply by precipitation and infiltration - we need to solve two steps . -sensible heating until freezing temperature and then ice change - it seems that the paper by Dall’Amico et al. 2011 The Cryosphere is solving this correctly - I would suggest using this. Agreed?*/ 
+
+TO BE REDONE 
+
+The freezing of soil water or melting of soil ice releases or absorbs energy, respectively. Formation of ice releases latent heat and temperature remains constant at the freezing point while soil water freezes. Similarly, melting ice consumes energy, during which temperature does not increase. Latent heat of fusion is the amount of energy required to convert a unit mass of frozen water to liquid. This transition requires 334 J g$^{-1}$. Freezing liquid water to ice releases a similar amount of energy. The total energy involved in phase change depends on soil moisture. For a volumetric water content $\theta$, the energy (J m$^{-3}$) required to freeze soil is $L_f \rho_{water} \theta$, where $L_f$ = 0.334 MJ kg$^{-1}$ is the latent heat of fusion of water and $\rho_{water}$ = 1000 kg m$^{-3}$ is the density of water.
+
+A simple way to account for freezing and thawing is to add latent heat associated with phase change to the heat conduction equation to yield an apparent heat capacity (Lunardini 1981). Including a latent heat source term as the unfrozen water $\theta_{liquid}$ freezes, the heat conduction equation becomes
+\begin{equation}
+     \frac{\partial (C_s T_s) }{\partial t} = \frac{\partial }{\partial z}\lambda_s \frac{\partial T_s }{\partial z} - L_f \rho_{water} \frac{\partial (\theta_{liquid}) }{\partial t}
+\end{equation},
+where the second term on the right hand side is a source of energy during freezing ($\partial (\theta_{liquid})/{\partial t} < 0 $) and a sink of energy during melting ($\partial (\theta_{liquid})/{\partial t} > 0 $). For convenience, ... TBC
+
+\subsection{Moisture equation}
+/* Pierre: note that I had not included ice at the time I wrote this - based on the point above it should eb added */
+/* very important: people suusally solve this by splitting the domain into an unsaturated and saturated region - the saturated region is then solved in terms of bul avergae propoerties - we could rather solve it as a continuum - this requires some cahnge of thinking - solving for a compressible fluid and matric below the saturation zone. OK with you all? */

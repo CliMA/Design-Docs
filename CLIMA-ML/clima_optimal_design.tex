@@ -1,0 +1,109 @@
+\documentclass{report}
+
+\include{CLIMA_Macros}
+\input{od_macros}
+\usepackage[inline,shortlabels]{enumitem}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    filecolor=cyan,      
+    urlcolor=cyan,
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{\Huge Optimal Design for \\ the Dry GCM with Surrogate Data}
+\date{}
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\chapter{Dry Convection Experimental Setup}
+
+\epigraph{Objective function is subjective}{\textit{Prof. Tapio Schneider}}
+
+\section{Dry Convection Model}
+
+\begin{equation}
+  \begin{aligned}
+  &\rho(x, y, z, t) \qquad &&\text{hydrostatic equation}\\
+  &u(x, y, z, t) \qquad &&\text{linear momentum equation}\\
+  &T(x, y, z, t) \qquad &&\text{dry convection equation}
+  \end{aligned}
+\end{equation}
+
+The \emph{dry convection equation} is formulated as follows:
+\begin{equation}
+  \partial_t T + \ldots =
+  -\alpha \left( \dfrac{T - T_{\text{ref}}}{\tau} \right)
+  -\left( \dfrac{T - T_{\text{rad}}}{\tau_{\text{rad}}}\right),
+\end{equation}
+where $T_{\text{rad}} = T_{\text{rad}} (y,z)$, $T_{\text{ref}} = T_{\text{ref}}(T\rvert_{z=0}, z, \gamma)$, and
+\[
+  \alpha = \left\{
+    \begin{aligned}
+      &1 \quad &&\partial_z T < \partial_z T_{\text{ref}}, \\
+      &0 \quad &&\text{otherwise}.
+    \end{aligned}
+  \right.
+\]
+
+\section{Mathematical Framework}
+
+Taking the ESM 2.0 paper as the starting point, we consider the following framework.
+Let $\theta$ be the vector of model parameters to be determined.
+Unlike ESM 2.0 setup, we consider a simplified version for now without non-computable parameters (i.e. the ones that GCM and subgrid models share).
+Let $\calG$ be the map that corresponds to the GCM:
+\begin{equation}
+  \bm{y} = \calG(\theta) + \eta_1.
+\end{equation}
+Here we assume that $\calG$ already includes post-processing of the GCM data, such as selection of principal components/features, time-averaging, computation of the moments etc.; hence, it necessarily has some noise $\eta_1$.
+For now, we think of this noise as centered, however, in future this may correspond to model error which is not only non-centered but might depend on $\theta$ itself.
+
+Next, with slight abuse of notation, we introduce local high-resolution simulations operator parametrized using the same vector $\theta$, which also depends on a spatial location $\phi$ (say, latitude in the aquaplanet scenario):
+\[
+  \bm{z} = \calG(\theta, \phi) + \eta_2.
+\]
+This can be thought of as one-column GCM simulation, again, followed by post-processing of the data in an appropriate manner.
+As noted in the ESM 2.0 paper, this is structurally similar to $\calG(\theta)$ but might provide better resolution; besides, the post-processing step might be less aggressive in terms of averaging (i.e. will output more sensitive to $\theta$-perturbations data).
+
+Finally, we assume that we have access to (possibly high-resolution) data that was obtained without using parametrizations.
+In the current set of experiments, this will be generated using the same GCM but with much higher resolution, thus, omitting closure terms.
+In future, though, this data should come from real-world observables and LES runs.
+Throughout this chapter, we denote globally available data by $\tilde{T}$ and local data by $\tilde{W}(\phi)$.
+
+\section{Sensitivity approach}
+
+Having in mind the non-computable parameters that exist in both GCM and LES, one approach to calibration is to first estimate sensitivity of the GCM and locate the target region where LES runs would help most, i.e. calibration would produce most concentrated posteriors.
+The procedure would look like:
+\begin{enumerate}[(a)]
+  \item run $\calG(\theta_i)$ for an ensemble of particles $\{ \theta_i \}_{i=1}^I$, measure sensitivity w.r.t $\phi$, infer the optimal location(s) $\{ \phi_k \}_{k=1}^K$ (i.e. most sensitive);
+  \item obtain local high-resolution data $\tilde{W}(\phi_k)$ and perform calibration using the objective function
+    \[
+      \min_\theta \| \calG(\theta, \phi_k) - \tilde{W}(\phi_k) \|_{\Gamma_2}^2.
+    \]
+\end{enumerate}
+
+It would seem like a dubious decision to not use the global data $\tilde{T}$ in this procedure.
+Indeed, 
+
+\section{Refinement approach}
+
+\begin{enumerate}[(a)]
+  \item obtain global data $\tilde{T}$;
+  \item using Ollie's methodology, calibrate the GCM simultaneously performing optimal design, using objective function
+    \[
+      \min_\theta \| \calG(\theta) - \tilde{T} \|_{\Gamma_1}^2,
+    \]
+    which produces both design location(s) $\{ \phi_k \}_{k=1}^K$ and a good prior for parameters $\theta$;
+  \item obtain local high-resolution data $\tilde{W}(\phi_k)$ and calibrate, starting from priors from step (b), using the objective function
+    \[
+      \min_\theta \| \calG(\theta, \phi_k) - \tilde{W}(\phi_k) \|_{\Gamma_2}^2.
+    \]
+\end{enumerate}
+
+\end{document}

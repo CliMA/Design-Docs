@@ -24,12 +24,9 @@
 
 To describe the methods used to solve the governing equations numerically, we write the equations in the compact, $d$-dimensional balance law form 
 \begin{equation}\label{e:eom_compact}
-\diff{\vec{Y}}{t}  =  - \nabla \cdot \Fvector + \vec{\mathcal{S}}(\vec{Y}, \vec{x}, t),
+\diff{\vec{Y}}{t} + \nabla \cdot \Fnondiff\left(\vec{Y}, \vec{x}, t\right) = \Fdiff\left(\vec{Y}, \vec{\Sigma}, \vec{x}, t\right). + \vec{\mathcal{S}}(\vec{Y}, \vec{x}, t),
 \end{equation}
-where $\vec{Y}$ is the \emph{state} vector, $\partial\vec{Y}/\partial t$ is the \emph{tendency} of the state vector, $\Fvector$ is the \emph{flux} vector, $\vec{\mathcal{S}}(\vec{Y})$ are \emph{sources}, and $\vec{x}$ and $t$ are the space and time coordinates. The flux vector is further subdivided into non-diffusive fluxes and diffusive fluxes (which depend on gradients of state variables),
-\begin{equation}
-    \Fvector = \Fnondiff\left(\vec{Y}, \vec{x}, t\right) + \Fdiff\left(\vec{Y}, \vec{\Sigma}, \vec{x}, t\right).
-\end{equation}
+where $\vec{Y}$ is the \emph{state} vector, $\partial\vec{Y}/\partial t$ is the \emph{tendency} of the state vector, $\Fnondiff$ is the \emph{non-diffusive flux} vector, $\Fdiff$ is the \emph{diffusive flux} vector, $\vec{\mathcal{S}}$ are \emph{sources}, and $\vec{x}$ and $t$ are the space and time coordinates. 
 Here, 
 \begin{equation}
     \vec{\Sigma} = \diffusive(\vec{Y}, \nabla \gradvariables(\vec{Y}, \vec{x}, t), t)
@@ -148,7 +145,7 @@ such that
 \end{align}
 \hl{[simon]: is there a reason we write $\nhat^{-}$ instead of just $\vec{n}$? It would make it slightly cleaner.}\\
 \hl{[jeremy]: main reason I did this is to make it clear that the normal is not with respect to the face, but the element. Some folks use a unique face normal for each face, whereas we define the normal with respect to the element on the minus side. I've seen it both ways in the literature.}
-\fxg{We could use $\nhat$ with a statement that it is the normal on the interior side and use other notation when not the case.  It does break the symmetry a bit when we have both plus and minus sides in an equation. We can do away with the plus side normals entirely then. I'm OK either way. If we agree to remove plus and minuses from the normals, I can clean this up to reflect this change.} 
+\fxg{We could use $\nhat$ with a statement that it is the normal on the interior side and use other notation when not the case.  It does break the symmetry a bit when we have both plus and minus sides in an equation. We can do away with the plus side normals entirely then. I'm OK either way. If we agree to remove plus and minuses from the normals, I can clean this up to reflect this change.} \hl{[TS: I'd prefer using $\nhat$ as the normal on the interior side. This would make it consistent with the atmosphere design doc (and the literature in the atmospheric and oceanic science more broadly). There we use $\vec{\hat n}$ for the normal to the boundary (pointing to the interior).]}
 
 for all $\vec{\Psi} \in \mathbb{Q}^{N}(\hat{e})$ and $\vec{\Phi} \in
 \mathbb{Q}^{N}(\hat{e})$.  Looking at these equations, it can be seen that we treat Eq.\ \eqref{eq:dg_formulation/governing_equations} in weak form\footnote{The \emph{weak} form means that we use integration by parts to move the gradient from the flux function to the basis function as shown in the volume integral ($e$) of Eq.\ \eqref{eq:dg_formulation/governing_equations}.} and Eq.\ \eqref{eq:dg_formulation/auxiliary_equations} in strong form \footnote{The \emph{strong} form means that we use a second integration by parts to move the gradient back to the flux function, which results in the extra term in the surface integral ($\partial e$) of Eq.\ \eqref{eq:dg_formulation/auxiliary_equations}.}. Here it is understood that $\Fnondiff =
@@ -460,7 +457,19 @@ multiple dispatch used to distinguish between the different fluxes.
 Generally speaking, there is no generic way to do this for all boundary
 conditions and each boundary condition must be handled separately. Let us outline a few different boundary treatments for
 compressible Navier-Stokes. In this case we take the state vector $\vec{Y}$ and
-diffusive variables $\vec{\Sigma}$ to be 
+diffusive variables $\vec{\Sigma}$ to satisfy the governing equations
+
+\begin{equation}\label{e:eom_compact}
+\diff{\vec{Y}}{t}  =  - \nabla \cdot \Fnondiff\left(\vec{Y}, \vec{x}, t\right)
+- \nabla \cdot \Fdiff\left(\vec{Y}, \vec{\Sigma}, \vec{x}, t\right)
++ \vec{\mathcal{S}}(\vec{Y}, \vec{x}, t),
+\end{equation}
+Where
+\begin{equation}
+    \vec{\Sigma} = \diffusive(\vec{Y}, \nabla \gradvariables(\vec{Y}, \vec{x}, t), t)
+\end{equation}
+
+And, for example, in the atmosphere,
 \begin{align}
   \vec{Y} &=
   \begin{pmatrix}
@@ -495,7 +504,7 @@ An example of when it is not possible to impose the boundary condition directly 
   \label{eq:nondiffusive_bcs},
 \end{equation}
 that is, we use the values of $\vec{Y}$ at the boundary to construct the flux function $\Fnondiff$.
- For the diffusive flux, we can impose Dirichlet boundary conditions directly to the approximation of the auxiliary variables $\diffusive^{*}$ using Eq.\ \eqref{eq:diffusive_bcs/Ddiff}. On the other hand, if we only know the Neumann boundary conditions (e.g., we need to impose a diffusive flux), we still need a boundary condition on $\vec{Y}$ at the boundary in order to construct $\diffusive^{*}$. In this situation, we use the transmissive boundary conditions defined below. \hl{[TS: This doesn't seem generally right to me (see below). If we need to specify boundary conditions on state variables when we impose diffusive fluxes---we shouldn't need to do that when we specify diffusive fluxes directly---then the boundary condition on $\vec{Y}$ should be consistent with the diffusive fluxes, i.e., it should be consistent with the implied gradients normal to the boundary that give the correct diffusive flux. Otherwise we are overspecifying the problem.]}
+ For the diffusive flux, we can impose Dirichlet boundary conditions directly to the approximation of the auxiliary variables $\diffusive^{*}$ using Eq.\ \eqref{eq:diffusive_bcs/Ddiff}. On the other hand, if we only know the Neumann boundary conditions (e.g., we need to impose a diffusive flux), we still need a boundary condition on $\vec{Y}$ at the boundary in order to construct $\diffusive^{*}$. In this situation, we use the transmissive boundary conditions defined below. \hl{[TS: This seems odd and doesn't seem generally right to me (see below). If we need to specify boundary conditions on state variables when we impose diffusive fluxes (why should we need to do that when we specify diffusive fluxes directly as numerical fluxes?), shouldn't the boundary condition on $\vec{Y}$ be consistent with the diffusive fluxes, i.e., shouldn't it be consistent with the implied gradients normal to the boundary that give the correct diffusive flux? It seems otherwise we are overspecifying the problem.]}
 
 \subsubsection{Transmissive Boundary Conditions}
 The transmissive boundary condition for compressible Navier-Stokes says
@@ -515,7 +524,7 @@ This is summarized as follows
 \end{align}
 This boundary condition is used to allow the information to \emph{transmit} through the boundary.  
 %For low order (finite volume) methods, this is the boundary condition used to impose non-reflecting boundary conditions.
-This is the proper boundary condition to use when no boundary condition is required for the state variables and gradients. In the impermeable wall boundary conditions below, we use the transmissive boundary for the scalar state variables (i.e., density and energy). \hl{[TS: This isn't generally right for scalars: We need to specify fluxes (diffusive) of energy and all other scalars (except density) across the boundary. The diffusive fluxes need to be consistent with Neumann conditions. Only when the fluxes are zero, this amounts to homogeneous Neumann conditions, hence conditions on normal gradients consistent with the conditions stated here (which imply zero gradients). Otherwise, the 'transmissive' conditions here seem inconsistent with the inhomogeneous  Neumann conditions implied by nonzero diffusive fluxes. --- More generally, I'm not sure why we need this subsection: (1) It does not generally apply to scalars other than density, and we are not differencing density itself, so why would we need to specify it on ghost points? (2) There is no case for `transmissive` boundary conditions in the atmosphere design document. They are not physically called for, and they seem to overspecify the problem mathematically.]}
+This is the proper boundary condition to use when no boundary condition is required for the state variables and gradients. In the impermeable wall boundary conditions below, we use the transmissive boundary for the scalar state variables (i.e., density and energy). \hl{[TS: This doesn't seem generally right for scalars: We need to specify fluxes (diffusive) of energy and all other scalars (except density) across the boundary. The diffusive fluxes need to be consistent with Neumann conditions. Only when the fluxes are zero, this amounts to homogeneous Neumann conditions, hence conditions on normal gradients consistent with the conditions stated here. Otherwise, the 'transmissive' conditions here seem inconsistent with the inhomogeneous  Neumann conditions implied by nonzero diffusive fluxes. --- More generally, I'm not sure why we need this subsection: (1) It does not generally apply to scalars other than density, and we are not differencing density itself, so why would we need to specify it on the boundary? (2) There is no case for `transmissive` boundary conditions in the atmosphere design document. They are not physically called for, and they seem to overspecify the problem mathematically. Why do we need it?]}
 
 \subsubsection{Inflow and Outflow Boundary Conditions}
 The inflow and outflow boundary condition for compressible Navier-Stokes says
@@ -541,13 +550,13 @@ This is summarized as follows
 
 \subsubsection{Impermeable Wall Boundary Conditions}
 
-\hl{[A detail: I suggest distinguishing impermeable from impenetrable. Here we only need impenetrable (no normal mass flux). A boundary that is impenetrable may still be permeable (e.g., for vapor, energy fluxes). It's just good for clarity to stay consistent with the atmosphere design document and general use of the terms.]}
+\hl{[TS. A detail: I suggest distinguishing impermeable from impenetrable. Here we only need impenetrable (no normal mass flux). A boundary that is impenetrable may still be permeable (e.g., for vapor, energy fluxes). It's just good for clarity to stay consistent with the atmosphere design document and general use of the terms.]}
 
 On impermeable boundaries, the condition to enforce is that $\nhat
 \cdot \vec{u} = 0$ along with either
 \begin{enumerate*}[label = (\roman*)]
   \item no boundary condition on $\vec{\Sigma}$ \hl{[TS: What are the circumstances when we wouldn't specify boundary conditions on $\vec{\Sigma}$ on an impenetrable wall? I can't think of any where we would not have diffusive fluxes that need boundary conditions.]}; or
-  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$. \hl{[TS: I suggest you separate the diffusive flux boundary conditions from the impermeability condition, as in the atmosphere design document.]}
+  \item $\vec{\Sigma} = \vec{\Sigma}^{\rm bc}(\vec{Y}, t)$. \hl{[TS: I suggest you separate the diffusive flux boundary conditions from the impenetrability condition, as in the atmosphere design document.]}
 \end{enumerate*}
 To enforce these conditions it is convenient to define
 \begin{align}
@@ -560,13 +569,12 @@ To enforce these conditions it is convenient to define
     {\left(\rho e^{\rm tot}\right)}^{-}
   \end{pmatrix}
 \end{align}
-which is a combination of transmissive boundary conditions for the scalars and a reflecting boundary condition for the momentum. \hl{[TS: Why do we need the full state vector here? Seems to result in overspecification of boundary conditions, given that in all cases I can think of, we will have specified diffusive fluxes, and hence normal gradients for scalars. All we really need is to ensure that $\vec{n} \cdot \rho \vec{u}=0$ is enforced. \textbf{Impenetrable boundary conditions are silent about other state variables.}]}
+which is a combination of transmissive boundary conditions for the scalars and a reflecting boundary condition for the momentum. \hl{[TS: Why do we need the full state vector here? Seems to result in overspecification of boundary conditions, given that in all cases I can think of, we will have specified diffusive fluxes, and hence normal gradients for scalars. All we really need is to ensure that $\vec{n} \cdot \rho \vec{u}=0$ is enforced. Impenetrable boundary conditions are silent about other state variables.]}
 Importantly since the momentum component is just a Householder reflection of the
 ${\left(\rho \vec{u}\right)}^{-}$ across the plane defined by $\nhat^{-}$, the
 norm is preserved, in particular $\|\vec{u}^{-}\|_{2} = \|\vec{u}^{\rm
 bc}\|_{2}$. This means that pressure computed from $\vec{Y}^{-}$ and
-$\vec{Y}^{\rm bc}$ will be the same \hl{[TS: this depends on moisture variables too. But more importantly, it assumes that there is zero physical distance between the points on which $\vec{Y}^{-}$ and
-$\vec{Y}^{\rm bc}$ live; otherwise, the pressure should vary. If no physical separation is generally assumed in the discussion, it would be good to make it clear somewhere. Otherwise, pressure variations come about through variations in energy and moisture near the boundary (between the `-` and `bc` states), and those would be physical.]}. Additionally, when $\vec{u}^{-}$ and
+$\vec{Y}^{\rm bc}$ will be the same \hl{[TS: this depends on moisture variables too, and it seems to assume that energy $e^- = e^\mathrm{bc}$. Why? When there are diffusive energy fluxes, which we'll generally have, $e^- = e^\mathrm{bc}$ seems incorrect. -- Another point: This assumes that there is zero physical distance between the points on which $\vec{Y}^{-}$ and $\vec{Y}^{\rm bc}$ live; I realize we are assuming this in the model, but do we have to? If so, please state these assumptions at the beginning of this section clearly.]}. Additionally, when $\vec{u}^{-}$ and
 $\vec{u}^{\rm bc}$ are averaged the result has no normal component:
 \begin{align}
   \frac{1}{2}\nhat\cdot\left(\vec{u}^{-} + \vec{u}^{\rm bc}\right) = 0,
