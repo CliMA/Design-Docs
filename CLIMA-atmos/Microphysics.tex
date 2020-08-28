@@ -266,21 +266,44 @@ In this section we describe approximations for collisional processes when breaku
     \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} = \frac{1}{2}\int_0^\infty \left((m+m')^k - m^k - {m'}^k\right) \mathcal{C}(m, m')f(m)f(m') \, \text{d}m\, \text{d}m',
 \label{eq:source_co_mom}
 \end{equation}
-where $\mathcal{C}(m, m') = E_{CA}(m, m') \mathcal{K}(m, m')$ is the product of the coalescence and collision efficiency. In order to avoid confusion with terminology, we call $\mathcal{C}$ the collision-coalescence kernel. We seek an approximation to equation~\eqref{eq:source_co_mom} that lends itself to efficient implementations.
+where $\mathcal{C}(m, m') = E_{CA}(m, m') \mathcal{K}(m, m')$ is the product of the collision kernel with the coalescence efficiency. In order to avoid confusion with terminology, we call $\mathcal{C}$ the collision-coalescence kernel. We seek an approximation to equation~\eqref{eq:source_co_mom} that lends itself to efficient implementations.
 
 \subsection{Polynomial Kernel Approximations \& Closure}
-In order to simplify the integral expression in equation \eqref{eq:source_co_mom} in terms of the moments $M_k$ of $f(m)$, we can approximate the collision-coalescence kernel via a $2r$-order polynomial through an expansion in monomials. If we make the approximation
+\label{subsec:poly_kernel_approx}
+In order to simplify the integral expression in equation \eqref{eq:source_co_mom} in terms of the moments $M_k$ of $f(m)$, we can approximate the collision-coalescence kernel via a $2r$-order polynomial through an expansion in monomials. In order to simplify relation~\eqref{eq:source_co_mom}, we make the approximation
 \begin{equation}
     \mathcal{C}(m,m') \approx \sum_{a,b=0}^{r} c_{ab} m^a{m'}^b, \quad \text{with} \quad r \geq 0
 \label{eq:dist_approx}
 \end{equation} 
-we can simplify relation~\eqref{eq:source_co_mom} by integrating the powers of $m$ and $m'$ and using the binomial sum expression for the term $(m+m')^k$. The matrix defined by the $c_{ab}$ can be seen as a lookup table for the collision-coalescence kernel $\mathcal{C}$. It must obey $c_{ab} = c_{ba}$ because $\mathcal{C}$ is symmetric in $m$ and $m'$. We arrive at the formal expression
+
+ The matrix defined by the $c_{ab}$ can be seen as a lookup table for the collision-coalescence kernel $\mathcal{C}$. It must obey $c_{ab} = c_{ba}$ because $\mathcal{C}$ is symmetric in $m$ and $m'$. 
+
+Plugging the approximation (\ref{eq:dist_approx}) into equation (\ref{eq:source_co_mom}) and applying the binomial formula, $(m+m')^k = \sum_{i=0}^k {k \choose i} m^i m'^{k-i}$, we get:
+
+\begin{equation}
+\begin{aligned}
+    \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} &\approx \frac{1}{2}\int_0^\infty \left((m+m')^k - m^k - {m'}^k\right) \left(\sum_{a,b=0}^{r} c_{ab} m^a{m'}^b\right)f(m)f(m') \, \text{d}m\, \text{d}m' \\
+    &= \frac{1}{2}\int_0^\infty \left(\sum_{i=0}^k {k \choose i} m^i m'^{k-i} - m^k - {m'}^k\right) \left(\sum_{a,b=0}^{r} c_{ab} m^a{m'}^b\right)f(m)f(m') \, \text{d}m\, \text{d}m' \\
+    &= \frac{1}{2}\int_0^\infty \left(\sum_{a,b=0}^{r}\sum_{c=0}^{k} c_{ab} {k \choose c} m^{a+c}m'^{b+k-c} \right) f(m) f(m')\, \text{d}m\, \text{d}m' \\ &~~~~~~~~~~~- \frac{1}{2}\int_0^\infty \sum_{a,b=0}^{r} m^{a+k} m'^b\, \text{d}m\, \text{d}m' - \frac{1}{2}\int_0^\infty \sum_{a,b=0}^{r} m^{a} m'^{b+k}\, \text{d}m\, \text{d}m'
+\label{eq:derivation_source_co_mom_approx}
+\end{aligned}
+\end{equation}
+
+\noindent We can simplify further by using that $\int_0^\infty m^j f(m)\, \text{d}m \equiv M_j$:
+\begin{equation}
+    \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} \approx
+    \frac{1}{2}\sum_{a,b=0}^{r}\sum_{c=0}^{k} c_{ab} {k \choose c} M_{a+c}M_{b+k-c} - \frac{1}{2} \sum_{a,b=0}^{r} M_{a+k} M_b - \frac{1}{2}\sum_{a,b=0}^{r} M_{a} M_{b+k}
+\label{eq:derivation_source_co_mom_approx_contd}
+\end{equation}
+
+\noindent And since $\sum_{a,b=0}^{r} M_{a+k} M_b = \sum_{a,b=0}^{r} M_{a} M_{b+k}$, we arrive at the expression 
+
 \begin{equation}
 \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} \approx
     \frac{1}{2} \sum_{a,b=0}^{r} \sum_{c=0}^k c_{ab} {k \choose c} M_{a+c} M_{b+k-c} - \sum_{a,b=0}^{r} c_{ab} M_{a+k} M_b
 \label{eq:source_co_mom_approx}
 \end{equation}
-for the collisional source term for the moment $M_k$ (note that the factor $0.5$ avoids double counting). For the special cases of $k=0$ or $k=1$ we have simplified relations
+for the collisional source term, i.e., the time rate of change of the  moment $M_k$ due to collision-coalescence processes (note that the factor $0.5$ avoids double counting). For the special cases of $k=0$ or $k=1$ we have simplified relations
 \begin{equation}
     \frac{\partial M_k}{\partial t} \biggr\rvert_{coll} \approx
     \begin{cases}
@@ -313,7 +336,36 @@ From a user perspective, one only needs to provide the lookup table defined by t
 For piecewise polynomial kernels we can make a similar approximation as for polynomial kernels at the cost of introducing moments for the different subcomponents of the distribution function $f$ implied by the piecewise approximation. \hl{Toby's comment: May or may not need this.}
 
 \subsection{Closure Parameter Optimization}
-Optimizing for $\theta$.
+As described in section \ref{subsec:poly_kernel_approx}, the rate of change of a predicted moment
+generally depends on moments of higher orders, which presents a closure problem conceptually
+similar to the problem of subgrid-scale turbulence closure. 
+In bulk microphysics schemes such as the one introduced here, the closure is usually achieved by assuming an
+analytic functional form for the droplet size/mass distribution. The analytic expression for the droplet distribution is used to compute the higher-order diagnostic moments $\mathbf{M}_d$ needed to evaluate the time rate of change of the prognostic moments $\mathbf{M}_p$. However, computing the diagnostic moments requires to know the distribution parameters, $\mathbf{\theta}$, which are determined by inverting (\ref{eq:closure}a):
+
+\begin{equation}\label{eq:Mp_to_param}
+\mathbf{\theta} = \mathbf{G}_p^{-1}(\mathbf{{M}_p}), ~ \mathbf{M}_p \in \mathbb{R}^s, 
+\end{equation}
+
+\noindent where $\mathbf{G}_p^{-1}$ is the inverse of $\mathbf{G}_p$. Except for simple distributions, $\mathbf{G}_p^{-1}$ does not have a closed-form representation -- thus, in the general case, the parameters $\mathbf{\theta}$ are determined by solving an optimization
+problem. Alternatively, the function $\mathbf{G}_p^{-1}$ can be approximated by a machine learning model that has been trained to predict the parameters given the prognostic moments as input.
+
+How best to approach the problem of mapping moments to parameters depends both on the type of droplet distribution and on the relative importance of accuracy, speed, ease of implementation, etc.
+
+The following approaches are currently implemented:
+\begin{itemize}
+    \item \textbf{Analytical solutions}: For gamma distributions and exponential distributions, $\mathbf{G}_p^{-1}$ is available in closed form and provides a straightforward way to compute the underlying distribution parameters from the prognostic moments.
+    \item \textbf{Optimization}: Optimization solvers can be used to find the parameters $\widehat{\mathbf{\theta}}^*$ that minimize the distance between the given prognostic moments $\mathbf{M}_p$ and the prognostic moments computed from the estimated parameters $\widehat{\mathbf{\theta}}$, $\widehat{\mathbf{M}}_p$:
+\begin{equation}\label{eq:Mp_to_param}
+\begin{aligned}
+\widehat{\mathbf{\theta}}^* &= \operatorname*{argmin}_{\widehat{\mathbf{\theta}}} \| \mathbf{M}_p - \mathbf{\widehat{M}}_p\| \\
+&= \operatorname*{argmin}_{\widehat{\mathbf{\theta}}} \| \mathbf{M}_p - \mathbf{G}_p(\widehat{\mathbf{\theta}})\| \\
+&= \operatorname*{argmin}_{\widehat{\mathbf{\theta}}} g(\mathbf{\widehat{\theta}}),
+\end{aligned}
+\end{equation}
+where $g(\mathbf{\widehat{\theta}}) := \| \mathbf{M}_p - \mathbf{G}_p(\widehat{\mathbf{\theta}})\|$, and $\| \cdot \|$ denotes the L2 norm. One may attempt to treat this as an unconstrained problem and use any appropriate global optimization solver to minimize the objective function $g$. This basic approach can be customized to  specific distribution types. For example, for mixtures of gamma distributions and mixtures of exponential distributions, we implemented a nonlinear least squares formulation subject to constraints on the unknowns (e.g., that certain parameters have to be positive), which has shown to improve both accuracy and speed of the optimization procedure.
+\end{itemize}
+
+Customized approaches (analytical solutions or optimization procedures) for other distribution types can easily be added, and as mentioned above, a third option would be to get the mapping from moments to parameters from a call to a pre-trained machine learning model. Whether there are distributions where machine learning provides any advantage over the other approaches described here remains to be seen.
 
 \subsection{Closure Parameter Adjustment}
 Time stepping $\theta$.

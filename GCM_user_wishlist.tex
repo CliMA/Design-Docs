@@ -10,20 +10,6 @@
 
 \maketitle
 
-
-\section{Specs to run}\label{}
-\begin{itemize}
-    \item Type of model (Held-Suarez/ coupled, moist/dry: which models + associated coeff lists)
-    \item Planet parameters (Earth, other)
-    \item Continents / aquaplanet
-    \item 
-    \item CPU/ GPU allocation and MPI config
-    \item Horizontal/vertical resolution
-    \item Simulation time, time step 
-    \item Restart file
-    \item output frequency: 6 hourly/ daily/ monthly averages 
-\end{itemize}
-
 \section{Post-processing variables}\label{}
 
 Post-processing variables (based on lat/lon/z,t, model vars = ro, ro*e, ro*\textbf{u}, ro*q$_{tot}$)
@@ -39,30 +25,47 @@ Post-processing variables (based on lat/lon/z,t, model vars = ro, ro*e, ro*\text
  temperature                  & K \\ 
  spec./rel. humidity          &  kg/kg/\% \\
  pressure                     & Pa \\ 
- Sensible/latent surface flux & W/m^2 \\
+ Sensible/latent surface flux & W/m$^2$ \\
+ Geopotential                 & m2/s$^2$ \\
  \hline
- To be addressed & \\
+ To be addressed for Held-Suarez& \\
  \hline
- vorticity / divergence       & 1/s \\ 
- Streamfunction               & m^2/s \\
- Omega                        & Pa/s \\
+ relative vorticity $ \xi=\frac{1}{r \cos \phi}\frac{\partial v}{\partial \lambda} - \frac{1}{r \cos \phi} \frac{\partial}{\partial \phi}\Big( u \cos \phi \Big)$ & 1/s \\
+ divergence $D = \frac{1}{r \cos \phi}\frac{\partial u}{\partial \lambda} + \frac{1}{r \cos \phi} \frac{\partial}{\partial \phi}\Big( u \cos \phi \Big)$      & 1/s \\ 
+ Streamfunction $ u = -\frac{1}{r} \frac{\partial \psi}{ \partial \phi} $ ,    $ u = \frac{1}{r \cos \phi} \frac{\partial \psi}{ \partial \lambda} $           & m$^2$/s \\
+ Vertical pressure velocity $\omega = \frac{D p}{Dt}$                        & Pa/s \\
+ Ertel potential vorticity $P = \frac{\zeta \cdot \nabla\theta}{\rho}$ & 1/s\\
+ Quasi-geostrophic potential vorticity $q = \zeta + \frac{f^2}{\rho}\frac{\partial}{\partial z}\frac{\rho}{N^2}\frac{\partial \psi}{ \partial z} $          & 1/s \\
+  static stability = N = $\sqrt{g\frac{\partial \ln(\theta)}{\partial z}}$ & 1/s\\
+ Zonal mean-based eddy covariances, e.g. $[u*v*]$, $[v*T*]$  & \\   
+ Time mean-based eddy covariances, e.g. $\overline{u^{\prime}v^{\prime}}$, $\overline{v^{\prime}T^{\prime}}$  & \\ 
+ \hline
+ To be addressed later & \\
+ \hline
  Precipitation, evaporation   & m/s \\
  Cloud cover                  & \% \\
  Surface albedo               &   \\
- Surface/top solar/thermal radiation & W/m^2 \\
- u-stress, v-stress           & Pa \\
- Potential vorticity          & 1/s \\
+ Surface/top solar/thermal radiation & W/m$^2$ \\
+  surface (10m) u-stress, v-stress           & Pa \\
  Spectral u, v                & m/s \\
  Topography height            & m \\
- Select eddy covariances (TBD) & \\     
+ Moist static energy        & J/m$^2$ \\  
  \\
  \hline
 \end{tabular}
 \end{center}
+($\lambda$, $\phi$) = (longitude, latitude)
+
+f = Coriolis parameter = $2 \Omega \sin \phi $, with $\Omega = $Earth's rotation rate
+
+"$\overline{.}$" = mean along all timesteps, "$^{\prime}$" = perturbation thereof. NB: for synoptic eddy covariances a 10-day filter should be applied, but this may be better left for post processing.
+
+"$[]$" = mean along all longitudes, "$*$" = perturbation thereof)
+
+
+\subsection*{Questions/ comments} 
 
 \begin{itemize}
-    \item Q: are compressed hdf5 sufficient for large output (option if binary instead?), and general enough?
-    \item Q: restart file to be VTK fmt?
     \item Q: do we want greek characters in output files?
 \end{itemize}
 

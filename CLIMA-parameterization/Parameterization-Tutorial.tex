@@ -1,0 +1,929 @@
+\documentclass{report}
+
+\include{CLIMA_Macros}
+\usepackage[inline]{enumitem}
+\usepackage{xcolor}
+\usepackage{appendix}
+\usepackage{fullpage}
+
+\newcommand{\paramT}[1]{       \text{#1}}
+\newcommand{\hyperparamT}[1]{\text{#1}}
+\newcommand{\simparamT}[1]{  \text{#1}}
+
+%\newcommand{\exp}[1]{\mathrm{exp}\left(#1\right)}
+\newcommand{\atan}[1]{\mathrm{atan}\left(#1\right)}
+\newcommand{\sign}[1]{\mathrm{sign}\left(#1\right)}
+\newcommand{\erf}[1]{\mathrm{erf}\left(#1\right)}
+\newcommand{\erfinv}[1]{\mathrm{erfinv}\left(#1\right)}
+
+\newcommand{\param}[1]{     #1}
+\newcommand{\hyperparam}[1]{#1}
+\newcommand{\simparam}[1]{  #1}
+
+\newcommand{\CROSS}{\times}
+\newcommand{\GRAD}{\nabla}
+\newcommand{\DOT}{\bullet}
+\newcommand{\PD}{\partial}
+\newcommand{\PDFz}{\frac{\PD}{\PD z}}
+\newcommand{\DM}[1]{\langle #1 \rangle}
+\newcommand{\iEnv}{e}
+\newcommand{\SD}[2]{{\overline{#1}}_{#2}}
+\newcommand{\SDi}[1]{{\SD{#1}{i}}}
+\newcommand{\SDj}[1]{{\SD{#1}{j}}}
+\newcommand{\SDe}[1]{{\SD{#1}{\iEnv}}}
+\newcommand{\SDiog}[2]{#1_{#2}}
+\newcommand{\SDio}[1]{{\SDiog{#1}{i}}}
+\newcommand{\SDjo}[1]{{\SDiog{#1}{j}}}
+\newcommand{\SDeo}[1]{{\SDiog{#1}{\iEnv}}}
+\newcommand{\aSD}[2]{{#1}_{#2}}
+\newcommand{\aSDi}[1]{\aSD{#1}{i}}
+\newcommand{\aSDj}[1]{\aSD{#1}{j}}
+\newcommand{\aSDe}[1]{\aSD{#1}{\iEnv}}
+\newcommand{\otherDefs}{where additional variable definitions are in:}
+
+\newcommand{\IntraCVSDi}[2]{\overline{{#1}_{i      }'{#2}_{i      }'}}
+\newcommand{\IntraCVSDj}[2]{\overline{{#1}_{j      }'{#2}_{j      }'}}
+\newcommand{\IntraCVSDe}[2]{\overline{{#1}_{\iEnv{}}'{#2}_{\iEnv{}}'}}
+
+\newcommand{\InterCVSDi}[2]{\overline{{#1}_{i      }'}~\overline{{#2}_{i      }'}}
+\newcommand{\InterCVSDj}[2]{\overline{{#1}_{j      }'}~\overline{{#2}_{j      }'}}
+\newcommand{\InterCVSDe}[2]{\overline{{#1}_{\iEnv{}}'}~\overline{{#2}_{\iEnv{}}'}}
+
+\newcommand{\TCV}[2]{\langle {#1}^*{#2}^* \rangle}
+
+\newcommand{\BC}[1]{{#1|_{z_{min}}}}
+\newcommand{\BCT}[1]{{#1|_{z_{max}}}}
+\newcommand{\BCB}[1]{{#1|_{z_{min}}}}
+\newcommand{\BCG}[1]{{#1|_{z_{boundary}}}}
+
+\newcommand{\Km}{K^m}
+\newcommand{\Kh}{K^h}
+\newcommand{\TEquilib}{T_{\mathrm{iterated}}}
+\newcommand{\PhasePartition}{q}
+\newcommand{\ExnerD}{\Pi_{dry}}
+\newcommand{\ExnerM}{\Pi_{moist}}
+\newcommand{\WindSpeed}{|u|}
+\newcommand{\LayerThickness}{\param{\Delta z}}
+\newcommand{\SurfaceRoughness}[1]{\param{z_{0#1}}}
+\newcommand{\SensibleSurfaceHeatFlux}{F_{\mathrm{sensible}''}}
+\newcommand{\LatentSurfaceHeatFlux}{F_{\mathrm{latent}''}}
+\newcommand{\FrictionVelocity}{u_*}
+\newcommand{\Buoyancy}{b}
+\newcommand{\BuoyancyGrad}{\PD_z \Buoyancy}
+\newcommand{\BuoyancyFlux}{\IntraCVSDi{w}{b}}
+\newcommand{\TemperatureScale}{\theta_*}
+\newcommand{\SurfaceMomentumFlux}{\BC{\overline{w'u'}}}
+\newcommand{\SurfaceHeatFlux}{\BC{\overline{w'\theta'}}}
+\newcommand{\SurfaceBuoyancyFlux}{\BC{\IntraCVSDi{w}{\theta}}}
+\newcommand{\ConvectiveVelocity}{{w_*}} % Convective velocity near the surface
+\newcommand{\InversionHeight}{{z_*}}
+\newcommand{\MOLen}{\Lambda_{M-O}}
+\newcommand{\zLL}{\param{z_{||}}} % z at the first surface level (we should make this grid-independent)
+
+\newcommand{\qt}{q_{\mathrm{tot}}}
+\newcommand{\qr}{q_{\mathrm{rain}}}
+\newcommand{\ql}{q_{\mathrm{liq}}}
+\newcommand{\qi}{q_{\mathrm{ice}}}
+\newcommand{\qv}{q_{\mathrm{vap}}}
+\newcommand{\qvsat}{q_{\mathrm{vap}}^*}
+\newcommand{\pvsat}{p_{\mathrm{vap}}^*}
+\newcommand{\qc}{q_{\mathrm{con}}}
+\newcommand{\ThetaVap}{{\theta_{\mathrm{vap}}}}
+\newcommand{\ThetaVirt}{{\theta_{\mathrm{virt}}}}
+\newcommand{\ThetaRho}{{\theta_{\rho}}}
+\newcommand{\ThetaLiq}{{\theta_{\mathrm{liq}}}}
+\newcommand{\ThetaLiqIce}{{\theta_{\mathrm{liq-ice}}}}
+\newcommand{\ThetaLiqIceSat}{{\theta^*_{\mathrm{liq-ice}}}}
+\newcommand{\ThetaDry}{{\theta_{\mathrm{dry}}}}
+\newcommand{\TDry}{{T_{dry}}}
+\newcommand{\eint}{e_{\mathrm{int}}}
+\newcommand{\etot}{e_{\mathrm{tot}}}
+
+\newcommand{\TRef}{{T}_0}
+\newcommand{\alphaRef}{{\alpha}_0}
+\newcommand{\rhoRef}{{\rho}_0}
+\newcommand{\pRef}{{p}_0}
+\newcommand{\Heaviside}{\mathcal H}
+
+\newcommand{\alphaLL}{\alphaRef|_{\zLL}}
+\newcommand{\uH}{\simparam{\mathbf{u}_h}}
+
+\newcommand{\CoriolisParam}{\hyperparam{\mathrm{coriolis\_param}}}
+\newcommand{\SubsidenceParam}{\hyperparam{\mathrm{subsidence}}}
+\newcommand{\betaM}{\hyperparam{\beta_m}}
+\newcommand{\betaH}{\hyperparam{\beta_h}}
+\newcommand{\gammaM}{\hyperparam{\gamma_m}}
+\newcommand{\gammaH}{\hyperparam{\gamma_h}}
+
+\newcommand{\PTilde}{\param{\tilde{p}}}
+\newcommand{\VKConst}{\param{\kappa_{\mathrm{Von-Karman}}}}
+\newcommand{\Nsd}{\hyperparam{N_{sd}}}
+\newcommand{\grav}{\param{g}}
+\newcommand{\TZero}{\param{T_{0}}}
+\newcommand{\RefHintV}{\param{{\eint}_{v,0}}}
+\newcommand{\RefHintI}{\param{{\eint}_{i,0}}}
+
+\newcommand{\EpsDV}{\param{\varepsilon_{dv}}}
+\newcommand{\EpsVD}{\param{\varepsilon_{vd}}}
+\newcommand{\Rm}{R_m}
+\newcommand{\Cpm}{c_{pm}}
+\newcommand{\Cvm}{c_{vm}}
+\newcommand{\Rd}{\param{R_d}}
+\newcommand{\Rv}{\param{R_v}}
+\newcommand{\Cp}[1]{\param{c_{p#1}}}
+\newcommand{\Cv}[1]{\param{c_{v#1}}}
+\newcommand{\Cvd}{\Cv{d}}
+\newcommand{\Cvv}{\Cv{v}}
+\newcommand{\Cvl}{\Cv{l}}
+\newcommand{\Cvi}{\Cv{i}}
+
+\newcommand{\DeltaCp}{\param{\Delta c_p}}
+\newcommand{\TTriple}{\param{T_{\mathrm{tr}}}}
+\newcommand{\PTriple}{\param{p_{\mathrm{tr}}}}
+\newcommand{\TFreeze}{\param{T_{\mathrm{freeze}}}}
+
+\newcommand{\RefLHv}{\param{L_{v,0}}}
+\newcommand{\RefLHs}{\param{L_{s,0}}}
+\newcommand{\RefLHf}{\param{L_{f,0}}}
+\newcommand{\LatentHeatV}[1]{L_{vap}(#1)}
+\newcommand{\LatentHeatS}[1]{L_{sub}(#1)}
+\newcommand{\LatentHeatF}[1]{L_{fus}(#1)}
+
+
+\title{CLIMA Sub-Grid-Scale parameterization} 
+\author{Yair Cohen}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\chapter{Turbulence and Convection Parameterization}
+\section{Overview}
+Eddy-Diffusivity Mass-Flux Scheme~(See~Fig.\ref{fig:EDMF sketch}) is an algebraic~(zero-equation) turbulence closure. The inputs include grid mean scalars
+$\langle \rho \rangle,  \langle u \rangle, \langle v \rangle, \langle w \rangle, \langle e \rangle, \langle q_t \rangle$ are their first order derivatives from the host model equations.
+The outputs include the cloud fraction  and different sub-grid scale (SGS) flux  on the right hand side of the host model equations.
+\begin{equation}
+\label{eq:grid_mean_scalar} 
+\frac{\partial (\rho \langle \phi \rangle)}{\partial t} = - \nabla \cdot \Big( \rho\langle \mathbf{u} \rangle \langle \phi \rangle + 
+\rho \underbrace{\langle \mathbf{u}^* \phi^* \rangle}_{\text{SGS flux}}\Big) + \rho \langle S_{\phi} \rangle,
+\end{equation}
+here $\phi^* = \phi - \langle\phi \rangle$ denotes fluctuations about this grid mean. These SGS terms include
+$\langle \mathbf{u}^* u^* \rangle, \langle \mathbf{u}^* v^* \rangle, \langle \mathbf{u}^* w^* \rangle, \langle \mathbf{u}^* e^* \rangle, \langle \mathbf{u}^* q_t^* \rangle$. 
+Since the Eddy-Diffusivity Mass-Flux Scheme is a single column model, $u^{*}$ and $v^{*}$ are unresolved and assumed to be small. The SGS terms are essentially $\langle w^* w^* \rangle, \langle w^* e^* \rangle, \langle w^* q_t^* \rangle$.
+\hl{are there more inputs? Is cloud fraction a z-dependent quantity?}
+
+
+\begin{figure}[htb]
+\noindent\includegraphics[width=0.8\textwidth]{CLIMA-parameterization/figures/sketch_design_docs.jpg}
+\caption{A graphical depiction of the mental picture underlying the EDMF model showing the vertical column of host model grid boxes with horizontal resolution $\Delta x, \Delta y$ and a vertical resolution $\Delta z$, which is mutual to both the host model and the parameterization. The EDMF subdomains are sketched in the grid box area and their contribution to the distribution in the grid box is evident in the cartoon in the back. In this cartoon the physical roles of the environment and updrafts, as well as the various processes that require closures are illustrated.}
+\label{fig:EDMF sketch}
+\end{figure}
+
+
+\section{Governing Equations} \label{sec:Governing Equations} 
+
+\subsection{Subdomain Decomposition} \label{sec:Subdomain Decomposition}
+The EDMF scheme is based on a decomposition of the host model grid box  into an environment with subscript "$0$" and $N \ge 1$ updrafts with subscript "$i$". The area fraction of the $i$-th subdomain is $a_i=A_i/A_T$ and obey:
+\begin{equation}
+\sum_{i\ge 0} a_i = 1,
+\label{eq:area_fraction}
+\end{equation}
+with $A_i$ as the horizontal area of the $i$-th subdomain and $A_T$ is the horizontal area of the grid box. The average of $\phi$ over the $i$-th subdomain is $\bar{\phi}_i$ that obeys:
+\begin{equation}
+\langle \phi \rangle = \sum_{i\ge 0} a_i \bar{\phi}_i,
+\label{eq:subdomain_mean}
+\end{equation}
+with $\phi'_i = \phi - \bar{\phi}_i$ is the fluctuation about the mean of subdomain $i$. The difference between the subdomain mean and grid mean then becomes $\Bar{\phi}^*_i = \bar{\phi}_i - \langle\phi \rangle$. Using this the second moment in the grid is decomposed as:
+\begin{equation}
+\langle \phi^* \psi^* \rangle =  
+\sum_{i\ge 0} a_i\Big[\bar{\phi}^*_i\bar{\psi}^*_i + \overline{\phi'_i\psi'_i} \Big]  = \sum_{i\ge 0} a_i\Big[(\bar{\phi}_i - \langle\phi\rangle)(\bar{\psi}_i - \langle\psi\rangle) + \overline{\phi'_i\psi'_i} \Big]
+\label{eq:second_moment_decomposition}
+\end{equation}
+A diagnostic approximation of the third moment in the grid based on the zeroth, first and second moments above is given in equation (11) in \cite{cohen_2020}.
+
+
+\subsection{Model Assumptions} \label{sec:Model Assumptions}
+The extended EDMF scheme makes the following assumptions:
+\begin{enumerate}
+%%%
+\item Boundary layer approximation: the SGS fluxes operate only in the vertical axis such that:
+\begin{equation}
+\label{eq:bl_approximation} 
+\langle \mathbf{u}^* \phi^* \rangle \approx \langle w^* \phi^* \rangle,
+\end{equation}
+which is given by \eqref{eq:second_moment_decomposition}.
+%%%
+\item EDMF approximation: the second and thrid moments are neglected in all updrafts and downdrafts:
+\begin{equation}
+\label{eq:vertical_eddy_diffusivty} 
+\overline{\phi'_i \psi_i'} = 0,\ \overline{w_i \phi'_i \psi_i'} = 0; i>0,
+\end{equation}
+and are retained only in the environment. Turbulent transport in the environment is approximated by down-gradient eddy diffusivity:
+\begin{eqnarray}
+\label{eq:vertical_eddy_diffusivty} 
+\overline{w'_0 \phi_0'} \approx - K_{\phi, 0} \frac{\partial \bar{\phi}_0}{\partial z},\ \overline{w'_0 \phi_0' \psi_0'} \approx - K_{\phi\psi, 0}\frac{\partial \overline{\phi_0\psi_0}}{\partial z}
+\end{eqnarray}
+where $K_{\phi,0}$ and $K_{\phi\psi,0}$ are the eddy diffusivities (to be specified).  
+
+%%%
+\item SGS-anelastic approximation: the same, grid-mean density $\langle\rho\rangle$ is used in all subdomains except in the buoyancy term.  For notational simplicity, we use $\rho$ rather than $\langle\rho\rangle$ for the grid-mean density, and $\bar{\rho}_i$ for the subdomain density
+\begin{equation}
+\bar{\rho}_i  = \frac{\langle p \rangle}{R_d\bar{T}_{v,i}}.
+\label{eq:subdomain_eos} 
+\end{equation}
+Here $R_d$ is ideal gas constant for dry air, virtual temperature $\bar{T}_{v,i} = \bar{T}_{v,i}(\bar{q}_{t,i}, \bar{e}_{t,i}, \rho)$, grid mean pressure $\langle p \rangle$.
+
+\hl{Q:}
+$$\sum a_i \bar{\rho}_i \bar{T}_{v,i} = \sum a_i \frac{\langle p \rangle}{R_d} = \rho \langle {T}_v \rangle$$
+
+$$\sum a_i \bar{\rho}_i = \sum a_i \frac{\langle p \rangle}{R_d\bar{T}_{v,i}} = \rho ?$$
+
+$$\sum a_i \bar{T}_{v,i} = \langle {T}_v \rangle ?$$
+%%%
+\item Neglecting SGS fluxes of horizontal momentum: it is assumed that the horizontal velocity ($\mathbf{u}_h$) of the subdomains takes the grid mean value:
+\begin{eqnarray}
+    \bar{\mathbf{u}}_{h,i} = \langle \mathbf{u}_h \rangle.
+\end{eqnarray}
+Therefore, $\bar{u}_i^* = \bar{v}_i^* = 0$. \hl{do we use this or never used or we can even assume $u^* = v^* = 0$? }
+%%%
+\item All subdomains interact only with the environment: we assume for now that updrafts and downdrafts only interact with the environment (via entrainment and detainment terms) avoiding any statement about convective organization.
+
+\item Pressure assumption: \hl{Q:} The pressure variable is a diagnostic variable. The pressure fluctuation $p^{\dagger} = p - p_h$ and subdomain mean $\bar{p}_i^{\dagger}$ are not resolved. The gradient terms related to the pressure fluctuation are modeled.
+\end{enumerate}
+
+
+
+\subsection{Governing Equations} \label{sec:Governing Equations}
+\subsubsection{Prognostic Variables}
+The prognostic variables in the EDMF governing equations include:
+\begin{enumerate}
+\item  Zero moment: $a_i,\ i=1,\cdots n$; 
+\item First moment: $\bar{e}_i , \bar{q}_{t,i} , \bar{w}_i,\ i=1,\cdots n$; 
+\item Second moment: TKE, $\overline{h'_0 h'_0}, \overline{q'_{t,0} h'_0}, \overline{q'_{t,0} q'_{t,0}}$.
+
+\hl{Q: what should be the prognostic variables $\theta_l$, $h$ or $e$?}
+\end{enumerate}
+
+
+\subsubsection{Updrafts and Downdrafts}
+In the updrafts and downdrafts the model solves prognostic equations for the area fraction, vertical velocity and scalar:
+% \begin{linenomath*}
+\begin{eqnarray}
+\frac{\partial (\rho a_i)}{\partial t} =
+- \nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle) - 
+\frac{\partial (\rho a_i \bar{w}_i)}{\partial z} +
+{\Big(E_{i0} - \Delta_{i0} \Big)},
+\label{eq:subdomain_area}
+\end{eqnarray}
+\begin{multline}
+\label{eq:subdomain_w} 
+\frac{\partial (\rho a_i \bar{w}_i)}{\partial t} =
+- \nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle \bar{w}_i) - \frac{\partial (\rho a_i \bar{w}_i \bar{w}_i) }{\partial z} 
++ \rho a_i \Big( \bar{b}_i - 
+\frac{\partial (\bar{p}_i^{\dagger}/\rho)}{\partial z}\Big) \\
++  \Big[ (E_{i0} + \hat{E}_{i0}) \bar{w}_0 - (\Delta_{i0} + \hat{E}_{i0}) \bar{w}_i \Big],
+\end{multline}
+\begin{multline}
+ \label{eq:subdomain_scalar_mean} 
+\frac{\partial (\rho a_i \bar{\phi}_i)}{\partial t} =
+- \nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle \bar{\phi}_i) - \frac{\partial (\rho a_i \bar{w}_i \bar{\phi}_i)}{\partial z} \\
++ {\Big[(E_{i0} + \hat{E}_{i0}) \bar{\phi}_0  - (\Delta_{i0} + \hat{E}_{i0}) \bar{\phi}_i \Big]} 
++ \rho a_i \bar{S}_{\phi,i}.
+\end{multline}
+For $i > 0$. 
+%
+Here $E_{ij}$, and $\Delta_{ij}$ are the dynamical entrainment and detrainment rate respectively, and $\hat{E}_{ij}$ is the turbulent entrainment. The buoyancy is defined as $\bar{b}_i = -g(\bar{\rho}_i-\rho_h)/\rho$ with $\rho_h$ as a reference density in hydrostatic balance with a hydrostatic pressure $p_h$. The average of the difference between the actual pressure and the hydrostatic pressure  $p - p_h$ over the i-th subdomain is $\bar{p}_i^{\dagger}$, and its gradient enters as a force in the subdomain vertical velocity equation. The source term $\bar{S}_{\phi,i}$ on the right hand side of \eqref{eq:subdomain_scalar_mean} represent the thermodynamic source from microphysical processes. Second moment terms in the updrafts and downdrafts are neglected.
+\hl{why $\hat{E}$ but not $\hat{\Delta}$}
+The horizontal gradient terms are approximated as 
+$$\nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle \bar{\psi}_i) \approx \rho a_i \bar{\psi}_i \nabla_h \cdot \langle \mathbf{u}_h \rangle$$
+The source term $\bar{S}_{q_t, i}$ contains condensation and vaporization \hl{steady process? do we compute inside or receive from the host model?}
+\begin{align*}
+    \bar{S}_{q_t, i} &= \bar{S}_{q_t, i}(\bar{q}_{t,i}, \bar{T}_{v,i}, \langle p\rangle)
+\end{align*}
+The source term $\bar{S}_{e, i}$ contains 
+\begin{itemize}
+    \item surface fluxes due to the boundary layer and black body radiation
+    \item net short wave, upward long wave flux
+    \item latent heat of vaporization
+\end{itemize} 
+\begin{align*}
+    \bar{S}_{e, i} &=  \bar{S}_{e, i}\\
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+Total/internal energy conservation equation:
+\begin{align*}
+ & \diff{(\rho e^\mathrm{tot})}{t} + \divergence \left( \rho e^\mathrm{tot}\vec{u} \right) + \divergence \left( p\vec{u} \right)
+ = S^{e^{tot}}\\
+ & \diff{(\rho I)}{t} + \divergence \left(\rho I\vec{u} \right) + p\nabla\cdot \vec{u}
+ = S^{I}
+\end{align*}
+The source terms are 
+\begin{align*}
+    S^{e^{tot}} &=  -\divergence (\rho \vec{F}_R) - \divergence \bigl[\rho (\vec{J} + \vec{D})\bigr] + \rho Q  \\
+  +&\divergence \left(\rho W_c \vec{\hat k} \right)  - \divergence (\vec{u} \cdot \rho\vec{\tau)}
+   - \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M\\
+   S^{I} &= \rho Q^{I} + (I + \frac{p}{\rho})Q^{\rho}
+\end{align*}
+%
+Due to the anelastic assumption, 
+\begin{align*}
+    \nabla (\rho \vec{u}^{*}) = 0\\
+    \nabla \vec{u} = \nabla \langle\vec{u}\rangle + \nabla \vec{u}^* = \nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z},
+\end{align*} 
+the $\nabla p \cdot \vec{u}$ term is written as:
+\begin{align*}
+    \int_{\Omega_i(t)} \nabla p \cdot \vec{u} &= \int_{\Omega_i(t)} \nabla(\langle p \rangle + p^{\dagger}) \cdot \vec{u}  \\
+    & = V_i  \nabla\langle p \rangle  \cdot \bar{\vec{u}}_i  {\color{blue}+ \int_{\Omega_i(t)} \nabla(p^{\dagger}) \cdot \vec{u} } 
+\end{align*}
+the $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+\int_{\Omega_i(t)} p \nabla\vec{u} &= 
+    \int_{\Omega_i(t)} \langle p\rangle (\nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z}) +  p^{\dagger}\nabla\vec{u}  \\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle   - \int_{\Omega_i(t)} \langle p\rangle  (  \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z}) + \int_{\Omega_i(t)}  p^{\dagger} \nabla \vec{u} \\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle -  V_i \left(\bar{w}_i - \langle w \rangle\right) \frac{\langle p\rangle}{\rho}\frac{\partial \rho}{\partial z} {\color{blue}+ \int_{\Omega_i(t)}  p^{\dagger} \nabla \vec{u}} \\
+\end{align*}
+
+The subdomain energy equations can be written as 
+\begin{align*}
+&\frac{\partial \rho a_i \overline{e^{tot}}_i}{\partial t} 
+ + \nabla\Big[\rho a_i(\overline{e_i^\mathrm{tot}} \bar{\vec{u}}_i)\Big] \\
+ =& \Big[(E_{i0} + \hat{E}_{i0}) \overline{e_0^\mathrm{tot}}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{e_i^\mathrm{tot}} \Big]   -  a_i  \nabla\langle p \rangle  \cdot \bar{\vec{u}}_i   - a_i \langle p\rangle \nabla \langle\vec{u}\rangle + a_i\left(\bar{w}_i - \langle w \rangle\right) \frac{\langle p\rangle}{\rho}\frac{\partial \rho}{\partial z} {\color{blue}+ a_i \bar{S}^{e^{tot}}_i}\\
+ &\frac{\partial \rho a_i \overline{I}_i}{\partial t} 
+ + \nabla\Big[\rho a_i(\overline{I_i} \bar{\vec{u}}_i)\Big] \\
+ =& \Big[(E_{i0} + \hat{E}_{i0}) \overline{I_0}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{I_i} \Big] - a_i \langle p\rangle \nabla \langle\vec{u}\rangle + a_i\left(\bar{w}_i - \langle w \rangle\right) \frac{\langle p\rangle}{\rho}\frac{\partial \rho}{\partial z} + {\color{blue}a_i \bar{S}^{I}_i}\\
+\end{align*}
+
+
+
+\newpage
+Internal energy conservation equation:
+\begin{align*}
+ & \diff{(\rho I)}{t} + \divergence \left(\rho I\vec{u} \right) + p\nabla\cdot \vec{u}
+ = S^{I}
+\end{align*}
+\begin{enumerate}
+\item Direct derivation, the $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+\int_{\Omega_i(t)} p \nabla\vec{u} &\approx 
+    \langle p\rangle \int_{\Omega_i(t)}  \nabla_h \vec{u}_h + \frac{\partial w}{\partial z}  \\
+    &=
+    V_i \langle p\rangle \nabla_h \vec{u}_h + \langle p\rangle \frac{\partial }{\partial z} \int_{\Omega_i(t)} w -  \langle p\rangle \bar{w}_i \frac{\partial V_i}{\partial z}  \\
+    &=
+    V_i \langle p\rangle \nabla_h \vec{u}_h + \langle p\rangle \frac{\partial V_i \bar{w}_i}{\partial z} -  \langle p\rangle \bar{w}_i \frac{\partial V_i}{z}  \\
+     &=
+    \left(a_i \langle p\rangle \nabla_h \vec{u}_h + \langle p\rangle \frac{\partial a_i \bar{w}_i}{\partial z} -  \langle p\rangle \bar{w}_i \frac{\partial a_i}{\partial z} \right) dz \\
+\end{align*}
+
+\item Anelastic assumption
+\begin{align*}
+    \nabla (\rho \vec{u}^{*}) = 0\\
+    \nabla \vec{u} = \nabla \langle\vec{u}\rangle + \nabla \vec{u}^* = \nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z},
+\end{align*} 
+the $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+\int_{\Omega_i(t)} p \nabla\vec{u} &= 
+    \int_{\Omega_i(t)} \langle p\rangle (\nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z}) +  p^{\dagger}\nabla\vec{u}  \\
+    &\approx
+    \int_{\Omega_i(t)} \langle p\rangle (\nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z}) \\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle   - \int_{\Omega_i(t)} \langle p\rangle  (  \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z})  \\
+    &= V_i \langle p\rangle \nabla_h \vec{u}_h + V_i \langle p\rangle \frac{\partial \bar{w}_i}{\partial z} -  V_i \left(\bar{w}_i - \langle w \rangle\right) \frac{\langle p\rangle}{\rho}\frac{\partial \rho}{\partial z} \\
+\end{align*}
+
+
+\item Continuity equation
+\begin{align*}
+    &\frac{D(\rho a_i)}{D t} = -\rho a_i \nabla \vec{u}_h  - \rho a_i \frac{\partial \bar{w}_i}{\partial z} + (E_{i0} - \Delta_{i0})
+\end{align*}
+the $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+    &p\nabla \vec{u} =\frac{p}{\rho} S^{\rho} - \frac{p}{\rho} \frac{D\rho}{D t}\\
+    \int_{\Omega_i(t)} p \nabla\vec{u} &= 
+    \int_{\Omega_i(t)} \frac{p}{\rho} S^{\rho} - \frac{p}{\rho} \frac{D\rho}{D t} \\
+    &\approx V_i  \frac{\langle p \rangle}{\rho} \bar{S}_i^{\rho} -  \frac{\langle p \rangle }{\rho} \frac{D(\rho a_i)}{D t} dz \\
+    &= V_i  \frac{\langle p \rangle}{\rho} \bar{S}_i^{\rho} +  \frac{\langle p \rangle }{\rho} \left(\rho a_i \nabla \vec{u}_h  + \rho a_i \frac{\partial \bar{w}_i}{\partial z} - (E_{i0} - \Delta_{i0})\right) dz \\
+\end{align*}
+\end{enumerate}
+
+
+
+\newpage
+Total energy conservation equation:
+\begin{align*}
+& \diff{(\rho e^\mathrm{tot})}{t} + \divergence \left( \rho e^\mathrm{tot}\vec{u} \right) + \divergence \left( p\vec{u} \right)
+ = S^{e^{tot}}\\
+ & S^{e^{tot}} =  -\divergence (\rho \vec{F}_R) - \divergence \bigl[\rho (\vec{J} + \vec{D})\bigr] + \rho Q  
+  + \divergence \left(\rho W_c \vec{\hat k} \right)  - \divergence (\vec{u} \cdot \rho\vec{\tau)}
+   - \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M\\
+\end{align*}
+
+We split $\nabla\cdot(\rho \vec{u}) = \nabla p \cdot \vec{u} \codt   + p\nabla \vec{u}$, 
+the $\nabla p \cdot \vec{u}$ term is written as:
+\begin{align*}
+    \int_{\Omega_i(t)} \nabla p \cdot \vec{u} &= \int_{\Omega_i(t)} \nabla(\langle p \rangle + p^{\dagger}) \cdot \vec{u}  \\
+    & = V_i  \nabla\langle p \rangle  \cdot \bar{\vec{u}}_i  {\color{blue}+ \int_{\Omega_i(t)} \nabla(p^{\dagger}) \cdot \vec{u} } 
+\end{align*}
+
+
+Todo: derive subdomain total energy equation from subdomain equations of internal energy and momentum 
+
+
+
+The subdomain energy equations with Continuity equation approximation can be written as 
+\begin{align*}
+&\frac{\partial \rho a_i \overline{e^{tot}}_i}{\partial t} 
+ + \nabla\Big[\rho a_i(\overline{e_i^\mathrm{tot}} \bar{\vec{u}}_i)\Big] \\
+ =& \Big[(E_{i0} + \hat{E}_{i0}) \overline{e_0^\mathrm{tot}}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{e_i^\mathrm{tot}} \Big]   -  a_i  \nabla\langle p \rangle  \cdot \bar{\vec{u}}_i  -  \frac{\langle p \rangle }{\rho} \left(\rho a_i \nabla \vec{u}_h  + \rho a_i \frac{\partial \bar{w}_i}{\partial z} - (E_{i0} - \Delta_{i0})\right)   -  a_i  \frac{\langle p \rangle}{\rho} \bar{S}_i^{\rho} + a_i \bar{S}^{e^{tot}}_i\\
+ =&   -  a_i  \nabla\langle p \rangle  \cdot \bar{\vec{u}}_i  - \langle p \rangle  \left(a_i \nabla \vec{u}_h  + a_i \frac{\partial \bar{w}_i}{\partial z}  \right)  
+ %
+ %
+ + \frac{\langle p \rangle }{\rho}  (E_{i0} - \Delta_{i0})
+ +\Big[(E_{i0} + \hat{E}_{i0}) \overline{e_0^\mathrm{tot}}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{e_i^\mathrm{tot}} \Big] 
+ %
+ -  a_i  \frac{\langle p \rangle}{\rho} \bar{S}_i^{\rho} + a_i \bar{S}^{e^{tot}}_i\\
+\end{align*}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+Energy conservation equation:
+\begin{multline}
+ \diff{(\rho e^\mathrm{tot})}{t} + \divergence \left( (\rho e^\mathrm{tot} + p)\vec{u} \right)
+ = -\divergence (\rho \vec{F}_R) - \divergence \bigl[\rho (\vec{J} + \vec{D})\bigr] + \rho Q  \\
+  +\divergence \left(\rho W_c \vec{\hat k} \right)  - \divergence (\vec{u} \cdot \rho\vec{\tau)} %+ \rho \vec{u} \cdot \vec{F}_{\vec{u}} \\
+   - \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M
+\end{multline}
+
+Let $\Omega_i$ and $\partial \Omega_i$ denote an updraft subdomain (cross section with height $h$) and its boundary. $\partial \Omega_i$ can be expressed as the union $\partial\Omega_i = \partial\Omega_i^{g} + \partial\Omega_i^{sg}$, where $\partial\Omega_i^{g}$ is on the grid box boundary. The subdomain-averaged equations are derived by averaging the governing equation over $\Omega_i$, as follows, 
+\begin{align*}
+  & \int_{\Omega_i(t)}\diff{(\rho e^\mathrm{tot})}{t} + \int_{\Omega_i(t)}\divergence \left( (\rho e^\mathrm{tot} + p )\vec{u} \right)\\
+ =& \frac{\partial}{\partial t}\int_{\Omega_i(t)} \rho e^\mathrm{tot} 
+ - \int_{\partial \Omega_i^{sg}(t)} \rho e^\mathrm{tot} \vec{u}_b \vec{n}
+ + \int_{\partial \Omega_i(t)} (\rho e^\mathrm{tot} + p) \vec{u} \vec{n}\\
+ =& \frac{\partial \rho V_i \overline{e^{tot}}_i}{\partial t} 
+ + \int_{\partial\Omega^{sg}_i(t)} \rho e^\mathrm{tot} (\vec{u} - \vec{u}_b)\vec{n}
+ + \int_{\partial \Omega^{g}_i(t)} \rho e^\mathrm{tot} \vec{u} \vec{n} + \int_{\partial \Omega_i(t)} p \vec{u} \vec{n}\\
+ \approx& \frac{\partial \rho V_i \overline{e^{tot}}_i}{\partial t} 
+ + \Big[(E_{i0} + \hat{E}_{i0}) \overline{e_0^\mathrm{tot}}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{e_i^\mathrm{tot}} \Big]h
+ + \nabla\Big[\rho V_i(\overline{e_i^\mathrm{tot}} \bar{\vec{u}}_i + \overline{e^\mathrm{tot'}_i\vec{u}'_i})\Big] +  \int_{\Omega_i(t)} \nabla \left(p\vec{u}\right) \\
+\end{align*}
+Here $V_i$ and $V_T$ are volume of the subdomain $\Omega_i$ and the grid box, respectively. 
+Due to the anelastic assumption, 
+\begin{align*}
+    \nabla (\rho \vec{u}^{*}) = 0\\
+    \nabla \vec{u} = \nabla \langle\vec{u}\rangle + \nabla \vec{u}^* = \nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z},
+\end{align*} 
+the $\nabla p \cdot \vec{u}$ term is written as:
+\begin{align*}
+    \int_{\Omega_i(t)} \nabla p \cdot \vec{u} &= \int_{\Omega_i(t)} \nabla(\langle p \rangle + p^{\dagger}) \cdot \vec{u}  \\
+    & = V_i  \nabla\langle p \rangle  \cdot \bar{\vec{u}}_i  + \int_{\Omega_i(t)} \nabla(p^{\dagger}) \cdot \vec{u}  
+\end{align*}
+
+
+the $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+\int_{\Omega_i(t)} p \nabla\vec{u} &= 
+    \int_{\Omega_i(t)} \langle p\rangle (\nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z}) +  p^{\dagger}\nabla\vec{u}  \\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle   - \int_{\Omega_i(t)} \langle p\rangle  (  \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z}) + \int_{\Omega_i(t)}  p^{\dagger} \nabla \vec{u} \\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle - \langle p\rangle V_i  \frac{\bar{w}_i - \langle w \rangle}{\rho}\frac{\partial \rho}{\partial z} + \int_{\Omega_i(t)}  p^{\dagger} \nabla \vec{u} \\
+\end{align*}
+
+
+
+
+Therefore, we have 
+\begin{align*}
+  & \frac{1}{h}\int_{\Omega_i(t)}\diff{(\rho e^\mathrm{tot})}{t} + \divergence \left( (\rho e^\mathrm{tot} + p )\vec{u} \right)\\
+ \approx& \frac{\partial \rho a_i \overline{e^{tot}}_i}{\partial t} 
+ + \Big[(E_{i0} + \hat{E}_{i0}) \overline{e_0^\mathrm{tot}}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{e_i^\mathrm{tot}} \Big]
+ + \nabla\Big[\rho a_i(\overline{e_i^\mathrm{tot}} \bar{\vec{u}}_i)\Big] \\
+ +&  a_i\left( \langle\vec{u}_h\rangle \nabla_h \langle p \rangle  +  \langle p \rangle \nabla_h \langle\vec{u}_h\rangle\right)
+    +  {\color{red} \frac{\partial \langle p \rangle a_i \bar{w}_i}{\partial z}  -  \langle p\rangle \bar{w}_i \frac{\partial a_i}{\partial z} } \\
+\end{align*}
+
+The source terms are:
+
+\begin{align*}
+    \int_{\Omega_i(t)} \divergence (\rho \vec{F}_R) \approx \nabla \left(a_i \overline{\rho \vec{F}_R}\right) \approx \frac{\partial \rho_h a_i \overline{\vec{F}_R}_i}{\partial z}\\
+    \int_{\Omega_i(t)} \divergence \bigl[\rho (\vec{J} + \vec{D})\bigr] \approx 0 \\
+    \int_{\Omega_i(t)} \rho Q  \approx \rho_h a_i \bar{Q}_i \\
+    \int_{\Omega_i(t)} \divergence \left(\rho W_c \vec{\hat k} \right) \approx  \frac{\partial \rho_h a_i\overline{W}_{c,i}}{\partial z}  \\
+    \int_{\Omega_i(t)} \divergence (\vec{u} \cdot \rho\vec{\tau)} \approx 0 \\
+    \int_{\Omega_i(t)} \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) \\
+    \int_{\Omega_i(t)} M \approx a_i \overline{M}_i
+\end{align*}
+
+
+\newpage
+Internal energy~($I$) equation:
+\begin{align*}
+ &\frac{D I}{D t} + p\frac{D}{Dt}\left(\frac{1}{\rho}\right) = Q^{I}\\
+ &\frac{D \rho}{D t} + \rho\nabla \vec{u}  = Q^{\rho}\\
+ &\frac{\partial \rho I}{\partial t} + \nabla\left(\vec{u}\rho I\right) - RT \frac{D\rho}{Dt} = \rho Q^{I} + IQ^{\rho}\\
+ &\frac{\partial \rho I}{\partial t} + \nabla\left(\vec{u}\rho I\right) + p \nabla \vec{u}  = \rho Q^{I} + (I+RT)Q^{\rho}\\
+\end{align*}
+Due to the anelastic assumption, 
+\begin{align*}
+    \nabla (\rho \vec{u}^{*}) = 0\\
+    \nabla \vec{u} = \nabla \langle\vec{u}\rangle + \nabla \vec{u}^* = \nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z},
+\end{align*} 
+the $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+\int_{\Omega_i(t)} p \nabla\vec{u} &= 
+    \int_{\Omega_i(t)} (\langle p\rangle + p^{\dagger}) (\nabla \langle\vec{u}\rangle - \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z})\\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle - \int_{\Omega_i(t)} (\langle p\rangle + p^{\dagger}) (  \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z})\\
+    &= V_i \langle p\rangle \nabla \langle\vec{u}\rangle - \langle p\rangle V_i  \frac{\bar{w}_i - \langle w \rangle}{\rho}\frac{\partial \rho}{\partial z} +
+    \int_{\Omega_i(t)}  p^{\dagger} (  \frac{w^{*}}{\rho}\frac{\partial \rho}{\partial z})
+\end{align*}
+
+Therefore, we have 
+\begin{align*}
+&\frac{\partial \rho a_i \overline{I}_i}{\partial t} 
+ + \nabla\Big[\rho a_i(\overline{I_i} \bar{\vec{u}}_i)\Big] \\
+ &= \Big[(E_{i0} + \hat{E}_{i0}) \overline{I_0}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{I_i} \Big]\\
+ &+ \rho a_i \bar{Q}_i^{I} + \rho a_i (\bar{I}_i + \frac{\langle p\rangle}{\rho})\bar{Q}_i^{\rho} +  a_i \langle p \rangle \nabla_h \langle\vec{u}_h\rangle\\
+    &  {\color{red}  -a_i  \langle p \rangle\nabla \langle \vec{u} \rangle  +  \langle p\rangle a_i  \frac{\bar{w}_i - \langle w \rangle}{\rho}\frac{\partial \rho}{\partial z} } \\
+\end{align*}
+
+
+
+The $p \nabla \vec{u}$ term is written as:
+\begin{align*}
+    \int_{\Omega_i(t)} p \nabla\vec{u}
+    &= \int_{\Omega_i(t)} p\nabla_h \langle\vec{u}_h\rangle + {\color{red}p \frac{\partial w}{\partial z}} \\
+    &\approx V_i \langle p \rangle\nabla_h \langle\vec{u}_h\rangle + {\color{red}\langle p \rangle \int_{\Omega_i(t)}  \frac{\partial w}{\partial z}} \\
+    &\approx V_i \langle p \rangle\nabla_h \langle\vec{u}_h\rangle + {\color{red}\langle p \rangle \frac{\partial }{\partial z} \int_{\Omega_i(t)}  w  - \langle p \rangle \bar{w}_i \frac{\partial V_i}{\partial z}}\\
+    &\approx V_i \langle p \rangle\nabla_h \langle\vec{u}_h\rangle + {\color{red}\langle p \rangle \frac{\partial V_i \bar{w}_i}{\partial z}  - \langle p \rangle \bar{w}_i \frac{\partial V_i}{\partial z}}\\
+\end{align*}
+
+Therefore, we have 
+\begin{align*}
+  & \frac{1}{h}\int_{\Omega_i(t)}\diff{(\rho I)}{t} + \divergence \left( \rho I\vec{u}\right)  + p\nabla\vec{u}\\
+ \approx& \frac{\partial \rho a_i \overline{I}_i}{\partial t} 
+ + \Big[(E_{i0} + \hat{E}_{i0}) \overline{I_0}  - (\Delta_{i0} + \hat{E}_{i0}) \overline{I_i} \Big]
+ + \nabla\Big[\rho a_i(\overline{I_i} \bar{\vec{u}}_i)\Big] \\
+ +&  a_i \langle p \rangle \nabla_h \langle\vec{u}_h\rangle
+    +  {\color{red} \langle p \rangle\frac{\partial  a_i \bar{w}_i}{\partial z}  -  \langle p\rangle \bar{w}_i \frac{\partial a_i}{\partial z} } \\
+\end{align*}
+
+
+
+\newpage
+Enthalpy~($h = I + \frac{p}{\rho}$) equation:
+\begin{align*}
+ &\frac{D h}{D t} - \frac{1}{\rho} \frac{Dp}{Dt} = Q^{I}\\
+ &\frac{D \rho}{D t} + \rho\nabla \vec{u}  = Q^{\rho}\\
+ &\frac{\partial \rho h}{\partial t} + \nabla\left(\vec{u}\rho h\right) -  \frac{Dp}{Dt} = \rho Q^{I} + hQ^{\rho}\\
+ &\frac{\partial \rho h}{\partial t} + \nabla\left(\vec{u}\rho h\right) -  \frac{\partial p}{\partial t} - \vec{u}\nabla p = \rho Q^{I} + hQ^{\rho}\\
+\end{align*}
+
+Using internal or total energy is better than using enthalpy.
+\newpage
+
+\subsubsection{Environment} 
+The area fraction and first moment in the environment are diagnosed from \eqref{eq:area_fraction} and  \eqref{eq:subdomain_mean} as:
+
+\begin{align}
+\label{eq:enviroment}
+a_0 & = 1- \sum_{i\ge 1} a_i\\
+\bar{\phi}_0 & =\frac{1}{a_0} \Big(\langle \phi \rangle - \sum_{i\ge 1} a_i \bar{\phi}_i \Big).
+\end{align}
+The second moment equation for scalar in the environment is given by:
+\begin{multline}
+\frac{\partial (\rho a_0 \overline{\phi_0' \psi_0'})}{\partial t} =
+- \nabla_h \cdot (\rho a_0 \langle \mathbf{u}_h \rangle \overline{\phi_0' \psi_0'})) - \underbrace{\frac{\partial (\rho a_0 \overline{w}_0 \overline{\phi_0' \psi_0'})}{\partial z}}_{\text{vertical transport}} \\
++ \underbrace{\frac{\partial}{\partial z}\Bigg(\rho a_0 K_{\phi\psi,0} \frac{\partial\overline{\phi_0' \psi_0'} }{\partial z}\Bigg)}_{\text{turbulent transport}}
++ \underbrace{2\rho a_0 K_{\phi\psi,0} \frac{\partial \bar{\phi_0}}{\partial z}\frac{\partial \bar{\psi_0}}{\partial z}}_{\text{turbulent production}} \\
++ \sum_{i>0}\Bigg( \underbrace{-\hat{E}_{0i} \overline{\phi'_0 \psi'_0}}_{\text{turb. entrainment}} +  
+\underbrace{\bar{\psi}^*_0\hat{E}_{0i}(\bar{\phi}_0-\bar{\phi}_i) + \bar{\phi}^*_0\hat{E}_{0i}(\bar{\psi}_0-\bar{\psi}_i)}_{\text{turb. entrainment production}} \Bigg) \\ 
++ \sum_{i>0}{\Bigg(\underbrace{- \Delta_{0i} \overline{\phi_0' \psi_0'}}_{\text{dyn. detrainment}} + \underbrace{E_{0i}(\bar{\phi}_0-\bar{\phi}_i) (\bar{\psi}_0-\bar{\psi}_i)}_{\text{dyn. entrainment flux}}} \Bigg) \\
+- \underbrace{ \rho a_0 \overline{D_{\phi' \psi', 0}}}_{\text{dissipation}} + \rho a_0 (\overline{\psi'_0 S'_{\phi,0}} + \overline{\phi'_0 S'_{\psi,0}} ).
+\label{eq:subdomain_scalar_variance} 
+\end{multline} 
+
+\hl{Q: what are $K_{\phi\psi,0}$}
+
+In this equation the covariance dissipation is denoted by $\overline{D_{\phi' \psi', 0}}$ and the covariance source is given by $\overline{\psi'_0 S'_{\phi,0}} + \overline{\phi'_0 S'_{\psi,0}}$. In the "balance law" form of the code the right hand side terms in the first raw of \eqref{eq:second_moment_decomposition} are first order fluxes, the "turbulent transport" in the second raw is a second order flux and all following terms are non conservative sources and sinks.
+
+The Turbulent Kinetic Energy (TKE) is defined as $\bar{e}_0 = (\overline{u'_0 u'_0} + \overline{v'_0 v'_0} + \overline{w'_0 w'_0})/2$. The prognostic equation for the (TKE) in the environment is:
+
+\hl{Q: is it the classical TKE equation? can I understand it as $\bar{e}_0 = (\overline{w'_0 w'_0})/2$,  then do we need $\langle u \rangle, \langle v \rangle$ ?} 
+\begin{multline}
+\frac{\partial (\rho a_0 \bar{e}_0)}{\partial t} =
+- \nabla_h \cdot (\rho a_0 \langle \mathbf{u}_h \rangle \bar{e}_0) - \frac{\partial (\rho a_0 \overline{w}_0 \bar{e}_0)}{\partial z}\\
++ \underbrace{ \frac{\partial}{\partial z}\Bigg(\rho a_0 K_{m,0} \frac{\partial\bar{e}_0}{\partial z} \Bigg)}_{\text{turbulent transport}} +
+\underbrace{\rho a_0 K_{m,0} \Bigg[ \Bigg(\frac{\partial \langle u \rangle}{\partial z}\Bigg)^2 + \Bigg(\frac{\partial \langle v \rangle}{\partial z}\Bigg)^2 + \Bigg(\frac{\partial \bar{w}_0}{\partial z}\Bigg)^2\Bigg]}_{\text{shear production}} \\
++\sum_{i>0}{\Big(\underbrace{-\hat{E}_{0i} \bar{e}_0}_{\text{turb. entrainment}} + \underbrace{\bar{w}^*_0\hat{E}_{0i}(\bar{w}_0-\bar{w}_i)}_{\text{turb. entrainment production}}} \Big) \\ 
++ \sum_{i>0}{\Big(\underbrace{- \Delta_{0i} \bar{e}_0}_{\text{dyn. detrainment}} 
++ \frac{1}{2}\underbrace{E_{0i} (\bar{w}_0 -\bar{w}_i) (\bar{w}_0 -\bar{w}_i)}_{\text{dyn. entrainment production}}} \Big) \\
++ \underbrace{\rho a_0\overline{w'_0 b'_0}}_{\text{buoyancy production}} - \underbrace{\rho a_0\Bigg[\overline{u'_0\frac{\partial }{\partial x}\Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'} + \overline{v'_0\frac{\partial}{\partial y} \Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'}+ \overline{w'_0\frac{\partial}{\partial z} \Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'}  \Bigg] }_{\text{pressure term}} - \underbrace{ \rho a_0 \overline{D_{e, 0}}}_{\text{dissipation}};
+\label{eq:tke_equation} 
+\end{multline}
+Sources in this equations include shear production various entrainment and detrainment terms, pressure, dissipation and buoyancy flux. The latter: $\overline{w'_0 b'_0}$ should be given as a function the prognostic thermodynamic variables of the model. Thus it's exact form depends on the model component in which it is applied (i.e. Atmosphere or Ocean). In the atmosphere it is approximated separately for the cloudy and cloud free (dry) conditions, due to the non linearity of the phase changes of water (see Appendix A). In the ocean where no phase changes exist it is evaluated as \hl{[ask the oceanographers to if it is any different than the dry atmosphere case?]}
+
+\hl{Q: what is $K_{m,0}$? $K_{m,0} = Pr_{t}K_{h, 0}$}
+
+
+
+
+
+\section{Closures} \label{sec:Closures}
+The various closures required for the EDMF scheme are given below,
+\begin{align*}
+E_{i0}, \hat{E}_{i0}, \Delta_{i0},  \overline{D_{\phi' \psi', 0}},   \overline{\psi'_0 S'_{\phi,0}} + \overline{\phi'_0 S'_{\psi,0}} ,  K_{\phi\psi,0}, K_{\phi,0} ,\\ 
+\overline{w'_0 b'_0}, 
+\Bigg[\overline{u'_0\frac{\partial }{\partial x}\Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'} + \overline{v'_0\frac{\partial}{\partial y} \Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'}+ \overline{w'_0\frac{\partial}{\partial z} \Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'}  \Bigg] ,   \overline{D_{e, 0}}
+\end{align*}
+The values of different closure related parameters are listed in Table~\ref{table:parameters}.
+
+\begin{table}[htbp]
+\caption{Closure parameters}
+\label{table:parameters}
+\centering
+\begin{tabular}{lll}
+\hline 
+Symbol & Closure & Value (units)\\
+\hline 
+$a_{s}$ & Entrainment, Detrainment &   $0.1$ \\
+$c_{\epsilon}$ & Entrainment, Detrainment &  $0.13$ \\
+$c_{\delta}$ & Entrainment, Detrainment &  $0.52$ \\
+$c_{\lambda}$ & Entrainment, Detrainment &  $0.3$ \\
+$\beta$ & Entrainment, Detrainment &  $2.0$\\
+$\mu_0$ & Entrainment, Detrainment &  $ 4 \times 10^{-4}$  (1/s) \\
+$\chi_{i}$ & Entrainment, Detrainment & $ 0.25 $\\
+$c_{\gamma}$ & Entrainment, Detrainment & $ 0.075 $\\
+$\alpha_b$ & Perturbation Pressure &  0.12 \\
+$\alpha_a$ & Perturbation Pressure & 0.10 \\
+$\alpha_d$ & Perturbation Pressure & 10.0 \\
+$c_m$ & Mixing Length & $0.14$ \\
+$c_{d}$ & Mixing Length &  $0.22$ \\
+$c_{b}$ & Mixing Length &  $0.63$ \\
+$\kappa$ & Mixing Length &  $0.4$ \\
+$\kappa^*$ & Mixing Length & $1.94$ \\
+$a_1^-$ & Surface Layer & $-100$ \\
+$a_2^-$ & Surface Layer & $-0.2$\\
+$\mathrm{Pr}_{t,0}$ & Eddy Diffusivity & $0.74$\\
+\hline 
+\end{tabular}
+\end{table}
+\subsection{Dynamic Entrainment and Detrainment} \label{sec:Dynamic Entrainment and Detrainment}
+Dynamical entrainment and detrainment are modelled as a combination of an inverse timescale ($\lambda_{i0}$) and non dimensional functions accounting for various dry ($\mathcal{D}_{i0}$) and moist ($\mathcal{M}_{i0}$) processes that govern the changes in area fraction in time. 
+The Dynamical entrainment and detrainment terms are:
+% \begin{linenomath*}
+\begin{equation} \label{eq:fractional_entrainment} 
+E_{i0}  = \rho \lambda_{i0} \Bigg( c_{\epsilon} \mathcal{D}_{i0} + c_{\delta}\mathcal{M}_{i0} \Bigg),
+\end{equation}
+% \end{linenomath*}
+and 
+% \begin{linenomath*}
+\begin{equation} \label{eq:fractional_detrainment} 
+D_{i0} = \rho \lambda_{i0} \Bigg( c_{\epsilon} \mathcal{D}_{0i} + c_{\delta}\mathcal{M}_{0i}\Bigg),
+\end{equation}
+\hl{Q: should them by  $\mathcal{D}_{0i}$ or  $\mathcal{D}_{i0}$?   $\mathcal{M}_{0i}$ or $\mathcal{M}_{i0}$ ?}
+
+and the inverse time scale ($\lambda_{i0}$) is given by a soft minimum function ($s_{\min}$) of several possible timescales:
+\begin{equation} \label{eq:entrainment_timescale} 
+\lambda_{i0} = s_{\min} \left( \left| \frac{\bar{b}_i - \bar{b}_0}{\bar{w}_i - \bar{w}_0} \right|, c_{\lambda} \left| \frac{\bar{b}_i - \bar{b}_0}{\sqrt{\bar{e}_0}} \right| \right).
+\end{equation}
+Here $c_{\epsilon}, c_{\delta}, c_{\lambda}$ are non dimensional tuning parameters. The dry function is given by:
+\begin{equation} \label{eq:entr_sigmoid} 
+\mathcal{D}_{i0} = \frac{1}{1+e^{-\mu_{i0}/\bar{\mu}}}.
+\end{equation}
+with
+\begin{equation} \label{eq:mu_ij} 
+\mu_{i0} = \frac{1}{\bar{w}_i - \bar{w}_0}(\bar{b}_i - \bar{b}_0)\Big(\chi_i - \frac{a_i}{a_i+a_0} \Big),
+\end{equation}
+with $\chi_i=0.25$ is the fraction of updraft air and $\bar{\mu}=4 \times 10^{-4}~\textrm{s}^{-1}$ a dimensional value that controls the smoothness of the sigmoid function.
+
+The moist function is given by:
+\begin{equation} \label{eq:detr_RH} 
+\mathcal{M}_{0i} = \begin{cases}
+      \Big[ \textrm{max}(\overline{\mathrm{RH}}_{i}^\beta - \overline{\mathrm{RH}}_0^\beta,0) \Big]^{\frac{1}{\beta}}, & \text{if}\ \overline{\mathrm{RH}}_{i} = 1, \\
+      0, & \text{if}\ \overline{\mathrm{RH}}_{i} < 1.
+    \end{cases}
+\end{equation}
+In this formulation $0<RH_i<1$ is the relative humidity of the $i$'th subdomain and $\beta$ is a non dimensional tuning parameter.  
+\hl{Q: How to compute $RH_i$}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Turbulent Entrainment} \label{sec:Turbulent Entrainment}
+Turbulent entrainment, that effects tracers but not mass is modeled as horizontal counterpart of the vertical eddy diffusivity in the environment. It is written as:
+\begin{equation} \label{eq:turb_entr} 
+\hat{E}_{i0} = 2 \rho a_i c_{\gamma} \frac{\sqrt{\bar{e}_0}}{H_i},
+\end{equation}
+Here $c_{\gamma}$ is a non dimensional tuning parameter and $H_i$ is the depth of the $i$'th updraft. 
+
+\hl{Q: $H_i = H_i(\bar{q}_{t,i})$}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Perturbation Pressure} \label{sec:Perturbation Pressure}
+The perturbation pressure model is based on a derivation of a normal mode decomposition of a rising thermal bubble \citep{}
+
+\subsection{Eddy Diffusivity and Mixing Length} \label{sec:ED and ML}
+The environmental eddy diffusivity $K_{\phi,0}$ is defined as
+\begin{align}
+K_{\phi,0} = c_{\phi} l \bar{e}_0^{1/2}\\
+K_{\psi\phi,0} = c_{\psi\phi} l \bar{e}_0^{1/2}\\
+\end{align}
+where $l$ is the mixing length.
+\hl{Q: where are  $c_{\psi\phi}$? }
+
+\subsection{Dissipation terms} \label{sec:Dissipation}
+\begin{align}
+\overline{D_{e,0}} = c_{d} \frac{\bar{e}_0^{3/2}}{l}
+\end{align}
+
+\section{Buoyancy Flux in the Atmosphere}
+\label{appx:high order moment terms}
+The computation of the buoyancy flux ($\overline{w'_0 b'_0}$) that is a TKE source in the environment follows an application of the eddy diffusivity assumption such that:
+\begin{equation}
+\label{eq:vertical_eddy_diffusivty_buoyancy} 
+\overline{w'_0 b_0'} \approx - K_{b, 0} \frac{\partial \bar{b}_0}{\partial z}.
+\end{equation}
+This requires a computation of the vertical gradient of buoyancy. These gradient are given as subdomain density gradients following the definition of buoyancy as:
+\begin{equation}
+\label{eq:buoyancy_grda} 
+\frac{\partial \bar{b}_0}{\partial z} = - \frac{g}{\rho} \frac{\partial \bar{\rho}_0}{\partial z} .
+\end{equation}
+Following the equation of state $\bar{\rho}_0 = \bar{\rho}_0(\bar{I}_0, \bar{q}_{t0}, \langle p \rangle)$, here $\bar{I}_0$ and $\bar{q}_{t0}$ are the internal energy and total water  specific humidity, which are the model's thermodynamic variables. A linear approximation relates the density gradient to the gradient of $\bar{I}_0$ and $\bar{q}_{t0}$:
+\begin{equation}
+\label{eq:density_grad} 
+\frac{\partial \bar{\rho}_0}{\partial z}  = \left( \frac{\partial \bar{\rho}_0}{\partial \bar{q}_{t0}} \right)_{\bar{I}_0} \frac{\partial \bar{q}_{t0}}{\partial z} + \left( \frac{\partial \bar{\rho}_0}{\partial \bar{I}_0}\right)_{\bar{q}_{t0}} \frac{\partial \bar{I}_0}{\partial z}  .
+\end{equation}
+The computation of the partial derivatives of density with respect to the $\bar{I}_0$ and with respect to $\bar{q}_{t0}$ is described below.
+
+This linear approximation does not apply for phase changes (for instance of water in clouds). Thus the derivation of the buoyancy gradients for the atmospheric application is done separately for cloudy conditions, where liquid and / or ice phase of water are present in the air; and for dry conditions where only gas phase of water is present in the air. From the two derivatives in \eqref{eq:density_grad} the second derivative with respect to $\bar{I}_0$ differs between dry and cloudy conditions, while the first derivative with respect to $\bar{q}_{t0}$ remains unchanged. The former derivative is written as:
+\begin{equation}
+\label{eq:density_grad_qt} 
+\left( \frac{\partial \bar{\rho}_0}{\partial \bar{q}_{t0}} \right)_{\bar{I}_0} = \frac{R_d \langle p \rangle}{R_m^2 \bar{T}_0}.
+\end{equation}
+The latter derivative in dry conditions is written as:
+\begin{equation}
+\label{eq:density_grad_I_dry} 
+\left( \frac{\partial \bar{\rho}_0}{\partial \bar{I}_0}\right)_{\bar{q}_{t0}} = - \frac{\langle p \rangle}{R_m \bar{T}^2_0} \frac{1}{(1-\bar{q}_{t0})c_{vd} + \bar{q}_{v0}c_{vv}},
+\end{equation}
+and its counterpart in cloudy conditions is given by:
+\begin{equation}
+\label{eq:density_grad_I_cloudy} 
+\left( \frac{\partial \bar{\rho}_0}{\partial \bar{I}_0}\right)_{\bar{q}_{t0}} = - \frac{\langle p \rangle}{R_m \bar{T}^2_0} \frac{1}{(1-\bar{q}_{t0})c_{vd} + \bar{q}_{v0}c_{vv} + \bar{q}_{l0}c_{vl} + \bar{q}_{i0}c_{vi}}.
+\end{equation}
+
+The buoyancy gradients in dry and cloudy conditions are written as:
+\begin{equation}
+\label{eq:buoyancy_gradient_dry} 
+\left( \frac{\partial \bar{b}_0}{\partial z}\right)_{dry} = \frac{g}{R_m \bar{T}_0} \left(\frac{1}{(1-\bar{q}_{t0})c_{vd}\bar{T}_0 + \bar{q}_{v0}c_{vv}\bar{T}_0}\frac{\partial \bar{I}_0}{\partial z} +  \frac{R_d}{R_m} \frac{\partial \bar{q}_{t0}}{\partial z} \right),
+\end{equation}
+
+\begin{multline}
+\label{eq:buoyancy_gradient_cloudy} 
+\left( \frac{\partial \bar{b}_0}{\partial z}\right)_{dry} = \frac{g}{R_m \bar{T}_0} \left(\frac{1}{(1-\bar{q}_{t0})c_{vd}\bar{T}_0 + \bar{q}_{v0}c_{vv}\bar{T}_0 + \bar{q}_{l0}c_{vl}\bar{T}_0 + \bar{q}_{i0}c_{vi}\bar{T}_0}\right)\frac{\partial \bar{I}_0}{\partial z} \\ 
++ \frac{R_d g}{R_m^2 \bar{T}_0} \frac{\partial \bar{q}_{t0}}{\partial z}.
+\end{multline}
+
+
+\subsection{Boundary Conditions} 
+\label{sec:Boundary Conditions}
+The prognostic equations ~\ref{eq:subdomain_area}, \ref{eq:subdomain_w}, \ref{eq:subdomain_scalar_mean} for the updrafts and downdrafts are first order partial differential equations~(convection equations). 
+Therefore, the surface flux boundary conditions for the convection terms are needed.
+Thanks to the no-penetration condition~($ \bar{w}_i = 0$) at both the bottom and the top of the model, we have 
+$$\rho a_i \bar{w}_i = 0,\ \rho a_i \bar{w}_i\bar{w}_i = 0,\ \rho a_i \bar{w}_i\bar{\phi}_i = 0 $$
+
+
+The prognostic equations~\ref{eq:subdomain_scalar_variance}, \ref{eq:tke_equation} for the environment are second order partial differential equations. Besides the surface flux boundary conditions for the convection terms, 
+$$\rho a_0 \bar{w}_0 \overline{\phi_0^{'}\psi_0^{'}} = 0, \rho a_0 \bar{w}_0 \bar{e}_0 = 0$$
+turbulent transport and shear/buoyancy production terms require additional boundary conditions to evaluate
+$$\frac{\overline{\phi_0^{'}\psi_0^{'}}}{\partial z}, \ 
+\frac{\partial \bar{\phi}_0}{\partial z},\ 
+\frac{\partial \bar{e}_0}{\partial z}, \ 
+\frac{\partial \bar{w}_0}{\partial z}$$
+Therefore, \hl{Dirichlet boundary conditions for $\overline{\phi_0^{'}\psi_0^{'}}, \bar{\phi}_0, \bar{e}_0 =0, \bar{w}_0 = 0$ are required.}
+At the top of the model domain, the atmospheric dynamics are predominantly large-scale and resolved. Therefore, the turbulent fluxes $\overline{\phi_0^{'}\psi_0^{'}}$, TKE~$\bar{e}_0$ and scalar variables $\bar{\phi}_0$ are all set to zero, and the no-penetration condition $\bar{w}_0 = 0$ is enforced.
+At the bottom of the model, 
+\begin{align*}
+    \overline{\phi_0^{'}\psi_0^{'}} = \frac{1}{a_0}\langle\phi^{*}\psi^{*}\rangle - \sum_{i=0} \frac{a_i}{a_0}(\bar{\phi}_i - \langle\phi\rangle)(\bar{\psi}_i - \langle\psi\rangle)
+\end{align*}
+
+
+\hl{Q: }
+\begin{enumerate}
+    \item do we have point on the ground ?
+    \item need $\langle\phi\rangle$ on the ground from the host model
+    \item TKE $\bar{e}_0 = 0$ ?
+    \item $\langle\phi^{*}\psi^{*}\rangle$ on the ground are prescribed or computed from Monin-Obukhov similarity theory
+    \item $\bar{\phi}_0$ on the ground
+    \item $a_i$ on the ground
+\end{enumerate}
+
+
+
+
+
+
+\subsection{Surface Functions} \label{sec:Surface functions}
+\subsubsection{Surface buoyancy flux}
+The surface buoyancy flux, in the grid mean, as a function of temperature and specific humidity and in unsaturated conditions is approximated following equation (35) in \citep{Sommeria77a} as:
+
+\begin{equation}
+\langle w^*b^* \rangle = \frac{g}{\langle T \rangle} \langle w^*T^* \rangle + 
+g\frac{(\epsilon_v-1) \langle w^*q_t^* \rangle}{(1+(\epsilon_v-1)\langle q_t \rangle)}
+    \label{eq:surface_bflux_temp} 
+\end{equation}
+
+with the temperature in unsaturated conditions given by 
+
+\begin{equation}
+    \langle T \rangle = T_0 + \frac{\langle I \rangle - \langle q_t \rangle I_{v,0}}{c_{vm}},
+    \label{eq:temperature}
+\end{equation}
+
+and the temperature flux in unsaturated conditions can be approximated as:
+\begin{equation}
+    \langle w^*T^* \rangle = \frac{1}{c_{vm}}(\langle w^*I^* \rangle  - \langle w^*q_t^* \rangle I_{v,0}),
+    \label{eq:temperature_flux}
+\end{equation}
+implementing \eqref{eq:temperature} and  \eqref{eq:temperature_flux}
+in \eqref{eq:surface_bflux_temp} yields:
+
+\begin{equation}
+\langle w^*b^* \rangle =g \frac{\langle w^*I^* \rangle  - \langle w^*q_t^* \rangle I_{v,0}}{c_{vm}T_0 + \langle I \rangle - \langle q_t \rangle I_{v,0}} +
+g\frac{(\epsilon_v-1) \langle w^*q_t^* \rangle}{(1+(\epsilon_v-1)\langle q_t \rangle)}
+    \label{eq:surface_bflux}     
+\end{equation}
+
+
+
+ \subsection{Initial Conditions} \label{sec:Initial Conditions}
+
+
+\section{Numerical Implementation} \label{sec:Numerical Implementation}
+
+
+
+
+\subsection{Parameters}
+
+This document is concerned with defining the set of equations solved in the atmospheric turbulence convection model: the EDMF equations. Color-coding is used to indicate:
+
+\begin{enumerate} 
+\item Constant parameters that are fixed in space and time (e.g., those defined in CLIMAParameters.jl)
+\item Single column (SC) inputs (e.g., variables that are fed into the SC model from the dynamical core (e.g., horizontal velocity))
+\item Tunable hyper-parameters that will need to be changeable, but will only include single numbers (e.g., Float64)
+\hl{Q: what are these parameters, data-assimilation parameters}
+\end{enumerate}
+
+
+
+
+
+
+\subsection{Single Stack Model Setting} \label{sec:Single Stack setting}
+
+
+\subsection{Global Circulation Model Setting} \label{sec:Global Circulation Model Setting}
+
+\appendix
+
+%-------Bibliography
+\bibliographystyle{agufull08}
+\bibliography{Parameterization}
+
+\end{document}

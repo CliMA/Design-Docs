@@ -1,0 +1,368 @@
+\documentclass{report}
+
+\include{CLIMA_Macros}
+\usepackage[inline]{enumitem}
+\usepackage{xcolor}
+\usepackage{appendix}
+
+\title{CLIMA Sub-Grid-Scale parameterization} 
+\author{Yair Cohen}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\chapter{Turbulence and Convection Parameterization}
+\section{Overview}
+Eddy-Diffusivity Mass-Flux Scheme is an algebraic~(zero-equation) turbulence closure. The inputs include grid mean scalars
+$\langle \rho \rangle, \langle e \rangle, \langle q_t \rangle, \langle u \rangle, \langle v \rangle, \langle w \rangle$ from GCM.
+
+The outputs are the sub-grid scale (SGS) fluxes whose divergence is a non conservative source on the right hand side of the host model equations.
+
+Q1: what variables are passed from GCM to EDMF
+
+A1: GCM passes its prognostic variables averaged on the grid: 
+
+Q2: what (prognostic)variables are in EDMF
+
+A2: Prognostic variables in EDMF:
+Zero moment: $a_i$; 
+First moment: $\bar{\rho}_i , \bar{e}_i , \bar{q}_{t,i} , \langle u \rangle, \langle v \rangle, \bar{w}_i$; Second moment: TKE, $\overline{h'_i h'_i}, \overline{q'_{t,i} h'_i}, \overline{q'_{t,i} q'_{t,i}}$.
+
+Q4: does EDMF save historic variables
+A4: no.
+
+Q3: what variables are pass from EDMF to GCM: EDMF provides $\angle w^* \phi^* \rangle$ and also partial cloud fraction to the radiation code. 
+
+Q4: in EDMF, 
+\begin{itemize}
+    \item update\_surface
+    \item update\_forcing
+    \item Turb.update, what are in this function?
+\end{itemize}
+
+\section{Eddy-Diffusivity Mass-Flux Scheme}
+\label{sec:EDMF-scheme}
+The goal of the turbulence and convection parameterization scheme is to provide the sub-grid scale (SGS) flux whose divergence is a non conservative source on the right hand side of the host model equations. A general equation for a scalar $\phi$ in the host model is:
+
+\begin{equation}
+\label{eq:grid_mean_scalar} 
+\frac{\partial (\rho \langle \phi \rangle)}{\partial t} = - \nabla \cdot \Big( \rho\langle \mathbf{u} \rangle \langle \phi \rangle + 
+\rho \underbrace{\langle \mathbf{u}^* \phi^* \rangle}_{\text{SGS flux}}\Big) + \rho \langle S_{\phi} \rangle,
+\end{equation}
+this equation, and all prognostic equations in this section, are written in their "balance-law" form of the code \hl{[look for reference to the balance law form]} where all tendencies are on the right hand side and are ordered as first order fluxes, second order fluxes and non conservative sources.We denote the averaging over the the host model grid box by $\langle \cdot \rangle$ with $\phi^* = \phi - \langle\phi \rangle$ as fluctuations about this grid mean. The grid mean density is written as $\rho$ to simplify the notation. 
+
+The SGS flux in \eqref{eq:grid_mean_scalar}, $\langle \mathbf{u}^* \phi^* \rangle$, is not provided by the host model dynamical core and is the goal of the turbulence and convection parameterization scheme. This flux can be both down-gradient and up-gradient. To allow for both of these flux types, the Eddy-Diffusivity Mass-Flux (EDMF) scheme combines the down-gradient Eddy Diffusivity (ED) turbulence model with down-gradient and up-gradient Mass-Flux (MF) convection model. It does so by decomposing the grid box of the host model into several subdomains and solving for the zeroth (area fraction) first and second moment in each of these subdomains. These subdomains are classified into two types: a single turbulent environment  represented by the ED and a number of coherent updrafts and downdrafts represented by the MF component. Typically (as is done here) second moments are neglected in the coherent subdomains and solved prognostically only in the environment where it is used in the closures. This subdomain decomposition, outlined next, allows to estimate second and third moments in the grid of the host model. 
+
+\begin{figure}[htb]
+\noindent\includegraphics[width=0.8\textwidth]{CLIMA-parameterization/figures/sketch_design_docs.jpg}
+\caption{A graphical depiction of the mental picture underlying the EDMF model showing the vertical column of host model grid boxes with horizontal resolution $\Delta x, \Delta y$ and a vertical resolution $\Delta z$, which is mutual to both the host model and the parameterization. The EDMF subdomains are sketched in the grid box area and their contribution to the distribution in the grid box is evident in the cartoon in the back. In this cartoon the physical roles of the environment and updrafts, as well as the various processes that require closures are illustrated.}
+\label{fig:EDMF sketch}
+\end{figure}
+
+\section{Governing Equations} \label{sec:Governing Equations} 
+The combination prognostic equations in the host model grid (the dynamical code) and in the subdomains over determines the variables in the model. Thus, for each moment, a choice of which component of the to diagnose based on all other components has to be made. We solve prognostically for the grid mean in the host model to ensure it conservation properties. In addition we solve prognostically for the area fraction and first moments in the coherent updrafts and downdrafts and diagnosed them in the environment. The second moments are solved prognostically in the environment, neglected in the updrafts and downdrafts and are diagnosed in the host model.
+
+
+\subsection{Subdomain Decomposition} \label{sec:Subdomain Decomposition}
+The host model grid box is decomposed into an environment with subscript "$0$" and $N \ge 1$ updrafts with subscript "$i$". The area fraction of the $i$-th subdomain is $a_i=A_i/A_T$ and obey:
+\begin{equation}
+\sum_{i\ge 0} a_i = 1,
+\label{eq:area_fraction}
+\end{equation}
+with $A_i$ as the horizontal area of the $i$-th subdomain and $A_T$ is the horizontal area of the grid box. The average of $\phi$ over the $i$-th subdomain is $\bar{\phi}_i$ that obeys:
+\begin{equation}
+\langle \phi \rangle = \sum_{i\ge 0} a_i \bar{\phi}_i,
+\label{eq:subdomain_mean}
+\end{equation}
+with $\phi'_i = \phi - \bar{\phi}_i$ is the fluctuation about the mean of subdomain $i$. The difference between the subdomain mean and grid mean then becomes $\Bar{\phi}^*_i = \bar{\phi}_i - \langle\phi \rangle$. Using this the second moment in the grid is decomposed as:
+\begin{equation}
+\langle w^*\phi^* \rangle =  
+\sum_{i\ge 0} a_i\Big[\bar{w}^*_i\bar{\phi}^*_i + \overline{w'_i\phi'_i} \Big] 
+\label{eq:second_moment_decomposition}
+\end{equation}
+A diagnostic approximation of the third moment in the grid based on the zeroth, first and second moments above is given in equation (11) in \cite{cohen_2020}.
+
+\subsection{Model Assumptions} \label{sec:Model Assumptions}
+The extended EDMF scheme makes the following assumptions:
+\begin{enumerate}
+\item Boundary layer approximation: the SGS fluxes operate only in the vertical axis such that:
+\begin{equation}
+\label{eq:bl_approximation} 
+\langle \mathbf{u}^* \phi^* \rangle \approx \langle w^* \phi^* \rangle,
+\end{equation}
+which is given by \eqref{eq:second_moment_decomposition}
+\item EDMF approximation: the second moment is neglected in all updrafts and downdrafts:
+\begin{equation}
+\label{eq:vertical_eddy_diffusivty} 
+\overline{w'_i \phi_i'} = 0; i>0,
+\end{equation}
+and is ratined only in the environment. Turbulent transport in the environment is approximated by down-gradient eddy diffusivity:
+\begin{eqnarray}
+\label{eq:vertical_eddy_diffusivty} 
+\overline{w'_0 \phi_0'} \approx - K_{\phi, 0} \frac{\partial \bar{\phi}_0}{\partial z},
+\end{eqnarray}
+where $K_{\phi,0}$ is the eddy diffusivity (to be specified). 
+\item SGS-anelastic approximation: The SGS anelastic approximation introduces the grid density in the denominator in the pressure gradient term to conserve energy \cite{Pauluis08a, cohen_2020} and uses the grid pressure in the equation of state for ideal gas:
+\begin{equation}
+\bar{\rho}_i  = \frac{\langle p \rangle}{R_d\bar{T}_{v,i}}.
+\label{eq:subdomain_eos} 
+\end{equation}
+Here $R_d$ is ideal gas constant for dry air.
+\item Neglecting SGS fluxes of horizontal momentum: it is assumed that the horizontal velocity ($\mathbf{u}_h$) of the subdomains takes the grid mean value:
+\begin{eqnarray}
+    \bar{\mathbf{u}}_{h,i} = \langle \mathbf{u}_h \rangle.
+\end{eqnarray}
+\item All subdomains interact only with the environment: we assume for now that updrafts and downdrafts only interact with the environment (via entrainment and detainment terms) avoiding any statement about convective organization.
+\end{enumerate}
+
+\subsection{Governing Equations} \label{sec:Governing Equations}
+\subsubsection{Grid} 
+The grid mean equations for first moments are found in \hl{[YAIR - find the reference for the dycore equations]}. The grid second moment flux is diagnosed using \eqref{eq:second_moment_decomposition}, with the subdomain values given by the various equations described below.
+
+\subsubsection{Updrafts and Downdrafts}
+In the updrafts and downdrafts the model solves prognostic equations for the area fraction, vertical velocity and scalar:
+% \begin{linenomath*}
+\begin{eqnarray}
+\frac{\partial (\rho a_i)}{\partial t} =
+- \nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle) - 
+\frac{\partial (\rho a_i \bar{w}_i)}{\partial z} +
+\sum_{j \ne i}{\Big(E_{ij} - \Delta_{ij} \Big)},
+\label{eq:subdomain_area}
+\end{eqnarray}
+\begin{multline}
+\label{eq:subdomain_w} 
+\frac{\partial (\rho a_i \bar{w}_i)}{\partial t} =
+- \nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle \bar{w}_i) - \frac{\partial (\rho a_i \bar{w}_i \bar{w}_i) }{\partial z} 
++ \rho a_i \Big( \bar{b}_i - 
+\frac{\partial (\bar{p}_i^{\dagger}/\rho)}{\partial z}\Big) \\
++ \sum_{j \ne i}{ \Big[ (E_{ij} + \hat{E}_{ij}) \bar{w}_j} - (\Delta_{ij} + \hat{E}_{ij}) \bar{w}_i \Big],
+\end{multline}
+\begin{multline}
+ \label{eq:subdomain_scalar_mean} 
+\frac{\partial (\rho a_i \bar{\phi}_i)}{\partial t} =
+- \nabla_h \cdot (\rho a_i \langle \mathbf{u}_h \rangle \bar{\phi}_i) - \frac{\partial (\rho a_i \bar{w}_i \bar{\phi}_i)}{\partial z} \\
++ \sum_{j \ne i}{\Big[(E_{ij} + \hat{E}_{ij}) \bar{\phi}_j  - (\Delta_{ij} + \hat{E}_{ij}) \bar{\phi}_i \Big]} 
++ \rho a_i \bar{S}_{\phi,i}.
+\end{multline}
+Here $E_{ij}$, and $\Delta_{ij}$ are the dynamical entrainment and detrainment rate respectively, and $\hat{E}_{ij}$ is the turbulent entrainment. The buoyancy is defined as $\bar{b}_i = -g(\bar{\rho}_i-\rho_h)/\rho$ with $\rho_h$ as a reference density in hydrostatic balance with a hydrostatic pressure $p_h$. The difference between the actual pressure and the hydrostatic pressure is $\bar{p}_i^{\dagger} = \langle p \rangle - p_h$ and its gradient enters as a force in the subdomain vertical velocity equation. The source term $\bar{S}_{\phi,i}$ on the right hand side of \eqref{eq:subdomain_scalar_mean} represent the thermodynamic source from microphysical processes. Second moment terms in the updrafts and downdrafts are neglected.
+
+\subsubsection{Environment} 
+The area fraction and first moment in the environment are diagnosed from \eqref{eq:area_fraction} and  \eqref{eq:subdomain_mean} as:
+
+\begin{align}
+\label{eq:enviroment}
+a_0 & = 1- \sum_{i\ge 1} a_i\\
+\bar{\phi}_0 & =\frac{1}{a_0} \Big(\langle \phi \rangle - \sum_{i\ge 1} a_i \bar{\phi}_i \Big).
+\end{align}
+The second moment equation for scalar in the environment is given by:
+\begin{multline}
+\frac{\partial (\rho a_0 \overline{\phi_0' \psi_0'})}{\partial t} =
+- \nabla_h \cdot (\rho a_0 \langle \mathbf{u}_h \rangle \overline{\phi_0' \psi_0'})) - \underbrace{\frac{\partial (\rho a_0 \overline{w}_0 \overline{\phi_0' \psi_0'})}{\partial z}}_{\text{vertical transport}} \\
++ \underbrace{\frac{\partial}{\partial z}\Bigg(\rho a_0 K_{\phi\psi,0} \frac{\partial\overline{\phi_0' \psi_0'} }{\partial z}\Bigg)}_{\text{turbulent transport}}
++ \underbrace{2\rho a_0 K_{\phi\psi,0} \frac{\partial \bar{\phi_0}}{\partial z}\frac{\partial \bar{\psi_0}}{\partial z}}_{\text{turbulent production}} \\
++ \sum_{i>0}\Bigg( \underbrace{-\hat{E}_{0i} \overline{\phi'_0 \psi'_0}}_{\text{turb. entrainment}} +  
+\underbrace{\bar{\psi}^*_0\hat{E}_{0i}(\bar{\phi}_0-\bar{\phi}_i) + \bar{\phi}^*_0\hat{E}_{0i}(\bar{\psi}_0-\bar{\psi}_i)}_{\text{turb. entrainment production}} \Bigg) \\ 
++ \sum_{i>0}{\Bigg(\underbrace{- \Delta_{0i} \overline{\phi_0' \psi_0'}}_{\text{dyn. detrainment}} + \underbrace{E_{0i}(\bar{\phi}_0-\bar{\phi}_i) (\bar{\psi}_0-\bar{\psi}_i)}_{\text{dyn. entrainment flux}}} \Bigg) \\
+- \underbrace{ \rho a_0 \overline{D_{\phi' \psi', 0}}}_{\text{dissipation}} + \rho a_0 (\overline{\psi'_0 S'_{\phi,0}} + \overline{\phi'_0 S'_{\psi,0}} ).
+\label{eq:subdomain_scalar_variance} 
+\end{multline} 
+In this equation the covariance dissipation is denoted by $\overline{D_{\phi' \psi', 0}}$ and the covariance source is given by $\overline{\psi'_0 S'_{\phi,0}} + \overline{\phi'_0 S'_{\psi,0}}$. In the "balance law" form of the code the right hand side terms in the first raw of \eqref{eq:second_moment_decomposition} are first order fluxes, the "turbulent transport" in the second raw is a second order flux and all following terms are non conservative sources and sinks.
+
+The Turbulent Kinetic Energy (TKE) is defined as $\bar{e}_0 = (\overline{u'_0 u'_0} + \overline{v'_0 v'_0} + \overline{w'_0 w'_0})/2$. The prognostic equation for the (TKE) in the environment is:
+
+\begin{multline}
+\frac{\partial (\rho a_0 \bar{e}_0)}{\partial t} =
+- \nabla_h \cdot (\rho a_0 \langle \mathbf{u}_h \rangle \bar{e}_0) - \frac{\partial (\rho a_0 \overline{w}_0 \bar{e}_0)}{\partial z}\\
++ \underbrace{ \frac{\partial}{\partial z}\Bigg(\rho a_0 K_{m,0} \frac{\partial\bar{e}_0}{\partial z} \Bigg)}_{\text{turbulent transport}} +
+\underbrace{\rho a_0 K_{m,0} \Bigg[ \Bigg(\frac{\partial \langle u \rangle}{\partial z}\Bigg)^2 + \Bigg(\frac{\partial \langle v \rangle}{\partial z}\Bigg)^2 + \Bigg(\frac{\partial \bar{w}_0}{\partial z}\Bigg)^2\Bigg]}_{\text{shear production}} \\
++\sum_{i>0}{\Big(\underbrace{-\hat{E}_{0i} \bar{e}_0}_{\text{turb. entrainment}} + \underbrace{\bar{w}^*_0\hat{E}_{0i}(\bar{w}_0-\bar{w}_i)}_{\text{turb. entrainment production}}} \Big) \\ 
++ \sum_{i>0}{\Big(\underbrace{- \Delta_{0i} \bar{e}_0}_{\text{dyn. detrainment}} 
++ \frac{1}{2}\underbrace{E_{0i} (\bar{w}_0 -\bar{w}_i) (\bar{w}_0 -\bar{w}_i)}_{\text{dyn. entrainment production}}} \Big) \\
++ \underbrace{\rho a_0\overline{w'_0 b'_0}}_{\text{buoyancy production}} - \underbrace{\rho a_0\Bigg[\overline{u'_0\frac{\partial }{\partial x}\Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'} + \overline{v'_0\frac{\partial}{\partial y} \Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'}+ \overline{w'_0\frac{\partial}{\partial z} \Bigg( \frac{p^\dagger}{\rho}\Bigg)_0'}  \Bigg] }_{\text{pressure term}} - \underbrace{ \rho a_0 \overline{D_{e, 0}}}_{\text{dissipation}};
+\label{eq:tke_equation} 
+\end{multline}
+Sources in this equations include shear production various entrainment and detrainment terms, pressure, dissipation and buoyancy flux. The latter: $\overline{w'_0 b'_0}$ should be given as a function the prognostic thermodynamic variables of the model. Thus it's exact form depends on the model component in which it is applied (i.e. Atmosphere or Ocean). In the atmosphere it is approximated separately for the cloudy and cloud free (dry) conditions, due to the non linearity of the phase changes of water (see Appendix A). In the ocean where no phase changes exist it is evaluated as \hl{[ask the oceanographers to if it is any different than the dry atmosphere case?]}
+
+\section{Closures} \label{sec:Closures}
+The various closures required for the EDMF scheme are given below, with the values of the different parameters listed in Table~\ref{table:parameters}.
+
+\begin{table}[htbp]
+\caption{Closure parameters}
+\label{table:parameters}
+\centering
+\begin{tabular}{lll}
+\hline 
+Symbol & Closure & Value (units)\\
+\hline 
+$a_{s}$ & Entrainment, Detrainment &   $0.1$ \\
+$c_{\epsilon}$ & Entrainment, Detrainment &  $0.13$ \\
+$c_{\delta}$ & Entrainment, Detrainment &  $0.52$ \\
+$c_{\lambda}$ & Entrainment, Detrainment &  $0.3$ \\
+$\beta$ & Entrainment, Detrainment &  $2.0$\\
+$\mu_0$ & Entrainment, Detrainment &  $ 4 \times 10^{-4}$  (1/s) \\
+$\chi_{i}$ & Entrainment, Detrainment & $ 0.25 $\\
+$c_{\gamma}$ & Entrainment, Detrainment & $ 0.075 $\\
+$\alpha_b$ & Perturbation Pressure &  0.12 \\
+$\alpha_a$ & Perturbation Pressure & 0.10 \\
+$\alpha_d$ & Perturbation Pressure & 10.0 \\
+$c_m$ & Mixing Length & $0.14$ \\
+$c_{d}$ & Mixing Length &  $0.22$ \\
+$c_{b}$ & Mixing Length &  $0.63$ \\
+$\kappa$ & Mixing Length &  $0.4$ \\
+$\kappa^*$ & Mixing Length & $1.94$ \\
+$a_1^-$ & Surface Layer & $-100$ \\
+$a_2^-$ & Surface Layer & $-0.2$\\
+$\mathrm{Pr}_{t,0}$ & Eddy Diffusivity & $0.74$\\
+\hline 
+\end{tabular}
+\end{table}
+\subsection{Dynamic Entrainment and Detrainment} \label{sec:Dynamic Entrainment and Detrainment}
+Dynamical entrainment and detrainment are modelled as a combination of an inverse timescale ($\lambda_{i0}$) and non dimensional functions accounting for various dry ($\mathcal{D}_{i0}$) and moist ($\mathcal{M}_{i0}$) processes that govern the changes in area fraction in time. 
+The Dynamical entrainment and detrainment terms are:
+% \begin{linenomath*}
+\begin{equation} \label{eq:fractional_entrainment} 
+E_{i0}  = \rho \lambda_{i0} \Bigg( c_{\epsilon} \mathcal{D}_{i0} + c_{\delta}\mathcal{M}_{i0} \Bigg),
+\end{equation}
+% \end{linenomath*}
+and 
+% \begin{linenomath*}
+\begin{equation} \label{eq:fractional_detrainment} 
+D_{i0} = \rho \lambda_{i0} \Bigg( c_{\epsilon} \mathcal{D}_{0i} + c_{\delta}\mathcal{M}_{0i}\Bigg),
+\end{equation}
+and the inverse time scale ($\lambda_{i0}$) is given by a soft minimum function ($s_{\min}$) of several possible timescales:
+\begin{equation} \label{eq:entrainment_timescale} 
+\lambda_{i0} = s_{\min} \left( \left| \frac{\bar{b}_i - \bar{b}_0}{\bar{w}_i - \bar{w}_0} \right|, c_{\lambda} \left| \frac{\bar{b}_i - \bar{b}_0}{\sqrt{\bar{e}_0}} \right| \right).
+\end{equation}
+Here $c_{\epsilon}, c_{\delta}, c_{\lambda}$ are non dimensional tuning parameters. The dry function is given by:
+\begin{equation} \label{eq:entr_sigmoid} 
+\mathcal{D}_{i0} = \frac{1}{1+e^{-\mu_{i0}/\bar{\mu}}}.
+\end{equation}
+with
+\begin{equation} \label{eq:mu_ij} 
+\mu_{i0} = \frac{1}{\bar{w}_i - \bar{w}_0}(\bar{b}_i - \bar{b}_0)\Big(\chi_i - \frac{a_i}{a_i+a_0} \Big),
+\end{equation}
+with $\chi_i=0.25$ is the fraction of updraft air and $\bar{\mu}=4 \times 10^{-4}~\textrm{s}^{-1}$ a dimensional value that controls the smoothness of the sigmoid function.
+
+The moist function is given by:
+\begin{equation} \label{eq:detr_RH} 
+\mathcal{M}_{0i} = \begin{cases}
+      \Big[ \textrm{max}(\overline{\mathrm{RH}}_{i}^\beta - \overline{\mathrm{RH}}_0^\beta,0) \Big]^{\frac{1}{\beta}}, & \text{if}\ \overline{\mathrm{RH}}_{i} = 1, \\
+      0, & \text{if}\ \overline{\mathrm{RH}}_{i} < 1.
+    \end{cases}
+\end{equation}
+In this formulation $0<RH_i<1$ is the relative humidity of the $i$'th subdomain and $\beta$ is a non dimensional tuning parameter.  
+
+\subsection{Turbulent Entrainment} \label{sec:Turbulent Entrainment}
+Turbulent entrainment, that effects tracers but not mass is modeled as horizontal counterpart of the vertical eddy diffusivity in the environment. It is written as:
+\begin{equation} \label{eq:turb_entr} 
+\hat{E}_{i0} = 2 \rho a_i c_{\gamma} \frac{\sqrt{\bar{e}_0}}{H_i},
+\end{equation}
+Here $c_{\gamma}$ is a non dimensional tuning parameter and $H_i$ is the depth of the $i$'th updraft. 
+
+
+\subsection{Perturbation Pressure} \label{sec:Perturbation Pressure}
+The perturbation pressure model is based on a derivation of a normal mode decomposition of a rising thermal bubble \citep{}
+
+\subsection{Eddy Diffusivity and Mixing Length} \label{sec:ED and ML}
+
+
+\section{Numerical Implementation} \label{sec:Numerical Implementation}
+
+
+\subsection{Boundary Conditions} \label{sec:Boundary Conditions}
+The boundary conditions for the grid mean are given in \hl{[add ref to section describing BC in the dycore]}. The boundary conditions for the subdomain follow similar reasoning with Dirichlet type conditions for normal flow and Neumann types conditions for all other variables.  
+
+\subsection{Surface Functions} \label{sec:Surface functions}
+\subsubsection{Surface buoyancy flux}
+The surface buoyancy flux, in the grid mean, as a function of temperature and specific humidity and in unsaturated conditions is approximated following equation (35) in \citep{Sommeria77a} as:
+
+\begin{equation}
+\langle w^*b^* \rangle = \frac{g}{\langle T \rangle} \langle w^*T^* \rangle + 
+g\frac{(\epsilon_v-1) \langle w^*q_t^* \rangle}{(1+(\epsilon_v-1)\langle q_t \rangle)}
+    \label{eq:surface_bflux_temp} 
+\end{equation}
+
+with the temperature in unsaturated conditions given by 
+
+\begin{equation}
+    \langle T \rangle = T_0 + \frac{\langle I \rangle - \langle q_t \rangle I_{v,0}}{c_{vm}},
+    \label{eq:temperature}
+\end{equation}
+
+and the temperature flux in unsaturated conditions can be approximated as:
+\begin{equation}
+    \langle w^*T^* \rangle = \frac{1}{c_{vm}}(\langle w^*I^* \rangle  - \langle w^*q_t^* \rangle I_{v,0}),
+    \label{eq:temperature_flux}
+\end{equation}
+implementing \eqref{eq:temperature} and  \eqref{eq:temperature_flux}
+in \eqref{eq:surface_bflux_temp} yields:
+
+\begin{equation}
+\langle w^*b^* \rangle =g \frac{\langle w^*I^* \rangle  - \langle w^*q_t^* \rangle I_{v,0}}{c_{vm}T_0 + \langle I \rangle - \langle q_t \rangle I_{v,0}} +
+g\frac{(\epsilon_v-1) \langle w^*q_t^* \rangle}{(1+(\epsilon_v-1)\langle q_t \rangle)}
+    \label{eq:surface_bflux}     
+\end{equation}
+
+
+ \subsection{Initial Conditions} \label{sec:Initial Conditions}
+
+
+\subsection{Single Stack Model Setting} \label{sec:Single Stack setting}
+
+
+\subsection{Global Circulation Model Setting} \label{sec:Global Circulation Model Setting}
+
+\appendix
+\section{Buoyancy Flux in the Atmosphere}
+\label{appx:high order moment terms}
+The computation of the buoyancy flux ($\overline{w'_0 b'_0}$) that is a TKE source in the environment follows an application of the eddy diffusivity assumption such that:
+\begin{equation}
+\label{eq:vertical_eddy_diffusivty_buoyancy} 
+\overline{w'_0 b_0'} \approx - K_{b, 0} \frac{\partial \bar{b}_0}{\partial z}.
+\end{equation}
+This requires a computation of the vertical gradient of buoyancy. These gradient are given as subdomain density gradients following the definition of buoyancy as:
+\begin{equation}
+\label{eq:buoyancy_grda} 
+\frac{\partial \bar{b}_0}{\partial z} = - \frac{g}{\rho} \frac{\partial \bar{\rho}_0}{\partial z} .
+\end{equation}
+Following the equation of state $\bar{\rho}_0 = \bar{\rho}_0(\bar{I}_0, \bar{q}_{t0}, \langle p \rangle)$, here $\bar{I}_0$ and $\bar{q}_{t0}$ are the internal energy and total water  specific humidity, which are the model's thermodynamic variables. A linear approximation relates the density gradient to the gradient of $\bar{I}_0$ and $\bar{q}_{t0}$:
+\begin{equation}
+\label{eq:density_grad} 
+\frac{\partial \bar{\rho}_0}{\partial z}  = \left( \frac{\partial \bar{\rho}_0}{\partial \bar{q}_{t0}} \right)_{\bar{I}_0} \frac{\partial \bar{q}_{t0}}{\partial z} + \left( \frac{\partial \bar{\rho}_0}{\partial \bar{I}_0}\right)_{\bar{q}_{t0}} \frac{\partial \bar{I}_0}{\partial z}  .
+\end{equation}
+The computation of the partial derivatives of density with respect to the $\bar{I}_0$ and with respect to $\bar{q}_{t0}$ is described below.
+
+This linear approximation does not apply for phase changes (for instance of water in clouds). Thus the derivation of the buoyancy gradients for the atmospheric application is done separately for cloudy conditions, where liquid and / or ice phase of water are present in the air; and for dry conditions where only gas phase of water is present in the air. From the two derivatives in \eqref{eq:density_grad} the second derivative with respect to $\bar{I}_0$ differs between dry and cloudy conditions, while the first derivative with respect to $\bar{q}_{t0}$ remains unchanged. The former derivative is written as:
+\begin{equation}
+\label{eq:density_grad_qt} 
+\left( \frac{\partial \bar{\rho}_0}{\partial \bar{q}_{t0}} \right)_{\bar{I}_0} = \frac{R_d \langle p \rangle}{R_m^2 \bar{T}_0}.
+\end{equation}
+The latter derivative in dry conditions is written as:
+\begin{equation}
+\label{eq:density_grad_I_dry} 
+\left( \frac{\partial \bar{\rho}_0}{\partial \bar{I}_0}\right)_{\bar{q}_{t0}} = - \frac{\langle p \rangle}{R_m \bar{T}^2_0} \frac{1}{(1-\bar{q}_{t0})c_{vd} + \bar{q}_{v0}c_{vv}},
+\end{equation}
+and its counterpart in cloudy conditions is given by:
+\begin{equation}
+\label{eq:density_grad_I_cloudy} 
+\left( \frac{\partial \bar{\rho}_0}{\partial \bar{I}_0}\right)_{\bar{q}_{t0}} = - \frac{\langle p \rangle}{R_m \bar{T}^2_0} \frac{1}{(1-\bar{q}_{t0})c_{vd} + \bar{q}_{v0}c_{vv} + \bar{q}_{l0}c_{vl} + \bar{q}_{i0}c_{vi}}.
+\end{equation}
+
+The buoyancy gradients in dry and cloudy conditions are written as:
+\begin{equation}
+\label{eq:buoyancy_gradient_dry} 
+\left( \frac{\partial \bar{b}_0}{\partial z}\right)_{dry} = \frac{g}{R_m \bar{T}_0} \left(\frac{1}{(1-\bar{q}_{t0})c_{vd}\bar{T}_0 + \bar{q}_{v0}c_{vv}\bar{T}_0}\frac{\partial \bar{I}_0}{\partial z} +  \frac{R_d}{R_m} \frac{\partial \bar{q}_{t0}}{\partial z} \right),
+\end{equation}
+
+\begin{multline}
+\label{eq:buoyancy_gradient_cloudy} 
+\left( \frac{\partial \bar{b}_0}{\partial z}\right)_{dry} = \frac{g}{R_m \bar{T}_0} \left(\frac{1}{(1-\bar{q}_{t0})c_{vd}\bar{T}_0 + \bar{q}_{v0}c_{vv}\bar{T}_0 + \bar{q}_{l0}c_{vl}\bar{T}_0 + \bar{q}_{i0}c_{vi}\bar{T}_0}\right)\frac{\partial \bar{I}_0}{\partial z} \\ 
++ \frac{R_d g}{R_m^2 \bar{T}_0} \frac{\partial \bar{q}_{t0}}{\partial z}.
+\end{multline}
+%-------Bibliography
+\bibliographystyle{agufull08}
+\bibliography{Parameterization}
+
+\end{document}

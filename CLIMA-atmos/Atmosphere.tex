@@ -2,14 +2,6 @@
 
 \include{CLIMA_Macros}
 \usepackage[inline]{enumitem}
-\usepackage{hyperref}
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    citecolor=blue,
-    filecolor=cyan,      
-    urlcolor=cyan,
-}
 
 \title{CLIMA Atmosphere Model} 
 \author{ }
@@ -55,7 +47,7 @@ This chapter introduces one consistent set of thermodynamic approximations for a
     \item Showing how to construct consistent sets of thermodynamic equations that either (i) assume equilibrium of the phases and require only one prognostic water variable, or (ii) do not assume equilibrium of the phases and require prognostic variables for all water phases;
     \item Showing how to obtain temperatures from energy variables under either phase equilibrium assumptions (by ``saturation adjustment'') or phase non-equilibrium assumptions (by a closed-form expression for temperature).
 \end{itemize}
-The resulting thermodynamic functions are implemented in \href{https://github.com/climate-machine/CLIMA/tree/master/src/Common/MoistThermodynamics}{MoistThermodynamics.jl}.
+The resulting thermodynamic functions are implemented in \href{https://github.com/climate-machine/CLIMA/tree/master/src/Common/Thermodynamics}{Thermodynamics.jl}.
 
 \section{Working Fluid and Equation of State}
 
@@ -75,17 +67,17 @@ Because this enumerates all constituents of the working fluid, we have $q_t + q_
 The pressure $p$ of the working fluid is the sum of the partial pressures of dry air and water vapor, both taken to be ideal gases. Neglecting the volume of the condensed phases (but not their masses), this gives $p = \rho (R_d q_d + R_v q_v) T$, where $R_d$ is the specific gas constant of dry air, and $R_v$ is the specific gas constant of water vapor. This can also be written as
 \begin{equation}
     p = \rho R_m T,
-\label{eq:eos}
+\label{e:eos}
 \end{equation}
 where
 \begin{equation}
 \begin{split}
     R_m(q) & = R_d (1 - q_t) + R_v q_v \\
         & = R_d \left[1 + (\eps_{dv}-1)q_t - \eps_{dv} q_c\right]
-\label{eq:R_m}
+\label{e:R_m}
 \end{split}
 \end{equation}
-is the specific gas ``constant'' of moist air (which is not a constant); here, we have used $q_d = 1-q_t$ and $q_v = q_t - q_c$ and introduced the ratio of the molar masses of dry air and water vapor $\eps_{dv} = R_v/R_d$ ($\approx 1.61$). Equations~\eqref{eq:eos} and \eqref{eq:R_m} constitute the equation of state of the working fluid. We use the notation $q=(q_t, q_l, q_i)$ for the tuple of specific humidities that determine the composition of moist air.
+is the specific gas ``constant'' of moist air (which is not a constant); here, we have used $q_d = 1-q_t$ and $q_v = q_t - q_c$ and introduced the ratio of the molar masses of dry air and water vapor $\eps_{dv} = R_v/R_d$ ($\approx 1.61$). Equations~\eqref{e:eos} and \eqref{e:R_m} constitute the equation of state of the working fluid. We use the notation $q=(q_t, q_l, q_i)$ for the tuple of specific humidities that determine the composition of moist air.
 
 \section{Heat Capacities}\label{s:heat_capacities}
 
@@ -116,7 +108,7 @@ where $\cdot$ stands for $v$ or $p$ and we have used $q_v = q_t -q_l - q_i$. Str
     c_{pm}(q) = c_{vm}(q) + R_m(q).
 \end{equation}
 
-\section{Latent Heats}
+\section{Latent Heats}\label{s:latent_heats}
 
 Kirchhoff's relation states that the specific latent enthalpy (heat) $L$ of a phase change depends on temperature $T$ through
 \begin{equation}
@@ -125,7 +117,7 @@ Kirchhoff's relation states that the specific latent enthalpy (heat) $L$ of a ph
 where $\Delta c_p$ is the difference in isobaric specific heat capacities between the phase with the higher and lower specific volume. For the constant isobaric specific heat capacities that we assume, this can be integrated to give
 \begin{equation}
     L(T) = L_0 + \Delta c_p (T-T_0),
-    \label{eq:LH_temperature}
+    \label{e:LH_temperature}
 \end{equation}
 where $T_0$ is a reference temperature and $L_0$ is the specific latent heat at $T_0$. 
 
@@ -153,13 +145,13 @@ Here, the reference specific internal energy $I_{v,0}$ is the difference in spec
 \begin{split}
      I(T, q) & = (1-q_t) I_d(T) + q_v I_v(T) + q_l I_l(T) + q_i I_l(T)\\
           & = c_{vm}(q) (T - T_0)  + q_v I_{v,0} - q_i I_{i,0}.
-     \label{eq:total_internal_energy}
+     \label{e:total_internal_energy}
 \end{split}
 \end{equation}
 The internal energy can be inverted to obtain the temperature given $I$ and the specific humidities,
 \begin{equation}
     T = T_0 + \frac{I - (q_t - q_l) I_{v,0} + q_i (I_{i,0} + I_{v,0})}{c_{vm}(q)},
-    \label{eq:temperature}
+    \label{e:temperature}
 \end{equation}
 where we have used $q_v = q_t - q_l - q_i$. This allows one to recover temperature given internal energy and specific humidities as state variables.
 
@@ -178,8 +170,8 @@ The specific enthalpies of the constituents of moist air are obtained by adding 
 \begin{align}
     h_d(T) = I_d(T) + R_d T &= c_{pd}(T-T_0) + R_d T_0, \\
     h_v(T) = I_v(T) + R_v T &= c_{pv}(T-T_0) + L_{v,0}, \\
-    h_l(T) = I_l(T) + R_d T &= c_{pl}(T-T_0), \\
-    h_i(T) = I_i(T) + R_d T &= c_{pi}(T-T_0) - L_{f,0}.
+    h_l(T) = I_l(T) &= c_{pl}(T-T_0), \\
+    h_i(T) = I_i(T) &= c_{pi}(T-T_0) - L_{f,0}.
 \end{align}
 \end{subequations}
 The enthalpy of moist air is the weighted sum of the constituent enthalpies:
@@ -211,16 +203,16 @@ The Clausius-Clapeyron relation describes how the saturation vapor pressure $p_v
 \begin{equation}\label{e:Clausius_Clapeyron}
     \frac{d \log(p_v^*)}{dT} = \frac{L}{R_v T^2}.
 \end{equation}
-Here, $L$ is the specific latent heat of the phase transition, which is $L_v$ for the saturation vapor pressure over liquid, or $L_s$ for the saturation vapor pressure over ice. Substituting the linear relation \eqref{eq:LH_temperature} between latent heat and temperature, and taking $p_\mathrm{tr}$ to be the vapor pressure at the triple point (by definition equal to the saturation vapor pressures both over liquid and ice), the Clausius-Clapeyron relation can be integrated to give a closed-form expression for the vapor pressure that is consistent with our thermodynamic assumptions:
+Here, $L$ is the specific latent heat of the phase transition, which is $L_v$ for the saturation vapor pressure over liquid, or $L_s$ for the saturation vapor pressure over ice. Substituting the linear relation \eqref{e:LH_temperature} between latent heat and temperature, and taking $p_\mathrm{tr}$ to be the vapor pressure at the triple point (by definition equal to the saturation vapor pressures both over liquid and ice), the Clausius-Clapeyron relation can be integrated to give a closed-form expression for the vapor pressure that is consistent with our thermodynamic assumptions:
 \begin{equation}
     p_v^* = p_{\mathrm{tr}} \left( \frac{T}{T_{\mathrm{tr}}} \right)^{\frac{\Delta c_p}{R_v}}
         \exp \left[ \frac{L_0 - \Delta c_p T_0}{R_v} 
         \left( \frac{1}{T_{\mathrm{tr}}} - \frac{1}{T} \right) \right].
-        \label{eq:sat_vapor_pressure}
+        \label{e:sat_vapor_pressure}
 \end{equation}
 With $L_0 = L_{v,0}$ or $L_0 = L_{s,0}$ and the corresponding heat capacity difference $\Delta c_p$, this gives saturation vapor pressures over liquid or ice that are accurate within 3\% for temperatures between 200 and 330~K (with accuracy better than 1\% for typical near-surface conditions).
 
-To obtain the saturation vapor pressure over a mixture of liquid and ice (e.g., in mixed-phase clouds), using a weighted average of the relevant specific latent heats in the vapor pressure \eqref{eq:sat_vapor_pressure} leads to a thermodynamically consistent formulation \citep{Pressel15a}. That is, if a fraction $\lambda_p$ of the condensate is liquid and the complement $1-\lambda_p$ is ice, calculating the saturation vapor pressure with a specific latent heat $\lambda_p L_v + (1-\lambda_p)L_s$ gives a thermodynamically consistent saturation vapor pressure over the mixture. 
+To obtain the saturation vapor pressure over a mixture of liquid and ice (e.g., in mixed-phase clouds), using a weighted average of the relevant specific latent heats in the vapor pressure \eqref{e:sat_vapor_pressure} leads to a thermodynamically consistent formulation \citep{Pressel15a}. That is, if a fraction $\lambda_p$ of the condensate is liquid and the complement $1-\lambda_p$ is ice, calculating the saturation vapor pressure with a specific latent heat $\lambda_p L_v + (1-\lambda_p)L_s$ gives a thermodynamically consistent saturation vapor pressure over the mixture. 
 
 In thermodynamic equilibrium, the liquid fraction 
 \begin{equation}\label{e:liquid_fraction}
@@ -239,8 +231,8 @@ where $\lambda_i$ interpolates between 0 at the temperature of homogeneous ice n
 
 \section{Saturation Specific Humidity}
 \label{sct:sat_spef_hum}
-From the saturation vapor pressure $p_v^*$, the saturation specific humidity can be computed using the ideal gas law \eqref{eq:eos}, giving the density of water vapor at saturation $\rho_v^* = p_v^*(T)/(R_v T)$, and hence the saturation specific humidity 
-\begin{equation}\label{eq:sat_shum}
+From the saturation vapor pressure $p_v^*$, the saturation specific humidity can be computed using the ideal gas law \eqref{e:eos}, giving the density of water vapor at saturation $\rho_v^* = p_v^*(T)/(R_v T)$, and hence the saturation specific humidity 
+\begin{equation}\label{e:sat_shum}
      q_v^* = \frac{\rho_v^*}{\rho} = \frac{p_v^*(T)}{\rho R_v T}.
 \end{equation}
 
@@ -262,7 +254,7 @@ q_l^* = \lambda_p(T) q_c^* \quad \text{and} \quad q_i^* = \bigl[1-\lambda_p(T)\b
 \end{equation} 
 In saturated conditions, finding the root of \eqref{e:sat_adjustment} is a nonlinear problem, which must be solved iteratively or approximately, in what is known as a saturation adjustment procedure. 
 
-A zeroth-order approximation of the temperature $T$ satisfying the saturation adjustment condition \eqref{e:sat_adjustment} is obtained by assuming unsaturated conditions. In that case, the expression \eqref{eq:temperature} for temperature, with $q_l=q_i=0$, gives the unsaturated temperature 
+A zeroth-order approximation of the temperature $T$ satisfying the saturation adjustment condition \eqref{e:sat_adjustment} is obtained by assuming unsaturated conditions. In that case, the expression \eqref{e:temperature} for temperature, with $q_l=q_i=0$, gives the unsaturated temperature 
 \begin{equation}
     T_1 = T_0 + \frac{I - q_t I_{v,0}}{c_{vm}^*}.
 \end{equation}
@@ -276,7 +268,7 @@ and solving for the temperature $T$ gives the first-order Newton update
 \begin{equation}
     T_{n+1} = T_{n} - \frac{I^*(T_{n}; \rho, q_t) - I}{(\partial I^*/\partial T)|_{T_{n}}}.
 \end{equation}
-The derivative $\partial I^*/\partial T|_{T_n}$ is obtained by differentiation of the internal energy \eqref{eq:total_internal_energy},
+The derivative $\partial I^*/\partial T|_{T_n}$ is obtained by differentiation of the internal energy \eqref{e:total_internal_energy}, \hl{[add derivatives of phase partitioning function and make that function smooth]}
 \begin{multline}
      \left.\frac{\partial I^*(T; \rho, q_t)}{\partial T}\right|_{T_n} 
      = c_{vm}^*(q_t, T_n) \\
@@ -290,13 +282,13 @@ obtained from the definition \eqref{e:specific_heat} of the specific heat of moi
 \begin{equation}
     \left. \frac{\partial q_v^*(T; \rho, q_t)}{\partial T}\right|_{T_n} = q_v^*(T_n) \frac{L}{R_v T_n^2} \quad \text{with} \quad L = \lambda_p(T_n) L_v + [1-\lambda_p(T_n)] L_s,
 \end{equation}
-obtained from the Clausius-Clapeyron relation \eqref{e:Clausius_Clapeyron} and the relation \eqref{eq:sat_shum} between specific humidity and vapor pressure. 
+obtained from the Clausius-Clapeyron relation \eqref{e:Clausius_Clapeyron} and the relation \eqref{e:sat_shum} between specific humidity and vapor pressure. 
 
 The resulting successive Newton approximations $T_n$ generally converge quadratically. Because condensate specific humidities are usually small, $T_1$ provides a close initial estimate, and few iterations are needed. Even the first-order approximation $T\approx T_2$ often suffices. However, convergence may not be achieved near the phase transition at the freezing temperature $T_{\mathrm{freeze}}$ because the derivative of $I^*$ with respect to temperature is discontinuous there. In that case, the number of iterations needs to be limited (2--3 iterations generally suffice). 
 
 Using saturation adjustment makes it possible to construct a moist dynamical core that has the total specific humidity $q_t$ as the only prognostic moisture variable. The price for this simplicity is the necessity to solve a nonlinear problem iteratively (or approximately) at each time step, and being confined to an equilibrium thermodynamics framework which cannot adequately account for non-equilibrium processes. Using explicit tracers for the condensates $q_l$ and $q_i$ in addition to $q_t$ avoids iterations at each time step and allows the inclusion of explicit non-equilibrium processes, such as those leading to the formation of supercooled liquid in mixed-phase clouds. 
 
-\section{Auxiliary Thermodynamic Functions}
+\section{Auxiliary Thermodynamic Functions}\label{s:aux_thermo}
 
 Several auxiliary thermodynamic functions are commonly used. 
 
@@ -310,7 +302,7 @@ Using the ideal gas law for water vapor, $p_v = q_v \rho R_v T$, this can be wri
 \begin{equation}
     \mathrm{RH} = \frac{q_v \rho R_v T}{p_v^*},
 \end{equation}
-where $p_v^*$ is the saturation vapor pressure \eqref{eq:sat_vapor_pressure}. Over a mixture of ice and liquid, the saturation vapor pressure \eqref{eq:sat_vapor_pressure} is evaluated with a specific latent heat $L = \lambda_p L_v + (1-\lambda_p) L_s$ that is a weighted sum of those for vaporization and sublimation.
+where $p_v^*$ is the saturation vapor pressure \eqref{e:sat_vapor_pressure}. Over a mixture of ice and liquid, the saturation vapor pressure \eqref{e:sat_vapor_pressure} is evaluated with a specific latent heat $L = \lambda_p L_v + (1-\lambda_p) L_s$ that is a weighted sum of those for vaporization and sublimation.
 
 \subsection{Potential Temperature} The potential temperature $\theta$ is the temperature an air mass would have if brought adiabatically from pressure $p$ and temperature $T$ to some reference pressure $p_0$ (typically taken to be mean sea level pressure):
 \begin{equation}\label{e:pot_temp_press_T}
@@ -322,7 +314,7 @@ where $\Pi$ is known as the Exner function
 \end{equation}
 Note that the adiabatic exponent $\kappa$ takes the effect of  moisture on the effective gas ``constant'' and specific heat capacity of air into account.
 
-\subsection{Virtual (Potential) Temperature} The virtual or density temperature $T_v$ is the temperature dry air would need to have to have the same density as moist air at the same pressure. Using the ideal gas law $p/\rho = R_m T$, this implies $R_m T  = R_d T_v $, or
+\subsection{Virtual (Potential) Temperature}\label{s:virtual_temp} The virtual or density temperature $T_v$ is the temperature dry air would need to have to have the same density as moist air at the same pressure. Using the ideal gas law $p/\rho = R_m T$, this implies $R_m T  = R_d T_v $, or
 \begin{equation}\label{e:virtual_temp}
 T_v = \frac{R_m}{R_d} T.
 \end{equation}
@@ -398,7 +390,7 @@ It would be possible in principle to include falling condensate (precipitation) 
 Moist air mass satisfies the conservation law
 \begin{equation}
 \diff{\rho}{t} + \divergence (\rho\vec{u}) = \rho \mathcal{\hat S}_{q_t}.
-\label{eq:governing_equations/mass}
+\label{e:governing_equations/mass}
 \end{equation}
 Moist air mass is not exactly conserved where precipitation forms, sublimates, or evaporates, where water diffuses, or where condensate sediments relative to the gas phases \citep{Bott08a, Romps08a}. The  right-hand side involves the local source/sink of water mass $\mathcal{\hat S}_{q_t}$ owing to such non-conservative processes, to be discussed in greater detail in section~\ref{s:moisture_balance}.
 
@@ -411,7 +403,7 @@ Total water satisfies the conservation law
 \diff{(\rho q_t)}{t} + \divergence (\rho q_t \vec{u})
 = \rho \mathcal{S}_{q_t} - \divergence (\rho \vec{d}_{q_t}) + \divergence \bigl(\rho q_c w_c \vec{\hat k}  \bigr)
 \equiv \rho \mathcal{\hat S}_{q_t}.   
-\label{eq:governing_equations/moisture}
+\label{e:governing_equations/moisture}
 \end{equation}
 Here, the non-conservative source/sink
 \begin{equation}\label{e:water_sources}
@@ -426,16 +418,16 @@ And the effective sedimentation velocity $w_c$ in Eq.~\eqref{e:water_sources} is
     q_c w_c = q_l w_l + q_i w_i.
 \end{equation}
 
-The right-hand side $\rho \mathcal{\hat S}_{q_t}$ of the moisture balance \eqref{eq:governing_equations/moisture} is exactly the same as that of the mass balance \eqref{eq:governing_equations/mass}. The difference between the mass and moisture balances implies that the dry air mass $(1-q_t)\rho$ is exactly conserved. Deviations from conservation of the moist air mass $\rho = (1-q_t)\rho + q_t \rho$ arise from deviations from conservation of total water $q_t\rho$. The conservation laws for mass \eqref{eq:governing_equations/mass} and total water \eqref{eq:governing_equations/moisture} together imply the material derivative 
-\[
+The right-hand side $\rho \mathcal{\hat S}_{q_t}$ of the moisture balance \eqref{e:governing_equations/moisture} is exactly the same as that of the mass balance \eqref{e:governing_equations/mass}. The difference between the mass and moisture balances implies that the dry air mass $(1-q_t)\rho$ is exactly conserved. Deviations from conservation of the moist air mass $\rho = (1-q_t)\rho + q_t \rho$ arise from deviations from conservation of total water $q_t\rho$. The conservation laws for mass \eqref{e:governing_equations/mass} and total water \eqref{e:governing_equations/moisture} together imply the material derivative 
+\begin{equation}
 \frac{dq_t}{dt} = (1-q_t) \mathcal{\hat S}_{q_t},
-\]
+\end{equation}
 with the factor $(1-q_t)$ arising because both the mass of moist air $\rho V$ in a given volume $V$ and the mass of water $q_t \rho V$ in the volume change simultaneously when $\mathcal{\hat S}_{q_t}$ is nonzero.
 
 If the suspended condensates (cloud liquid and ice) are in local thermodynamic equilibrium with the gas phase, Gibbs' phase rule implies that their specific humidities, $q_l$ and $q_i$, can be determined by saturation adjustment (section~\ref{sct:sat_adj}) from three other thermodynamic state variables, such as density $\rho$, total water specific humidity $q_t$, and internal energy $I$. However, to enable the explicit modeling of out-of-equilibrium phases (e.g., supersaturated water vapor in the upper troposphere or supercooled liquid water in mixed-phase clouds), we explicitly model the specific humidities of suspended liquid ($q_l$) and ice ($q_i)$. They satisfy analogous conservation laws of the form
 \begin{equation}
 \diff{(\rho q_k)}{t} + \divergence (\rho q_k \vec{u}) = \rho \mathcal{S}_k  -\divergence (\rho \vec{d}_{q_k}) + \divergence \bigl(\rho q_k w_k \vec{\hat k} \bigr)  
-\label{eq:governing_equations/condensate}
+\label{e:governing_equations/condensate}
 \end{equation}
 where $k \in \{l, i\}$ indicates the phase and 
 \begin{align}
@@ -455,7 +447,7 @@ The vector invariant form of the conservation law for momentum in a coordinate s
 \diff{(\rho\vec{u})}{t} + \divergence \left[ \rho\vec{u} \otimes \vec{u} + (p - p_r) \vec{I}_3\right] =
 - (\rho - \rho_r) \grad\Phi - 2\vec{\Omega} \times \rho\vec{u} \\
 - \divergence (\rho \vec{\tau}) - \divergence\left( \vec{d}_{q_t} \otimes \rho\vec{u} \right) + \divergence \left( q_c w_c \vec{\hat k} \otimes \rho \vec{u} \right) + \rho \vec{F}_{\vec{u}}
-\label{eq:governing_equations/momentum}
+\label{e:governing_equations/momentum}
 \end{multline}
 where $\vec{I}_3$ is the rank-3 identity matrix; $\Phi$ is the effective gravitational potential (including centrifugal accelerations); $\vec{\tau}$ is a viscous and/or SGS momentum flux tensor (negative of viscous or SGS stress tensor); and $\vec{F}_{\vec{u}}$ (typically with $\vec{F}_{\vec{u}}\cdot\vec{u}<0$, so that $\vec{F}_{\vec{u}}$ represents a momentum sink) is any other drag force that may be applied. To improve numerical stability, we have factored out a reference state with a pressure $p_r(z)$ and density $\rho_r(z)$ that only depend on altitude $z$ and are in hydrostatic balance (chapter~\ref{c:reference_state}), so that they satisfy
 \[
@@ -475,7 +467,7 @@ Total energy satisfies the conservation law \citep{Romps08a,Bott08a}
  = -\divergence (\rho \vec{F}_R) - \divergence \bigl[\rho (\vec{J} + \vec{D})\bigr] + \rho Q  \\
   +\divergence \left(\rho W_c \vec{\hat k} \right)  - \divergence (\vec{u} \cdot \rho\vec{\tau)} %+ \rho \vec{u} \cdot \vec{F}_{\vec{u}} \\
    - \sum_{j\in\{v,l,i\}}(I_j + \Phi)  \rho C(q_j \rightarrow q_p) - M,
- \label{eq:energy_balance}
+ \label{e:energy_balance}
 \end{multline}
 where the total specific energy $e^{\mathrm{tot}}$ is the weighted sum of the total specific energies of the moist air constituents:
 \begin{equation}\label{e:energy_sum}
@@ -493,23 +485,23 @@ e_i^{\mathrm{tot}} & = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I_i(T).
 The total specific energy of each constituent consists of the kinetic energy per unit mass, gravitational potential energy per unit mass $\Phi$, and the specific internal energy $I_k$ ($k \in \{d, v, l, i\}$) given by Eq.~\eqref{e:internal_energies}. After summation over the constituents, the total specific energy of moist air becomes
 \begin{equation}
      e^{\mathrm{tot}} = \frac{1}{2} \| \vec{u} \|^2 + \Phi + I,
-     \label{eq:total_energy_def}
+     \label{e:total_energy_def}
 \end{equation}
-with the specific internal energy $I$ of the moist air \eqref{eq:total_internal_energy}.
+with the specific internal energy $I$ of the moist air \eqref{e:total_internal_energy}.
 
-On the right-hand side of \eqref{eq:energy_balance}, the flux $\vec{F}_R$ is the radiative energy flux per unit mass, $\vec{J}$ is the conductive energy flux per unit mass, and $Q$ is any internal energy source (``heat source,'' e.g., external diabatic heating). The flux $\vec{u} \cdot \rho\vec{\tau}$ is the energy flux associated with the viscous and/or SGS turbulent momentum flux. The flux 
-\begin{equation}\label{eq:energy-flux-water}
+On the right-hand side of \eqref{e:energy_balance}, the flux $\vec{F}_R$ is the radiative energy flux per unit mass, $\vec{J}$ is the conductive energy flux per unit mass, and $Q$ is any internal energy source (``heat source,'' e.g., external diabatic heating). The flux $\vec{u} \cdot \rho\vec{\tau}$ is the energy flux associated with the viscous and/or SGS turbulent momentum flux. The flux 
+\begin{equation}\label{e:energy-flux-water}
 \vec{D} = (e_v^{\mathrm{tot}} + R_v T) \vec{d}_{q_v} + e_l^{\mathrm{tot}} \vec{d}_{q_l} +  e_i^{\mathrm{tot}} \vec{d}_{q_i}
 \end{equation}
 is the flux of what we call the total specific enthalpy (section~\ref{s:energy_total_enthalpy}) associated with the diffusive flux of water. It includes the term $p_v/\rho = R_v T$ involving the partial pressure of water vapor $p_v$ for the gas phase, to convert from the specific internal energy to the specific enthalpy that appears in the energy flux of a gas phase. The term 
 \begin{equation}
 W_c = q_l e_l^{\mathrm{tot}} w_l + q_i e_i^{\mathrm{tot}} w_i
 \end{equation}
-represents the downward energy flux carried by sedimenting condensate. The terms involving $\rho C(q_j \rightarrow q_p)$ ($j \in \{ v, l, i \}$) represent the loss of internal and potential energy of moist air masses owing to precipitation formation; the kinetic energy loss is neglected, consistent with the neglect of the source/sink associated with precipitation formation in the momentum balance \eqref{eq:governing_equations/momentum}. Additional energy sinks involve the energy loss owing to heat transfer from the working fluid to precipitation as it falls through air and possibly melts at the freezing level \citep{Raymond13b}; the associated energy sources/sinks are provided by a microphysics parameterization and are subsumed in the term $M$. 
+represents the downward energy flux carried by sedimenting condensate. The terms involving $\rho C(q_j \rightarrow q_p)$ ($j \in \{ v, l, i \}$) represent the loss of internal and potential energy of moist air masses owing to precipitation formation; the kinetic energy loss is neglected, consistent with the neglect of the source/sink associated with precipitation formation in the momentum balance \eqref{e:governing_equations/momentum}. Additional energy sinks involve the energy loss owing to heat transfer from the working fluid to precipitation as it falls through air and possibly melts at the freezing level \citep{Raymond13b}; the associated energy sources/sinks are provided by a microphysics parameterization and are subsumed in the term $M$. 
 
-The temperature can be recovered from the internal energy $I = e^{\mathrm{tot}} - 0.5 \| \vec{u} \|^2 - \Phi$ using the expression \eqref{eq:temperature}. The pressure $p$ can then be computed from the ideal gas law \eqref{eq:eos}. The ideal gas law \eqref{eq:eos} with the dynamical equations \eqref{eq:governing_equations/mass}--\eqref{eq:energy-flux-water} form the governing equations of the moist atmosphere.
+The temperature can be recovered from the internal energy $I = e^{\mathrm{tot}} - 0.5 \| \vec{u} \|^2 - \Phi$ using the expression \eqref{e:temperature}. The pressure $p$ can then be computed from the ideal gas law \eqref{e:eos}. The ideal gas law \eqref{e:eos} with the dynamical equations \eqref{e:governing_equations/mass}--\eqref{e:energy-flux-water} form the governing equations of the moist atmosphere.
 
-Note that latent heating as a result of phase changes of water redistributes energy among terms in the definition of total energy, but it does not appear as a source term on the right-hand side of the energy balance \eqref{eq:energy_balance}. Therefore, a dry dynamical core can easily be converted into a moist dynamical core simply by adapting the internal energy definition \eqref{eq:total_internal_energy} that includes moisture variables. The right-hand sides only need to change to account for irreversible processes such as diffusion of water vapor or precipitation formation. Similarly, the drag force $\vec{F}_{\vec{u}}$ does not appear in the total energy equation; it is assumed that the implied sink of kinetic energy, $(\rho \vec{u})\cdot \vec{F}_{\vec{u}}$ (typically negative), is associated with an equal and opposite source of internal energy, so that it has no effect on total energy.
+Note that latent heating as a result of phase changes of water redistributes energy among terms in the definition of total energy, but it does not appear as a source term on the right-hand side of the energy balance \eqref{e:energy_balance}. Therefore, a dry dynamical core can easily be converted into a moist dynamical core simply by adapting the internal energy definition \eqref{e:total_internal_energy} that includes moisture variables. The right-hand sides only need to change to account for irreversible processes such as diffusion of water vapor or precipitation formation. Similarly, the drag force $\vec{F}_{\vec{u}}$ does not appear in the total energy equation; it is assumed that the implied sink of kinetic energy, $(\rho \vec{u})\cdot \vec{F}_{\vec{u}}$ (typically negative), is associated with an equal and opposite source of internal energy, so that it has no effect on total energy.
 
 The internal energy terms in the total energy are typically about two orders of magnitude larger than the kinetic energy terms in Earth's atmosphere: Because the speed of sound in an ideal gas is $c_s = \sqrt{(c_{pm}/c_{vm}) R_m T}$, the internal energy is of order $c_s^2 \approx (330~\mathrm{m~s^{-1}})^2 \approx 110000~\mathrm{m^2~s^{-2}}$, which is two orders of magnitude greater than the kinetic energy $0.5 \|\vec{u}\|^2 \lesssim 0.5(40~\mathrm{m~s^{-1}})^2 = 800~\mathrm{m^2~s^{-2}}$. This means that the total energy and internal energy are of the same order of magnitude and that any truncation error in mapping from total energy to temperature is unlikely to be severe.
 
@@ -519,7 +511,7 @@ We  consider $N_p$ species of precipitation (e.g., rain, snow, graupel), with sp
 \begin{multline}
 \diff{(\rho q_{p,i})}{t} + \divergence \left[\rho q_{p,i} (\vec{u} - w_{p,i} \vec{\hat k}) \right] =\\
 \rho \left[C(q_t \rightarrow q_{p,i}) + C(q_{p,k} \rightarrow q_{p,i}) \right] -\divergence (\rho \vec{d}_{q_{p, i}})
-\label{eq:precip}
+\label{e:precip}
 \end{multline}
 where $C(q_t \rightarrow q_{p,i})$ represents the conversion of suspended total water to precipitation species $i$, and $C(q_{p,k} \rightarrow q_{p,i}) = -C(q_{p,i} \rightarrow q_{p,k})$ represents the conversion of precipitation species $k$ to $i$. The diffusive flux $\vec{d}_{q_{p, i}}$ is included because it is often needed for numerical stability.
 
@@ -530,9 +522,9 @@ In principle, the temperature of the precipitation species can differ from the a
 We also allow $N_\chi$ tracers $\chi_i$ ($i=1, \dots, N_\chi$), each satisfying balance laws
 \begin{equation}
 \diff{(\rho \chi_i)}{t} + \divergence \left(\rho \chi_i \vec{u} \right) = \rho \mathcal{S}_{\chi_i} - \divergence (\rho \vec{d}_{\chi_i}) + \divergence (\rho \chi_{i} w_{\chi, i} \vec{\hat k}),   
-\label{eq:tracers}
+\label{e:tracers}
 \end{equation}
-with sources/sinks $\mathcal{S}_{\chi_i}$, a diffusive flux $\vec{d}_{\chi_i}$, and potentially with a sedimentation velocity $w_{\chi, i}$ (e.g., for sedimenting aerosols). Note that the mass sink associated with precipitation on the right-hand side of the continuity equation \eqref{eq:governing_equations/mass} implies that the material derivative of the tracer is 
+with sources/sinks $\mathcal{S}_{\chi_i}$, a diffusive flux $\vec{d}_{\chi_i}$, and potentially with a sedimentation velocity $w_{\chi, i}$ (e.g., for sedimenting aerosols). Note that the mass sink associated with precipitation on the right-hand side of the continuity equation \eqref{e:governing_equations/mass} implies that the material derivative of the tracer is 
 \[
 \frac{D\chi_i}{Dt} = \mathcal{S}_{\chi_i} - \chi_i \mathcal{\hat S}_{q_t} - \rho^{-1} \divergence \bigl(\rho \vec{d}_{\chi_i} - \rho \chi_{i} w_{\chi, i} \vec{\hat k}\bigr).
 \]
@@ -574,7 +566,7 @@ The vertical unit vector everywhere is in the direction of the gravitational pot
 \subsection{Altitude}
 
 We will frequently need altitude $z$, defined as the height above the geoid 
-\begin{equation}https://www.overleaf.com/project/5b97c626cfd11d36be6d3c05
+\begin{equation}
 z=r-r_{\mathrm{geo}}, 
 \end{equation}
 where  $r_{\mathrm{geo}}$ is the local radius of the geoid (i.e., where $\Phi(r_{\mathrm{geo}})=0$). For now, we take the planet to be spherical, with $r_{\mathrm{geo}} = a$, where the planetary radius $a$ is taken to be constant.
@@ -582,7 +574,9 @@ where  $r_{\mathrm{geo}}$ is the local radius of the geoid (i.e., where $\Phi(r_
 \chapter{Abstraction of Model Equations}\label{c:abstract_model_formulation}
 
 To describe the methods used to solve the governing equations numerically, it is convenient to write the equations in the compact conservation form 
-
+\begin{equation}\label{e:eom_compact}
+\diff{\vec{Y}}{t}  =  - \divergence \Fvector + \vec{\mathcal{S}}(\vec{Y}, \grad\vec{Y}),
+\end{equation}
 where $\vec{Y}$ is the \emph{state} vector, $\partial\vec{Y}/\partial t$ is the \emph{tendency} of the state vector, $\Fvector$ is the \emph{flux} vector, and $\vec{\mathcal{S}}(\vec{Y}, \grad\vec{Y})$ are \emph{sources}, which can depend on state variables and their gradients. 
 
 \section{State}
@@ -594,8 +588,7 @@ The state vector consists of components
 \rho\vec{u} \\
 \rho e^{\mathrm{tot}}\\
 \rho q_k\\
-\rho q_{p,i}\\
-\rho \chi_j
+\rho q_{p,i}
 \end{array}
 \right).
 \end{equation}
@@ -635,9 +628,9 @@ Because pressure in a fluid is adjusted by sound waves, which are the fastest mo
 \rho \vec{d}_{\chi_j}
 \end{array}
 \right).
-\label{eq:diff_flux}
+\label{e:diff_flux}
 \end{equation}
-where the water flux $\vec{d}_{q_t}$ is defined in \eqref{eq:sgs-shum-flux}, the momentum flux $\vec{\tau}$ in \eqref{e:sgs_momentum_flux}, the total enthalpy flux $\vec{J} + \vec{D}$ in \eqref{e:SGS_energy_flux}, the fluxes of the water components $\vec{d}_{q_k}$ are defined in \eqref{e:water_diffusion}, the fluxes $\vec{d}_{q_{p, i}}$ of the precipitation components in \eqref{eq:sgs-precip-flux}, and the fluxes $\vec{d}_{\chi_j}$ of tracers in \eqref{eq:sgs-tracer-flux}.
+where the water flux $\vec{d}_{q_t}$ is defined in \eqref{e:sgs-shum-flux}, the momentum flux $\vec{\tau}$ in \eqref{e:sgs_momentum_flux}, the total enthalpy flux $\vec{J} + \vec{D}$ in \eqref{e:SGS_energy_flux}, the fluxes of the water components $\vec{d}_{q_k}$ are defined in \eqref{e:water_diffusion}, the fluxes $\vec{d}_{q_{p, i}}$ of the precipitation components in \eqref{e:sgs-precip-flux}, and the fluxes $\vec{d}_{\chi_j}$ of tracers in \eqref{e:sgs-tracer-flux}.
 
 
 \subsection{Other Non-diffusive Fluxes}
@@ -664,7 +657,7 @@ q_c w_c \vec{\hat k} \otimes \rho \vec{u}  \\
 \rho \chi_{i} w_{\chi, i} \vec{\hat k} 
 \end{array}
 \right).
-\label{eq:ndf_flux}
+\label{e:ndf_flux}
 \end{equation}
 The fall velocities $w_l$, $w_i$, and $w_{p, i}$ are point-wise functions of the specific humidities, the environmental density $\rho$, and of other microphysical parameters that determine the size distribution of cloud condensate particles and falling hydrometeors. The radiative energy flux $\vec{F}_R$ is included here because it is not diffusive in character. In climate models, it generally is approximated as vertical and hence is one-dimensional, like the precipitation flux. Therefore, the divergence of these two fluxes is a one-dimensional (vertical) divergence. 
 
@@ -682,7 +675,7 @@ The right-hand side of the balance law \eqref{e:eom_compact} has the source-sink
 \rho \mathcal{S}_{\chi_i}
 \end{array}
 \right)
-\label{eq:source}
+\label{e:source}
 \end{equation}
 where $C(q_j \rightarrow q_k)$ represents the conversion of the generic specific humidity $q_j$ to $q_k$ ($k, j \in \{v, l, i\}$), $C(q_p \rightarrow q_k)$ represents the conversion of all precipitation specific humidities $q_p$ to $q_k$, and $C(q_{p, i} \rightarrow q_{p, j})$ represents conversion among precipitation species $q_{p, i}$ and $q_{p, j}$. 
 
@@ -695,7 +688,7 @@ At neither GCM nor LES resolutions is it feasible to resolve all relevant scales
     \item Additionally, in both LES and GCMs, it may be necessary to damp unwanted sound waves, which are not meteorologically significant but can pose severe restrictions on time steps. To do so, diffusive damping of divergent flow components, which contain the sound waves, is often employed. 
 \end{itemize}
 
-This chapter outlines the structure and properties of various SGS models that may be used in GCM or LES configurations to achieve these purposes. The SGS models are implemented in \href{https://github.com/climate-machine/CLIMA/blob/master/src/Atmos/Model/turbulence.jl}{turbulence.jl}. Subgrid-scale (SGS) models for ``physics'' such as radiative transfer, microphysics, and convection parameterizations for coarse-resolution configurations are discussed in  separate documents. 
+This chapter outlines the structure and properties of various SGS models that may be used in GCM or LES configurations to achieve these purposes. The SGS models are implemented in the module TurbulenceClosures.jl. Subgrid-scale (SGS) models for ``physics'' such as radiative transfer, microphysics, and convection parameterizations for coarse-resolution configurations are discussed in  separate documents. 
 
 \section{General Form of Diffusive SGS Fluxes}\label{s:sgs_fluxes_form}
 
@@ -716,7 +709,7 @@ where $\circ$ denotes the Hadamard (elementwise) product. Here, $\vec{\nu}_t$ is
 \subsection{Moisture}
 
 The SGS flux of total water specific humidity is likewise taken to be diffusive,
-\begin{equation}\label{eq:sgs-shum-flux}
+\begin{equation}\label{e:sgs-shum-flux}
 \vec{d}_{t} = - \vec{\mathcal{D}}_t \circ \grad q_t,
 \end{equation}
 where $\vec{\mathcal{D}}_t$ is a turbulent diffusivity vector. We relate the turbulent diffusivity for scalars $\vec{\mathcal{D}}_t$ to the corresponding elements of the turbulent viscosity tensor $\vec{\nu}_t$ through the turbulent Prandtl number, 
@@ -729,7 +722,7 @@ We can also model the SGS fluxes of water vapor ($\vec{d}_{q_v}$), liquid water 
 \begin{equation}\label{e:water_diffusion}
     \vec{d}_{q_k} = - \vec{\mathcal{D}}_t \circ \grad q_k,
 \end{equation}
-where $k \in \{v, l, i\}$. With the same diffusivity $\vec{\mathcal{D}}_t$ for all phases, this ensures that the SGS flux of total specific humidity, $\vec{d}_{q_t} = \vec{d}_{q_v} + \vec{d}_{q_l} + \vec{d}_{q_i}$, satisfies the closure \eqref{eq:sgs-shum-flux}.
+where $k \in \{v, l, i\}$. With the same diffusivity $\vec{\mathcal{D}}_t$ for all phases, this ensures that the SGS flux of total specific humidity, $\vec{d}_{q_t} = \vec{d}_{q_v} + \vec{d}_{q_l} + \vec{d}_{q_i}$, satisfies the closure \eqref{e:sgs-shum-flux}.
 
 \subsection{Energy and Total Enthalpy}\label{s:energy_total_enthalpy}
 
@@ -738,9 +731,9 @@ The SGS flux of total energy consists of two components: The energy flux $\vec{D
 (e^{\mathrm{tot}} + p/\rho) \vec{u} = (e^{\mathrm{tot}} + R_m T) \vec{u}, 
 \]
 where
-\[
+\begin{equation}\label{e:total_enthalpy}
 h^{\mathrm{tot}} = e^{\mathrm{tot}} + R_m T = \frac{1}{2} \| \vec{u} \|^2 + h + \Phi
-\]
+\end{equation}
 is what we call the total specific enthalpy\footnote{What is usually called the total specific enthalpy in fluid dynamics does not contain the potential energy $\Phi$. However, neither this nor our total specific enthalpy strictly are enthalpies in the thermodynamic sense.}: it is the sum of specific kinetic energy $0.5 \| \vec{u} \|^2$, specific enthalpy $h = I + R_m T$, and specific potential energy $\Phi$. Because the sum of specific enthalpy and specific potential energy (without the kinetic energy term) is the moist static energy $\mathrm{MSE} = h + \Phi$, the total specific enthalpy is also the sum of MSE and specific kinetic energy. We model the unresolved total enthalpy flux diffusively, so that the SGS flux of total enthalpy becomes
 \begin{equation}\label{e:SGS_energy_flux}
 \vec{J} + \vec{D} = - \vec{\mathcal{D}}_t \circ \grad h^{\mathrm{tot}}.
@@ -748,7 +741,7 @@ is what we call the total specific enthalpy\footnote{What is usually called the 
 
 \subsubsection{Interpretation of SGS Total Enthalpy Flux}
 
-While not needed for implementation, it facilitates the interpretation of this total enthalpy flux and the formulation of boundary conditions to consider the two components $\vec{J}$ and $\vec{D}$ separately. The SGS flux $\vec{J}$ associated with thermal diffusion can be calculated as the residual between the total enthalpy flux \eqref{e:SGS_energy_flux} and the flux \eqref{eq:energy-flux-water} carried by diffusing water, 
+While not needed for implementation, it facilitates the interpretation of this total enthalpy flux and the formulation of boundary conditions to consider the two components $\vec{J}$ and $\vec{D}$ separately. The SGS flux $\vec{J}$ associated with thermal diffusion can be calculated as the residual between the total enthalpy flux \eqref{e:SGS_energy_flux} and the flux \eqref{e:energy-flux-water} carried by diffusing water, 
 \[
     \vec{J} = - \vec{\mathcal{D}}_t \circ \grad h^{\mathrm{tot}} - \vec{D}.
 \]
@@ -758,7 +751,7 @@ Using the definition of total energy as the weighted sum of the constituent ener
 = (1-q_t)\grad (e_d^{\mathrm{tot}} + R_d T) + q_v \grad (e_v^{\mathrm{tot}} + R_v T) + q_l \grad e_l^{\mathrm{tot}} + q_i \grad e_i^{\mathrm{tot}} \\
 - (e_d^{\mathrm{tot}} + R_d T) \grad q_t + (e_v^{\mathrm{tot}} + R_v T) \grad q_v + e_l^{\mathrm{tot}}\grad q_l + e_i^{\mathrm{tot}} \grad q_i.
 \end{multline*}
-The last three terms are proportional to the SGS fluxes \eqref{eq:energy-flux-water} of total enthalpy associated with the diffusion of the water phases; hence, their sum is proportional to the total enthalpy flux $\vec{D}$ carried by SGS fluxes of water. The first four terms can be rewritten using the definition of enthalpy and the enthalpy gradient \eqref{e:enthalpy_gradient}, which ultimately leads to the residual SGS flux
+The last three terms are proportional to the SGS fluxes \eqref{e:energy-flux-water} of total enthalpy associated with the diffusion of the water phases; hence, their sum is proportional to the total enthalpy flux $\vec{D}$ carried by SGS fluxes of water. The first four terms can be rewritten using the definition of enthalpy and the enthalpy gradient \eqref{e:enthalpy_gradient}, which ultimately leads to the residual SGS flux
 \begin{equation}\label{e:sgs_heat_flux}
 \vec{J} = - \vec{\mathcal{D}}_t \circ \left[ \grad \left( \frac{1}{2} \| u \|^2 \right) + c_{pm} \grad T + \grad \Phi - (e_d^{\mathrm{tot}} + R_d T) \grad q_t \right].
 \end{equation}
@@ -769,7 +762,7 @@ The separate formulations for $\vec{D}$ and $\vec{J}$ are revealing about their 
 \subsection{Precipitation}
 
 We also model SGS fluxes of the different precipitation species diffusively,
-\begin{equation}\label{eq:sgs-precip-flux}
+\begin{equation}\label{e:sgs-precip-flux}
 \vec{d}_{q_{p, i}} = - \delta_p \vec{\mathcal{D}}_t \circ \grad q_{p, i}.
 \end{equation}
 Here, $\delta_p$ is the ratio of the turbulent diffusivity for precipitation variables $\delta_p \vec{\mathcal{D}}_t$ to turbulent diffusivity $\vec{\mathcal{D}}_t$ for energy and moisture variables (or the ratio of turbulent Prandtl to Schmidt numbers, $\delta_p = \mathrm{Pr}_t/\mathrm{Sc}_t$). 
@@ -777,7 +770,7 @@ Here, $\delta_p$ is the ratio of the turbulent diffusivity for precipitation var
 \subsection{Tracers}
 
 SGS fluxes of other tracers $\chi_i$ are likewise modeled diffusively,
-\begin{equation}\label{eq:sgs-tracer-flux}
+\begin{equation}\label{e:sgs-tracer-flux}
 \vec{d}_{\chi_i} = - \delta_{\chi_i} \vec{\mathcal{D}}_t \circ \grad \chi_i,
 \end{equation}
 where $\delta_{\chi_i}$ is the ratio of the turbulent diffusivity for the scalar $\chi_i$ to the turbulent diffusivity $\vec{\mathcal{D}}_t$ for energy and moisture variables.
@@ -789,7 +782,7 @@ where $\delta_{\chi_i}$ is the ratio of the turbulent diffusivity for the scalar
 A family of standard choices for the turbulent viscosity and, by implication, for the turbulent diffusivity, derive from the \citet{smagorinsky:1963} model. The Smagorinsky model for the turbulent viscosity can be written in the general form 
 \begin{equation}
 (\vec{\nu}_t)_{ij} = C_{s}^2 \Delta^{2}_{ij} |S|,   
-\label{eq:eddy-viscosity_smag}
+\label{e:eddy-viscosity_smag}
 \end{equation}
 where $C_{s} $ is the Smagorinsky coefficient (typical value $0.18$), $\Delta_{ij}$ is a mixing length, and 
 \begin{equation}
@@ -804,11 +797,11 @@ where $\Delta x$, $\Delta y$, and $\Delta z$ are the effective grid resolutions 
 \subsection{Smagorinsky-Lilly Model}
 
 In the presence of stable stratification, the stratification can limit the mixing length  in the vertical direction. The Smagorinsky-Lilly model \citep{smagorinsky:1963, lilly:1962} still assumes an isotropic mixing length  but takes stratification limitation into account, using 
-\begin{equation}\label{eq:smag-lilly}
+\begin{equation}\label{e:smag-lilly}
 \Delta_{ij} = (\Delta x \Delta y \Delta z)^{1/3} f_{b},   
 \end{equation}
 where 
-\begin{equation}\label{eq:Lilly_strat}
+\begin{equation}\label{e:Lilly_strat}
 f_{b} = 
     \begin{cases}
     1 & \mathrm{Ri} \leq 0 ,\\
@@ -850,7 +843,7 @@ where
 \Delta_3 & = \Delta z f_b,
 \end{align}
 \end{subequations}
-with the stratification limiter \eqref{eq:Lilly_strat} from the Smagorinsky-Lilly model applied only in the vertical. This results in a symmetric momentum flux tensor, reduces to the Smagorinsky-Lilly model for isotropic grids with $\Delta x = \Delta y = \Delta z$, and for highly anisotropic grids with $\Delta x, \Delta y \gg \Delta_z$ gives the correct dominance of horizontal mixing that we would expect on large scales.\footnote{Such a mixing length, in a TKE-based SGS model, is implemented in SAM according to the description in \citet{Stevens05a}.}
+with the stratification limiter \eqref{e:Lilly_strat} from the Smagorinsky-Lilly model applied only in the vertical. This results in a symmetric momentum flux tensor, reduces to the Smagorinsky-Lilly model for isotropic grids with $\Delta x = \Delta y = \Delta z$, and for highly anisotropic grids with $\Delta x, \Delta y \gg \Delta_z$ gives the correct dominance of horizontal mixing that we would expect on large scales.\footnote{Such a mixing length, in a TKE-based SGS model, is implemented in SAM according to the description in \citet{Stevens05a}.}
 
 This can be improved further in a number of ways. For example, for the oceans, it is important to make sure the dominant diffusion is aligned with isopycnals, and the diffusion tensor needs to be rotated accordingly. 
 
@@ -860,21 +853,19 @@ Additionally, the presence of a boundary also limits the mixing length. This can
 
 \section{Vreman Eddy Viscosity Model}
 
-\hl{[Akshay: I edited what follows for clarity. Please verify it's correct.]}
-
 The \citet{vreman2004} eddy-viscosity model is of similar complexity as the Smagorinsky model but has low dissipation near wall boundaries and in transitional flow regimes. The turbulent viscosity for this model depends on first-order derivatives of velocities and is given by 
-\begin{subequations}\label{eq:vreman-sgs}
+\begin{subequations}\label{e:vreman-sgs}
 \begin{equation}
 \nu_{t} = 2.5 C_{s}^2 \sqrt{\frac{B_{\beta}}{u_{i,j}u_{i,j}}},
 \end{equation}
-where (for $i,j = (1,2,3)$)
+where (for $i,j, m = (1,2,3)$)
 \begin{align}
 B_{\beta} &= \beta_{11}\beta_{22} + \beta_{11}\beta_{33} + \beta_{22}\beta_{33} - (\beta_{13}^2 + \beta_{12}^2 + \beta_{23}^2) \\
 \beta_{ij} &= \Delta_{m}^2 u_{i, m} u_{j, m} \\
 u_{i,j} &= \frac{\partial u_{i}}{\partial x_{j}}.
 \end{align}
 \end{subequations}
-Here, summation over repeated indices is implied, $C_s$ is the constant Smagorinsky coefficient, and the $u_{i}$'s represent the components of the resolved-scale velocity vector, so that $u_{i,j}$ is the $3\times 3$ matrix of first derivatives of the velocity field. The mixing lengths $\Delta_{m}$ can be determined as the grid spacing in direction $m$. Corrections for stratified flows can also be applied as the Smagorinsky-Lilly model \eqref{eq:Lilly_strat} or in the Smagorinsky-Lilly model with anisotropic mixing \eqref{e:anisotropic_Smag-Lilly}. The turbulent diffusivity $\mathcal{D}_t = \nu_t/\mathrm{Pr}_t$ is then related the eddy viscosity through a fixed turbulent Prandtl number $\mathrm{Pr}_t$, as in Eq.~\eqref{e:Prandtl_number}. 
+Here, summation over repeated indices is implied, $C_s$ is the constant Smagorinsky coefficient, and the $u_{i}$'s represent the components of the resolved-scale velocity vector, so that $u_{i,j}$ is the $3\times 3$ matrix of first derivatives of the velocity field. The mixing lengths $\Delta_{m}$ can be determined as the grid spacing in direction $m$. Corrections for stratified flows can also be applied as the Smagorinsky-Lilly model \eqref{e:Lilly_strat} or in the Smagorinsky-Lilly model with anisotropic mixing \eqref{e:anisotropic_Smag-Lilly}. The turbulent diffusivity $\mathcal{D}_t = \nu_t/\mathrm{Pr}_t$ is then related the eddy viscosity through a fixed turbulent Prandtl number $\mathrm{Pr}_t$, as in Eq.~\eqref{e:Prandtl_number}. 
 
 \section{Anisotropic Minimum Dissipation Model}
 
@@ -906,7 +897,7 @@ which is added to the SGS momentum flux tensor $\vec{\tau}$, giving rise to a te
 \begin{equation}
     \vec{d}_{th} = \frac{\nu_4}{\mathrm{Pr}_4} \nabla_h^3 q_t.
 \end{equation}
-is added to the diffusive moisture flux $\vec{d}_t$, giving rise to a tendency term $-\divergence (\rho \nu_4 \nabla_h^3 q_t)$ on the right-hand side of the moisture balance \eqref{eq:governing_equations/moisture}. Here, $\mathrm{Pr}_4$ is a Prandtl number for biharmonic diffusion.
+is added to the diffusive moisture flux $\vec{d}_t$, giving rise to a tendency term $-\divergence (\rho \nu_4 \nabla_h^3 q_t)$ on the right-hand side of the moisture balance \eqref{e:governing_equations/moisture}. Here, $\mathrm{Pr}_4$ is a Prandtl number for biharmonic diffusion.
 
 Biharmonic diffusion does not guarantee monotonocity of the field that is being diffused and hence can give rise to spurious maxima or minima of scalars, or even negative values, for example, of specific humidities. However, it does guarantee global conservation of the field that is being diffused provided the normal components of fluxes such as 
 \[
@@ -928,7 +919,7 @@ for the diffusion coefficient \citep{Jablonowski11a}. Here, $\Delta x$ is the sm
 
 \subsection{Divergence Diffusion}
 
-Because time-dependent density fluctuations in the mass balance \eqref{eq:governing_equations/mass} are responsible for sound waves, sound waves are absent in systems of equations (e.g., the anelastic or Boussinesq systems) in which the mass balance reduces to a non-divergence statement,
+Because time-dependent density fluctuations in the mass balance \eqref{e:governing_equations/mass} are responsible for sound waves, sound waves are absent in systems of equations (e.g., the anelastic or Boussinesq systems) in which the mass balance reduces to a non-divergence statement,
 \[
 D_{\vec{u}} = \divergence (\rho \vec{u}) = 0.
 \]
@@ -940,7 +931,7 @@ The divergence can be damped by adding a diffusion term to the divergence equati
 \end{equation}
 where the dots stand for all other terms that appear in this equation, and $\vec{\nu}_D$ is the (possibly anisotropic) viscosity for divergence damping.
 
-In the momentum equation \eqref{eq:governing_equations/momentum}, divergence damping amounts to an additional source term
+In the momentum equation \eqref{e:governing_equations/momentum}, divergence damping amounts to an additional source term
 \begin{equation}
 \vec{F}_{\vec{u}} = \frac{\vec{\nu}_D \circ \grad\left[\divergence (\rho \vec{u}) \right]}{\rho},
 \end{equation}
@@ -1039,7 +1030,7 @@ The drag law formulation for momentum transfer results from relating the surface
 
 %\subsubsection{Pressure}
 
-%The pressure $p$ also appears in a ``flux'' in the momentum balance \eqref{eq:governing_equations/momentum}. The pressure is computed diagnostically from the thermodynamic state specified by density $\rho$, temperature $T$, and the specific humidities $q$ (see below). Temperature depends on internal energy $I$ at the surface, which is determined from total energy $e^{\mathrm{tot}}$ at the surface assuming a vanishing velocity at the surface (the no-slip condition, which is physically demanded at a surface with any minimally viscous fluid). 
+%The pressure $p$ also appears in a ``flux'' in the momentum balance \eqref{e:governing_equations/momentum}. The pressure is computed diagnostically from the thermodynamic state specified by density $\rho$, temperature $T$, and the specific humidities $q$ (see below). Temperature depends on internal energy $I$ at the surface, which is determined from total energy $e^{\mathrm{tot}}$ at the surface assuming a vanishing velocity at the surface (the no-slip condition, which is physically demanded at a surface with any minimally viscous fluid). 
 
 \subsubsection{Sedimentation Flux of Momentum}
 
@@ -1051,36 +1042,38 @@ represents the momentum associated with velocities parallel to the surface trans
 
 \subsection{Moisture Flux}\label{s:bc_moisture_flux}
 
-As for momentum, the advective specific humidity fluxes normal to a rigid surface vanish, but the diffusive or SGS specific humidity fluxes normal to the surface may not vanish. Normal components of SGS fluxes of condensate are generally set to zero at boundaries,
-\begin{equation}\label{e:sfc_condensate_flux}
-\vec{\hat n} \cdot (\rho \vec{d}_{q_{l}})\bigl|_\mathrm{sfc} = \vec{\hat n} \cdot (\rho \vec{d}_{q_{i}})\bigl|_\mathrm{sfc} = 0,
+As for momentum, the advective specific humidity fluxes normal to a rigid surface vanish, but the diffusive or SGS specific humidity fluxes normal to the surface may not vanish.  The total diffusive or SGS specific humidity flux at the surface is the total evaporation flux (or condensation flux if negative)
+\begin{equation}\label{e:water_flux_sfc}
+E = \vec{\hat n} \cdot (\rho \vec{d}_{q_{t}})\bigl|_\mathrm{sfc} = -\vec{\hat n} \cdot (\rho \vec{\mathcal{D}}_t \circ \grad q_t)\bigl|_\mathrm{sfc}.
 \end{equation}
-implying homogeneous Neumann boundary conditions ($\vec{\hat n}\cdot\grad q_l = \vec{\hat n}\cdot\grad q_i = 0$) on the condensate specific humidities. The total diffusive or SGS specific humidity flux then reduces to the vapor flux at the surface,\footnote{SGS turbulent deposition of condensate (fog) on the surface can in principle occur; representing this would require nonzero condensate fluxes at the surface.}
-\[
-\vec{\hat n} \cdot (\rho \vec{d}_{q_{t}})\bigl|_\mathrm{sfc} = \vec{\hat n} \cdot (\rho \vec{d}_{q_{v}})\bigl|_\mathrm{sfc},
-\]
-with evaporation (or condensation if negative)
-\[
-E = \vec{\hat n} \cdot (\rho \vec{d}_{q_{v}})\bigl|_\mathrm{sfc} = -\vec{\hat n} \cdot (\rho \vec{\mathcal{D}}_t \circ \grad q_t)\bigl|_\mathrm{sfc}.
-\]
 
-For the evaporation $E$ of water vapor at the surface (units of $\mathrm{kg~m^{-2}~s^{-1}}$), we distinguish four cases:
+If normal components of SGS fluxes of condensate are set to zero at boundaries,
+\[
+\vec{\hat n} \cdot (\rho \vec{d}_{q_{l}})\bigl|_\mathrm{sfc} = \vec{\hat n} \cdot (\rho \vec{d}_{q_{i}})\bigl|_\mathrm{sfc} = 0,
+\]
+implying homogeneous Neumann boundary conditions ($\vec{\hat n}\cdot\grad q_l = \vec{\hat n}\cdot\grad q_i = 0$) on the condensate specific humidities, the total specific humidity flux \eqref{e:water_flux_sfc} reduces to the vapor flux at the surface. However, SGS turbulent deposition of condensate (fog) on the surface can occur, even though it generally is a small term. To represent nonzero deposition of condensate at the surface
+\begin{equation}\label{e:sfc_condensate_flux}
+.
+\end{equation}
+\hl{[need to write them out explicitly]}
+
+For the evaporation $E$ of water at the surface (units of $\mathrm{kg~m^{-2}~s^{-1}}$), we distinguish four cases:
 \begin{enumerate}
-    \item \textbf{Vapor Impermeable}: There is no diffusive or SGS transfer of water vapor between the atmosphere and the surface,
+    \item \textbf{Impermeable}: There is no diffusive or SGS transfer of water between the atmosphere and the surface,
     \[
     E = 0.
     \]
-    According to the structure of the diffusive flux of water vapor \eqref{e:water_diffusion}, this amounts to a homogeneous Neumann condition on the vapor specific humidity ($\vec{\hat n}\cdot\grad q_v = 0$).
+    According to the structure of the diffusive flux of water \eqref{e:water_diffusion}, this amounts to a homogeneous Neumann condition on the total specific humidity ($\vec{\hat n}\cdot\grad q_t = 0$).
     \item \textbf{Given Evaporation}: The evaporation flux of water vapor is given, or is a given function of state variables $\vec{Y}$ and/or space ($\vec{x}_\mathrm{sfc}$) and time ($t$) coordinates at the surface,
     \[
     E = E(\vec{Y}; \vec{x}_\mathrm{sfc}, t).
     \]
-    For example, this may be used for coupling atmosphere and land, where the evaporation flux represents evapotranspiration and can be a complicated function of the atmospheric, soil, and canopy state. It amounts to an inhomogeneous Neumann condition on the vapor specific humidity.
+    For example, this may be used for coupling atmosphere and land, where the evaporation flux represents evapotranspiration and can be a complicated function of the atmospheric, soil, and canopy state. It amounts to an inhomogeneous Neumann condition on the total specific humidity.
     \item \textbf{Given Surface Humidity}: If the vapor specific humidity in a microscopic air layer in contact with the surface is a given function $q_{v, \mathrm{sfc}} = q_{v}(\vec{Y}; \vec{x}_\mathrm{sfc}, t)$, evaporation is modeled by a bulk exchange law analogous to the drag law \eqref{e:drag_law} for momentum,
     \begin{equation}\label{e:sfc_evaporation}
-    E = - \rho C_{h, \mathrm{int}} \| \vec{u}_{p, \mathrm{int}} \| \left( q_{v, \mathrm{int}} - q_{v, \mathrm{sfc}} \right).
+    E = - \rho C_{h, \mathrm{int}} \| \vec{u}_{p, \mathrm{int}} \| \left( q_{t, \mathrm{int}} - q_{v, \mathrm{sfc}} \right).
     \end{equation} 
-    Here, $C_{h, \mathrm{int}}$ is a bulk exchange coefficient for water vapor, which is determined from similarity theory, like the drag coefficient for momentum $C_d$. However, it need not be related simply to the drag coefficient for momentum because momentum exchange at the surface is influenced by pressure fluctuations, whereas pressure fluctuations exert no dynamical effect on moisture and other tracers. This boundary condition likewise amounts to an inhomogeneous Neumann condition on the vapor specific humidity.
+    Here, $C_{h, \mathrm{int}}$ is a bulk exchange coefficient for water, which is determined from similarity theory, like the drag coefficient for momentum $C_d$. However, it need not be related simply to the drag coefficient for momentum because momentum exchange at the surface is influenced by pressure fluctuations, whereas pressure fluctuations exert no dynamical effect on moisture and other tracers. This boundary condition likewise amounts to an inhomogeneous Neumann condition on the total specific humidity.
     \item \textbf{Saturated Surface}: The case of a saturated surface is a special case of a given surface humidity: If air in contact with the surface is saturated (i.e., the surface is liquid or ice and air is in thermodynamic equilibrium with the surface at temperature $T_\mathrm{sfc}$), the vapor specific humidity in a microscopic air layer adjacent to the surface is the saturation specific humidity (see section~\ref{sct:sat_spef_hum}),
      \[
     q_{v, \mathrm{sfc}} =q_v^*(T_\mathrm{sfc}, \rho_\mathrm{sfc}).
@@ -1094,7 +1087,7 @@ For the evaporation $E$ of water vapor at the surface (units of $\mathrm{kg~m^{-
 
 \subsubsection{Sedimentation Fluxes of Condensate}
 
-While diffusive and advective condensate fluxes normal to the surface are assumed to vanish, condensate with sedimentation velocity $w_{l/i}$ may sediment onto the surface. This corresponds to an outgoing boundary condition on the fluxes,
+Condensate with sedimentation velocity $w_{l/i}$ may sediment onto the surface. This corresponds to an outgoing boundary condition on the fluxes,
 \begin{equation}
     P_{\mathrm{liq}} = \rho q_{l} w_{l} (\vec{\hat k} \cdot \vec{\hat n}) \quad \text{and} \quad  P_{\mathrm{ice}} = \rho q_{i} w_{i} (\vec{\hat k} \cdot \vec{\hat n}),
 \end{equation}
@@ -1124,7 +1117,9 @@ may not vanish. Because the kinetic energy contribution to the total enthalpy fl
     \vec{\hat n} \cdot \rho (\vec{J} + \vec{D})_\mathrm{sfc} = -\rho C_{h, \mathrm{int}} \| \vec{u}_{p,\mathrm{int}} \| 
      \left( h_\mathrm{int} -h_\mathrm{sfc} + \Phi_\mathrm{int} -  \Phi_\mathrm{sfc} \right).
     \end{equation}
-    That is, the total enthalpy flux at the surface is approximated as a flux of $\mathrm{MSE} =h + \Phi$, and this flux is proportional to the MSE difference between the surface ($\vec{x}_\mathrm{sfc}$) and an adjacent interior point ($\vec{x}_\mathrm{int}$), with the same bulk exchange coefficient $C_{h, \mathrm{int}}$ as for water vapor (consistent with taking the turbulent diffusivities of specific humidity and total enthalpy to be the same). The enthalpy $h_\mathrm{sfc}$ at the surface is evaluated according to its definition \eqref{e:enthalpy_definition} from the given surface temperature $T_\mathrm{sfc}(\vec{x}_\mathrm{sfc}, t)$ and surface vapor specific humidity $q_{v, \mathrm{sfc}}(\vec{x}_\mathrm{sfc}, t)$. Consistent with the assumed vanishing of the condensate fluxes \eqref{e:sfc_condensate_flux}, the condensate specific humidities at the surface are set to their values at the near-surface interior point, so that their gradients normal to the surface vanish:
+    That is, the total enthalpy flux at the surface is approximated as a flux of $\mathrm{MSE} =h + \Phi$, and this flux is proportional to the MSE difference between the surface ($\vec{x}_\mathrm{sfc}$) and an adjacent interior point ($\vec{x}_\mathrm{int}$), with the same bulk exchange coefficient $C_{h, \mathrm{int}}$ as for water (consistent with taking the turbulent diffusivities of specific humidity and total enthalpy to be the same). The enthalpy $h_\mathrm{sfc}$ at the surface is evaluated according to its definition \eqref{e:enthalpy_definition} from the given surface temperature $T_\mathrm{sfc}(\vec{x}_\mathrm{sfc}, t)$ and surface vapor specific humidity $q_{v, \mathrm{sfc}}(\vec{x}_\mathrm{sfc}, t)$. 
+    
+    Consistent with the condensate fluxes \eqref{e:sfc_condensate_flux}, the condensate specific humidities at the surface are set to \hl{[update]} their values at the near-surface interior point, so that their gradients normal to the surface vanish:
     \[
     q_{l, \mathrm{sfc}} = q_l(\vec{x}_\mathrm{int}, t) \quad \text{and} \quad q_{i, \mathrm{sfc}} = q_i(\vec{x}_\mathrm{int}, t).
     \]
@@ -1134,7 +1129,7 @@ While these relations suffice to specify the energy flux boundary condition at t
 
 \subsubsection{Latent Heat (Vapor Static Energy) Flux}
 
-Because the condensate fluxes are assumed to vanish at the surface, the energy flux $\vec{\hat n} \cdot (\rho \vec{D})_{\mathrm{sfc}}$ is the total enthalpy flux \eqref{eq:energy-flux-water} carried by evaporation from the surface. It reduces to a static energy flux when kinetic energy is neglected,
+The energy flux $\vec{\hat n} \cdot (\rho \vec{D})_{\mathrm{sfc}}$ is the total enthalpy flux \eqref{e:energy-flux-water} carried by evaporation (net of evaporation and condensation) from the surface. If we neglect kinetic energy and condensate fluxes at the surface, it reduces to a static energy flux,
 \begin{equation}\label{e:sfc_LHF}
      \mathrm{LHF} = \vec{\hat n} \cdot (\rho \vec{D})_{\mathrm{sfc}}   = (h_{v, \mathrm{sfc}} + \Phi_\mathrm{sfc}) E.
 \end{equation}
@@ -1150,13 +1145,13 @@ At Earth's surface, the specific latent heat term $L_{v,0}$ is about 2 orders of
     -\rho C_{h, \mathrm{int}} \| \vec{u}_{p, \mathrm{int}} \|
     \\
     \times \left[ c_{pm} \left(T_\mathrm{int} - T_\mathrm{sfc} \right) + \Phi_\mathrm{int} - \Phi_\mathrm{sfc}
-    - h_{d,\mathrm{sfc}}  \left( q_{v, \mathrm{int}} - q_{v, \mathrm{sfc}} \right) \right],
+    - h_{d,\mathrm{sfc}}  \left( q_{t, \mathrm{int}} - q_{v, \mathrm{sfc}} \right) \right],
 \end{multline}
 with the specific enthalpy of dry air \eqref{e:enthalpies},
 \[
 h_{d, \mathrm{sfc}} = c_{pd} (T_\mathrm{sfc} - T_0) + R_d T_0.
 \]
-The dry static energy flux represents the portion of the total moist static energy flux at the surface that is associated with the thermal diffusive flux $\vec{J}$, rather than with the flux of water vapor. The term $-h_{d,\mathrm{sfc}}  \left( q_{v, \mathrm{int}} - q_{v, \mathrm{sfc}} \right)$ arises from the differential diffusion of the dry air component of moist air, or from the differential diffusion of water vapor; the condensate specific humidities $q_l$ and $q_i$ at the surface and at the interior point adjacent to it are again set to be equal. The vapor specific humidity $q_{v, \mathrm{sfc}}$ at the surface is the saturation specific humidity over a saturated surface, as before. We call this energy flux the sensible heat flux (SHF), although it is more appropriately called a static energy flux owing to thermal diffusion. It differs in details from common empirical formulations for the sensible heat flux because the sensible heat carried by evaporation is included in what we call LHF. This form of the SHF stems from an exact decomposition of the moist static energy flux at the surface into components associated with water vapor fluxes and thermal diffusive fluxes.
+The dry static energy flux represents the portion of the total moist static energy flux at the surface that is associated with the thermal diffusive flux $\vec{J}$, rather than with the flux of water. The term $-h_{d,\mathrm{sfc}}  \left( q_{v, \mathrm{int}} - q_{v, \mathrm{sfc}} \right)$ arises from the differential diffusion of the dry air component of moist air, or from the differential diffusion of water vapor if condensate fluxes vanish. The vapor specific humidity $q_{v, \mathrm{sfc}}$ at the surface is the saturation specific humidity over a saturated surface, as before. We call this energy flux the sensible heat flux (SHF), although it is more appropriately called a static energy flux owing to thermal diffusion. It differs in details from common empirical formulations for the sensible heat flux because the sensible heat carried by evaporation is included in what we call LHF. This form of the SHF stems from an exact decomposition of the moist static energy flux at the surface into components associated with water fluxes and thermal diffusive fluxes.
 
 Note that we make the (common) assumption that total specific humidity and total enthalpy have the same bulk exchange coefficient $C_h$, which allowed us to derive the functional forms above for the individual fluxes $\vec{J}$ and $\vec{D}$ at the surface.  However, the exchange coefficient for momentum, $C_d$, may differ because momentum exchange is affected by pressure fluctuations, whereas scalar exchange is not affected by them.
 
@@ -1170,7 +1165,7 @@ The energy carried by sedimenting condensate is generally small but can be taken
 
 \subsection{Precipitation Fluxes}
 
-Like the diffusive/SGS fluxes of suspended condensate \eqref{e:sfc_condensate_flux}, the diffusive/SGS fluxes of precipitation species $q_{p, i}$ normal to the surface are taken to vanish
+The diffusive/SGS fluxes of precipitation species $q_{p, i}$ normal to the surface are taken to vanish
 \begin{equation}\label{e:sfc_precip}
  \vec{\hat n} \cdot (\rho \vec{d}_{q_{p, i}}) = 0.
 \end{equation} 
@@ -1202,7 +1197,7 @@ Generally, the model top is a rigid lid, which means. it is:
 \begin{itemize}
     \item \textbf{Impenetrable} (velocity)
     \item \textbf{Free slip} (momentum flux)
-    \item \textbf{Vapor impermeable} (moisture flux)
+    \item \textbf{Impermeable} (moisture flux)
     \item \textbf{Insulating} (energy flux)
 \end{itemize}
 A rigid lid at the top is used in lieu of radiation boundary conditions, which would be more appropriate but are difficult to implement. To prevent spurious reflections of waves at the rigid lid, a sponge layer near the lid is usually used to absorb waves, leading to additional source terms in the equations (section~\ref{s:sponge}).
@@ -1223,7 +1218,7 @@ Any combination of these types of boundary conditions gives a consistently formu
 Lateral boundary conditions do not arise on the sphere. However, several forms of lateral boundary conditions arise in LES configurations: We want to be able to configure the model with the following lateral boundary conditions:
 \begin{itemize}
     \item \textbf{Doubly periodic}: Periodic boundary conditions on the sides are a special case of Dirichlet conditions, where all state variables at a boundary face are equal to the state variables at the opposing boundary face.
-    \item \textbf{Re-entrant channel}: Impenetrable, vapor impermeable, insulating, free-slip walls on two opposing sides (side walls of channels), and periodic boundary conditions at the other two sides, with outflow out of one side being equal to inflow through the opposite side. 
+    \item \textbf{Re-entrant channel}: Impenetrable, impermeable, insulating, free-slip walls on two opposing sides (side walls of channels), and periodic boundary conditions at the other two sides, with outflow out of one side being equal to inflow through the opposite side. 
     \item \textbf{Prescribed state and fluxes}: Prescribed states and fluxes (e.g., from a GCM simulation) at all lateral boundaries. 
 \end{itemize}
 With prescribed state and fluxes on lateral boundaries, transparent radiation boundary conditions would be desirable. In principle they can be achieved with upwind schemes \citep{Davies14a}. A simpler alternative is relaxation layers that prevent the unwanted reflection of fast waves, as in \textit{sponge} layers \citep{Davies76a}.
@@ -1241,7 +1236,7 @@ A simple formulation of a sponge layer is a linear (Rayleigh) damping layer, in 
 \vec{F}_{\vec{u}} = -\beta_{\rm sponge} \left[\vec{u}_p - \vec{u}_0(\vec{x}, t)\right].
 \end{equation*}
 A simple form of the relaxation coefficient that ensures a smooth onset of the sponge layer is \citep{klemp:1978a}
-\begin{equation}\label{eq:spongeDurran}
+\begin{equation}\label{e:spongeDurran}
 \beta_{\rm sponge}(z) =  
   \begin{cases}
     0 &  z\leq z_D,\\
@@ -1257,109 +1252,155 @@ If the reference velocity $\vec{u}_0$ is chosen to be the zonal mean velocity $\
 \subsection{Alternatives to Sponge Layers}
 
 Alternatives to sponge layers include:
-\comment{
-\begin{itemize}
-    \item One may use an extrapolation condition, whereby the Riemann solver is modified to let flow move out of the domain. This is what is typically used with Godunov methods. 
-    \item One may use the approach recently proposed by Benacchio and Bonaventura: they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
-    \item Another option is the simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[From Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
-\end{itemize}
-}
  \begin{itemize}
-    \item an extrapolation condition, whereby the Riemann solver is modified to let flow move out of the domain. This is what is typically used with Godunov methods. 
-    \item the approach recently proposed by Benacchio and Bonaventura: they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
-    \item the simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[From Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
+    \item An extrapolation condition, whereby the Riemann solver is modified to let flow move out of the domain. This is what is typically used with Godunov methods. 
+    \item The approach recently proposed by Benacchio and Bonaventura: they use Laguerre functions in a DG approach to enforce absorbing boundary conditions (see \texttt{https://arxiv.org/pdf/1803.10997.pdf}).
+    \item The simple radiation boundary condition proposed by \cite{orlanski1979}. \hl{[From Simone: I implemented in 2D in NUMA back in the day and it did work for CGSEM, but it requires the velocity at the two previous time levels.]}
 \end{itemize}
     
     
 \chapter{Hydrostatic Reference States}\label{c:reference_state}
 
-In the momentum balance \eqref{eq:governing_equations/momentum}, we factored out a hydrostatic reference state with pressure $p_r(z)$ and density $\rho_r(z)$. While initial conditions are usually case specific, such a reference state often is also used as an initial condition. Here we consider a class of reference states that are at rest, hydrostatic, and have a specified temperature profile $T_r(z)$ that varies only with altitude $z$. To reduce spin-up times, for example, of a global model, we may also wish to specify an initial constant relative humidity (with $\mathrm{RH} < 1$ to avoid saturation in the initial state). That same state is also convenient for linearizations needed in implicit solves for fast wave modes in the governing equations.
+In the momentum balance \eqref{e:governing_equations/momentum}, we factored out a hydrostatic reference state with pressure $p_r(z)$ and density $\rho_r(z)$. Such a reference state is often also used as a reference state for linearizations in implicit time stepping strategies and as an initial condition to reduce spin-up times, for example, of a global model. 
 
-\section{Temperature}
-
-A simple temperature profile that covers many cases is
-\begin{equation}\label{e:ref_temperature}
-    T_r(z) = \max \left( T_{\mathrm{sfc}} - \Gamma z, T_{\min} \right),
-\end{equation}
-with parameters
+Here we consider a class of reference states that are
 \begin{itemize}
-    \item $T_{\mathrm{sfc}}$: surface temperature, 
-    \item $\Gamma$: temperature lapse rate at temperatures below $T_{\min}$,
-    \item $T_{\min}$: minimum temperature.
+    \item at rest,
+    \item satisfy hydrostatic balance, and
+    \item satisfy the ideal gas law.
 \end{itemize}
-This temperature decreases linearly in $z$ at a lapse rate $\Gamma$ from the surface temperature $T_{\mathrm{sfc}}$ to the minimum temperature $T_{\min}$, attained at 
-\begin{equation}\label{e:z_t}
-z_{t} = \frac{T_{\mathrm{sfc}} - T_{\min}}{\Gamma}.
+
+We consider two types of references states. 
+\begin{enumerate}
+    \item For atmosphere simulations (both GCM simulations and LES simulations with domains spanning the troposphere and above), we use references states that are characterized by
+\begin{itemize}
+    \item a smooth virtual temperature profile $T_{v,r}(z)$ that varies only with altitude $z$,
+    \item a fixed relative humidity RH.
+\end{itemize}
+Prescribing a virtual temperature profile $T_{v,r}(z)$ (see section~\ref{s:virtual_temp}) rather than a temperature profile makes the specification of moist reference states ($\mathrm{RH}>0$)  straightforward. The virtual temperature profile reduces to the temperature profile in the dry case ($\mathrm{RH}=0$).
+\item For smaller-scale problems in limited domains, a dry adiabatic reference state is also often used and will be described too.
+\end{enumerate}
+
+\section{Atmospheric Reference State}
+
+\subsection{Virtual Temperature}
+
+We consider a class of smooth virtual temperature profiles of the form
+\begin{equation}\label{e:ref_temperature}
+    T_{v,r}(z) = T_{v, \mathrm{sfc}} - \Delta T \tanh\left(\frac{z}{H_{t}}\right),
 \end{equation}
-The temperature is constant and equal to $T_{\min}$ above $z_t$. See Fig.~\ref{f:hydrostatic_state}a for an example. The resulting temperature profile is a rough approximation of a tropospheric temperature profile with lapse rate $\Gamma$ and a ``tropopause'' at height $z_t$, overlain by a ``stratosphere'' with constant temperature $T_{\min}$. For $\Gamma = g/c_{pd}$, the ``tropospheric'' temperature profile is dry adiabatic (isentropic), i.e., has constant (dry) potential temperature. 
+with parameters 
+\begin{itemize}
+    \item $T_{v, \mathrm{sfc}}$: virtual surface temperature, 
+    \item $\Delta T$: temperature drop from surface to top of atmosphere,
+    \item $H_{t}$: height scale over which temperature drops.
+\end{itemize}
+This temperature profile reduces to an isothermal virtual temperature profile for $\Delta T = 0$. Otherwise, virtual temperatures decay smoothly over a height scale $H_{t}$ from $T_{v, \mathrm{sfc}}$ at $z=0$ to $T_{v, \mathrm{sfc}} - \Delta T$ at $z\to \infty$. Figure~\ref{f:hydrostatic_state}a shows an example of such a virtual temperature profile with parameters $T_{v, \mathrm{sfc}} = 290~\mathrm{K}$, $\Delta T = 60~\mathrm{K}$, and $H_{t} = 8~\mathrm{km}$, which are typical for Earth's midlatitudes. The temperature profile approximates the temperature decay with height in Earth's troposphere, with an approximately isothermal stratosphere above it.
 \begin{figure}
     \centering
     \includegraphics{figures/hydrostatic_state.pdf}
-    \caption{(a) An isothermal temperature profile (blue) and a temperature profile \eqref{e:ref_temperature} (red) with surface temperature $T_{\mathrm{sfc}} = 300~\mathrm{K}$, ``stratospheric'' temperature $T_{\min} = 200~\mathrm{K}$, and ``tropospheric'' temperature lapse rate $\Gamma = 6.5~\mathrm{K~km^{-1}}$---values roughly representative of Earth's tropical atmosphere. (b) The corresponding hydrostatically balanced pressure profiles \eqref{eq:hydro_pressure_iso} and \eqref{eq:hydro_pressure_lapse}, with $p_{\mathrm{MSLP}} = 10^5~\mathrm{Pa}$.}
+    \caption{(a) An isothermal virtual temperature profile (blue) and a virtual temperature profile \eqref{e:ref_temperature} (red) with surface temperature $T_{v, \mathrm{sfc}} = 290~\mathrm{K}$, temperature drop $\Delta T = 60~\mathrm{K}$, and tropospheric height scale $H_{t} = 8~\mathrm{km}$---values roughly representative of Earth's midlatitude atmosphere. (b) The corresponding hydrostatically balanced pressure profiles \eqref{e:hydro_pressure}, with $p_{\mathrm{MSLP}} = 10^5~\mathrm{Pa} = 1000~\mathrm{hPa}$.}
     \label{f:hydrostatic_state}
 \end{figure}
 
-\section{Pressure}
+% A simple temperature profile that covers many cases is
+% \begin{equation}\label{e:ref_temperature}
+%     T_{v,r}(z) = \max \left( T_{v, \mathrm{sfc}} - \Gamma z, T_{\min} \right),
+% \end{equation}
+% with parameters
+% \begin{itemize}
+%     \item $T_{v, \mathrm{sfc}}$: surface temperature, 
+%     \item $\Gamma$: temperature lapse rate at temperatures below $T_{\min}$,
+%     \item $T_{\min}$: minimum temperature.
+% \end{itemize}
+% This temperature decreases linearly in $z$ at a lapse rate $\Gamma$ from the surface temperature $T_{v, \mathrm{sfc}}$ to the minimum temperature $T_{\min}$, attained at 
+% \begin{equation}\label{e:z_t}
+% z_{t} = \frac{T_{v, \mathrm{sfc}} - T_{\min}}{\Gamma}.
+% \end{equation}
+% The temperature is constant and equal to $T_{\min}$ above $z_t$. See Fig.~\ref{f:hydrostatic_state}a for an example. The resulting temperature profile is a rough approximation of a tropospheric temperature profile with lapse rate $\Gamma$ and a ``tropopause'' at height $z_t$, overlain by a ``stratosphere'' with constant temperature $T_{\min}$. For $\Gamma = g/c_{pd}$, the ``tropospheric'' temperature profile is dry adiabatic (isentropic), i.e., has constant (dry) potential temperature. 
 
-We obtain the pressure $p_r(z)$ consistent with the temperature profile $T_r(z)$ by combining hydrostatic balance ($\partial_z p(z) = - \rho g$) with the ideal gas law ($p=\rho R_d T$, neglecting the effect of any moisture on the gas constant). This gives
-\begin{equation}\label{eq:hydro_pressure}
-p_r(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{dz}{H(z)} \right).
-\end{equation}
-Here,
-\begin{equation}
-H(z)  = \frac{R_d T_r(z)}{g}
-\end{equation}
-is the scale height, and we chose for the pressure $p_r(0)$ at altitude $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. 
+\subsection{Pressure}
 
-It helps here to distinguish the cases of an isothermal atmosphere and of an atmosphere with nonzero lapse rate:
-\begin{itemize}
-\item \textbf{Isothermal Atmosphere ($\Gamma = 0$, $T_{\mathrm{sfc}} \ge T_{\min}$).} 
-In this case, the pressure becomes 
-\begin{equation}\label{eq:hydro_pressure_iso}
-    p_r(z) = p_{\mathrm{MSLP}} \exp \left(-\frac{z}{H_{\mathrm{sfc}}} \right), \qquad H_{\mathrm{sfc}} = \frac{R_d T_{\mathrm{sfc}}}{g} = \mathrm{const}.
+The pressure $p_r(z)$ consistent with the virtual temperature profile $T_{v,r}(z)$ is obtained by combining hydrostatic balance ($\partial_z p_r(z) = - \rho_r g$) with the ideal gas law ($p_r =\rho_r R_d T_{v, r}$). This gives $\partial_z \log(p_r) = -g/(R_d T_{v, r})$, or
+\begin{equation}\label{e:hydro_pressure_gen}
+p_r(z) = p_{\mathrm{MSLP}} \exp\left(-\int_0^z \frac{g}{R_d T_{v, r}(z')} dz' \right),
 \end{equation}
-See See Fig.~\ref{f:hydrostatic_state}b (blue line) for an example.
+where we have chosen for the pressure $p_r(0)$ at altitude $z=0$ the mean sea-level pressure $p_{\mathrm{MSLP}}$, a model parameter. 
 
-\item \textbf{Nonzero Lapse Rate ($\Gamma \ge 0$, $T_{\mathrm{sfc}} \ge T_{\min}$).}
-Integrating the general expression \eqref{eq:hydro_pressure} for the hydrostatic pressure for a temperature profile \eqref{e:ref_temperature} with nonzero lapse rate yields
-\begin{equation}\label{eq:hydro_pressure_lapse}
-p_r(z) = p_{\mathrm{MSLP}} \times
-\begin{cases}
-\left(1 - \frac{\Gamma z}{T_{\mathrm{sfc}}} \right)^{g/(R_d \Gamma)} & \text{for } z \le z_t, \\[1.5ex]
-  \left(\frac{T_{\min}}{T_{\mathrm{sfc}}} \right)^{g/(R_d \Gamma)}
- \exp  \left(-\frac{z - z_t}{H_{\min}} \right) & \text{for } z\ge z_t, 
-\end{cases}
+Integrating \eqref{e:hydro_pressure_gen} with the virtual temperature profile \eqref{e:ref_temperature} leads to
+\begin{multline}\label{e:hydro_pressure}
+p_r(z) = p_{\mathrm{MSLP}}\\
+ \times \exp\left\{
+% -\frac{z + H_{t} \Delta T' 
+% \log\left[ \cosh\left(\frac{z}{H_{t}}\right) - \atanh(\Delta T')\right]}%
+% {H_{\mathrm{sfc}}[1 - (\Delta T')^2]}
+ -\frac{z + H_{t} \Delta T' \left[
+ \log \left(1-\Delta T' \tanh\left(\frac{z}{H_{t}}\right)\right) -
+ \log\left(1 + \tanh\left(\frac{z}{H_{t}}\right)\right) + \frac{z}{H_t}\right]}%
+ {H_{\mathrm{sfc}}[1 - (\Delta T')^2]}
+\right\}
+\end{multline}
+where $\Delta T' = \Delta T/T_{v, \mathrm{sfc}}$ is the fractional temperature drop and \begin{equation}
+H_\mathrm{sfc}  = \frac{R_d T_{v,\mathrm{sfc}}}{g}
 \end{equation}
-where 
-\begin{equation}
-H_{\min} = \frac{R_d T_{\min}}{g}
-\end{equation}
-is the ``stratospheric'' scale height. See See Fig.~\ref{f:hydrostatic_state}b (red line) for an example. (The expression \eqref{eq:hydro_pressure_lapse} for nonzero lapse rate converges to the expression \eqref{eq:hydro_pressure_iso} for zero lapse rate in the limit $\Gamma \to 0$, as can be verified by L'H{\^o}pital's rule.)
-\end{itemize}
+is the density scale height at the surface. 
 
-\section{Density}
+\subsection{Density}
  
-Given the temperature $T_r(z)$ and hydrostatic pressure $p_r(z)$, the reference density $\rho_r(z)$ follows from the ideal gas law as
-\begin{equation}\label{eq:hydro_density}
-    \rho_r(z) = \frac{p_r(z)}{R_d T_r(z)}.
+Given the virtual temperature $T_{v,r}(z)$ and hydrostatic pressure $p_r(z)$, the reference density $\rho_r(z)$ follows from the ideal gas law as
+\begin{equation}\label{e:hydro_density}
+    \rho_r(z) = \frac{p_r(z)}{R_d T_{v,r}(z)}.
 \end{equation}
+This holds exactly for continuous $z$.
 
-\section{Specific Humidity}
+To obtain reference states that are in discrete hydrostatic balance, one can compute the density by differentiating pressure discretely,
+\begin{equation}\label{e:hydro_density_discrete}
+    \rho_r(z) = -\frac{1}{g} \frac{\partial p_r(z)}{\partial z}.
+\end{equation}
+The density so computed, with a discrete derivative of pressure, is guaranteed to be in hydrostatic balance with the pressure $p_r(z)$. A virtual temperature that is discretely consistent with this density can then be computed from the ideal-gas law as $T_{v,r}(z) = p_r(z)/[R_d \rho_r(z)]$. This ensures a hydrostatic reference pressure, density, and temperature in discrete hydrostatic balance. Naturally, for a polynomial approximation of degree $n$ for pressure, the polynomial approximation for density and temperature will be of degree $n-1$ and may be discontinuous at element interfaces in discontinuous Galerkin discretizations. Alternatively, continuous densities and pressures in discrete hydrostatic balance can be ensured by computing the pressure $p_r(z)$ by discrete integration of Eq.~\eqref{e:hydro_pressure_gen}, with a discrete integration that is the exact inverse of the discrete differentiation used in the model.
 
-And the total specific humidity $q_t(z)$ for a given relative humidity, temperature $T_r(z)$, and density $\rho_r(z)$ is
+The pressure \eqref{e:hydro_pressure} and density \eqref{e:hydro_density} or \eqref{e:hydro_density_discrete} together specify a family of smooth reference states that can be used to factor out a hydrostatic reference state in the momentum balance \eqref{e:governing_equations/momentum}. Relative or specific humidities, or the actual temperature, are not needed in the momentum balance.
+
+\subsection{Temperature and Specific Humidities}
+
+For initialization of the model and as a reference state for linearizations for linear implicit time stepping, we need a complete thermodynamic specification of the reference state, including the humidities and temperature needed to specify the internal energy of the reference state. For a dry reference state ($\mathrm{RH}=0$), the temperature is equal to the virtual temperature, $T_r  = T_{v,r}$, and specification of the full thermodynamic state is straightforward. 
+
+More generally, we wish to specify a relative humidity $\mathrm{RH}$ in the reference state such that the total specific humidity $q_{t, r}(z)$, temperature $T_{r}(z)$, and density $\rho_r(z)$ are related by
+\begin{equation}\label{e:qt_given_RH}
+    q_{t,r}(z) = \mathrm{RH} \, q_v^*\bigl( T_{r}(z), \rho_r(z) \bigr).
+\end{equation}
+Here, $q_v^*(T_r, \rho_r)$ is the saturation specific humidity \eqref{e:sat_shum}, which depends on the reference temperature $T_r(z)$ and density $\rho_r(z)$. The reference temperature $T_r$, in turn, is related to the reference virtual temperature $T_{v, r}$ through the definition of the virtual temperature \eqref{e:virtual_temp},
+\begin{equation}\label{e:temp_from_virt_temp}
+R_m(q_r) T_r - R_d T_{v, r} = 0,
+\end{equation}
+where the moist gas constant $R_m(q_r)$ depends on the reference specific humidities $q_r=(q_{t,r}, q_{l, r}, q_{i, r})$ through its definition \eqref{e:R_m}. That is, for $\mathrm{RH}>0$, computing the temperature $T_r$ from the virtual temperature $T_{v, r}$ is a nonlinear problem that must be solved iteratively by finding roots of \eqref{e:temp_from_virt_temp} subject to the total specific humidity specification \eqref{e:qt_given_RH}, through a saturation adjustment procedure similar to that described in section~\ref{sct:sat_adj}. We allow $\mathrm{RH} > 1$ to be able to have supersaturated states with nonzero condensate specific humidities $q_{l, r}$ and $q_{i, r}$. 
+
+In Earth's atmosphere, the temperature only deviates from the virtual temperature by $O(1~\mathrm{K})$, so as a reference state for linearization in implicit timestepping, choosing a state with $\mathrm{RH}=0$ and $T_r = T_{v, r}$ suffices. For initialization of a model with nonzero specific humidity in the initial state, the nonlinear problem \eqref{e:temp_from_virt_temp} needs to be solved to completely specify a balanced initial state.
+
+\section{Dry Adiabatic Reference State}
+
+For simulations in limited domains, a dry adiabatic reference state is often used for initialization. This corresponds to a reference temperature that decreases linearly with height at the dry adiabatic lapse rate $g/c_{pd}$,
+\begin{equation}\label{e:temperature_adiabat}
+    T_r = T_{r, \mathrm{sfc}} - \frac{g}{c_{pd}} z.
+\end{equation}
+The corresponding pressure is
+\begin{equation}\label{e:pressure_adiabat}
+p_r(z) = p_{\mathrm{MSLP}} 
+\left(1 - \frac{g z}{c_{pd} T_{v, \mathrm{sfc}}} \right)^{c_{pd}/R_d}.
+\end{equation}
+The density again follows from the ideal gas law,
 \begin{equation}
-    q_{t,r}(z) = \mathrm{RH} \, q_v^*\bigl( T_r(z), \rho_r(z) \bigr),
+    \rho_r(z) = \frac{p_r(z)}{R_d T_r(z)},
 \end{equation}
-where $q_v^*(T, \rho)$ is the saturation specific humidity \eqref{eq:sat_shum}. Corresponding to $\mathrm{RH} < 1$, we set the condensate specific humidities to zero ($q_l = q_i = 0$). \hl{[Note that this is an approximation of the RH definition. Modify or discuss.]}
+thus completing the specification of the dry-adiabatic reference state.
 
 \section{Energy}
 
-From the above quantities, we can compute the specific internal energy $I_r$ in the reference state using Eq.~\eqref{eq:total_internal_energy} and with that the total specific energy $e^{\mathrm{tot}}_r = I_r + \Phi$ corresponding to a state of rest ($\vec{u}=0$). This completes the specification of the reference state.
+From the above definitions of the reference temperature $T_r$ and, where applicable, the specific humidities $q_r$ we can compute the specific internal energy $I_r$ in the reference state using Eq.~\eqref{e:total_internal_energy}, and with that the total specific energy $e^{\mathrm{tot}}_r = I_r + \Phi$ corresponding to a state of rest ($\vec{u}=0$). This completes the specification of the thermodynamics of the reference state.
 
 \section{Noise}
 
-It is common to add a small amount of random noise, e.g., to the initial density at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of $\rho_r(0)$.
-
+It is common to add a small amount of random noise, e.g., to the initial (virtual) temperature or energy at the surface, to break the symmetry of the initial state and allow three-dimensional instabilities to develop. A typical standard deviation of such noise may be 1\% of the reference values at the surface.
 
 \chapter{Benchmark Cases}\label{c:benchmarks}
 
@@ -1385,21 +1426,19 @@ Bottom drag in this benchmark calculation is modeled as a momentum sink in the l
 \begin{equation}
     \vec{F}_{\vec{u}} = -k_v(\sigma) \vec{u}_p,
 \end{equation}
-where $\vec{u}_p = (\vec{I} - \vec{\hat n}\vec{\hat n}^T)\vec{u}$ is the (horizontal) velocity component parallel to the surface and the drag coefficient decays away from the surface:
+where $\vec{u}_p = (\vec{I} - \vec{\hat n}\vec{\hat n}^T)\vec{u}$ is the velocity component parallel to the surface (the horizontal velocity at a plane surface) and the drag coefficient decays away from the surface:
 \begin{equation}
     k_v(\sigma) = k_f \max \left( 0, \frac{\sigma - \sigma_b}{1-\sigma_b} \right).
 \end{equation}
 Here,
 \[
-\sigma = \frac{p}{p_{\mathrm{MSLP}}}
+\sigma = \frac{p}{p_{\mathrm{sfc}}}
 \]
-is a normalized pressure. (Usually, $\sigma$ is taken to be normalized by the temporally and spatially varying surface pressure $p_s$. But we can simplify this to a constant pressure.) \hl{[It would be good at some point to change this to the actual surface pressure, but this is not important now.]} The two parameters are
+is pressure normalized by the temporally and spatially varying surface pressure $p_{\mathrm{sfc}}$. \hl{[This still needs to be fixed in the code.]} The two parameters are
 \begin{itemize}
     \item $\sigma_b = 0.7$: vertical extent of drag layer
     \item $k_f = 1~\mathrm{day^{-1}}$: drag coefficient at the surface
 \end{itemize}.
-
-\hl{Note that the Rayleigh drag should only act on the horizontal velocity components and is zero in the vertical. Need to fix this in code.}
 
 \subsubsection{Heating/cooling}
 
@@ -1433,7 +1472,6 @@ where
 The interior relaxation timescale $k_a^{-1}$ controls the timescale over which the flow equilibrates to a statistically steady state.
 
 \subsection{SGS Fluxes}
-
 In global models with a stratified atmosphere, large-scale turbulence with Rossby waves usually dominates the kinetic energy of the flow. The large-scale flow is primarily rotational and horizontal. SGS dissipation primarily needs to absorb the cascade of enstrophy (vorticity variance) to small scales. This is usually accomplished by horizontal hyperdiffusion, such as biharmonic diffusion.
 
 Hence, the SGS mixing needs to be strongly anisotropic, e.g., as outlined in chapter~\ref{c:sgs_models}.
@@ -1445,7 +1483,7 @@ Hence, the SGS mixing needs to be strongly anisotropic, e.g., as outlined in cha
 \label{pressureDistrib}
 p = p_{0}\left(1-\frac{g}{c_p{\theta_{0}}}z\right)^{c_p/R}.
 \end{equation}
-The domain is $[-5000~\mathrm{m},5000~\mathrm{m}]\times[0,10000~\mathrm{m}]$. 
+The domain is $[-500~\mathrm{m},500~\mathrm{m}]\times[0,1500~\mathrm{m}]$. 
 
 We consider two different ways of triggering a rising thermal, either through a buoyant bubble specified in the initial condition, or through boundary fluxes that drive a thermal.
 
@@ -1455,19 +1493,20 @@ This is the case originally considered by \cite{robert1993}. The flow is trigger
 \begin{equation}
  \Delta\theta = \left\{ \begin{array}{ll}
  \theta_c & \text{if } r \leq a\\
- \theta_c e^{-(x - a)^2/\sigma^2} & \text{if } r > a\\
+ \theta_c e^{-(r - a)^2/\sigma^2} & \text{if } r > a\\
 \end{array} \right.
-\label{eq:robertIni}
+\label{e:robertIni}
 \end{equation}
 where $r = \sqrt[]{(x-x_{c})^{2} + (z-z_{c})^{2}}$, $(x_c,z_c) = (500,260)\,\mathrm{m}$, $a=50~\mathrm{m}$, $\sigma = 100~\mathrm{m}$, and $\theta_c=0.5~\mathrm{K}$. Results of a simulation of this flow are shown in Fig.~\ref{fig:benchmarks/robert_bubble}.
 \begin{figure}
-\centerline{\includegraphics[width=0.7\textwidth]{figures/RTB-Robert--smgo-5mX5m-1080s0000.png}}
-\caption{Simulation of 2D rising thermal bubble triggered by initial perturbation. What is shown is the potential temperature $\theta$ at $t=1080\,\mathrm{s}$. The grid resolution is $\Delta x = \Delta z = 5\,\mathrm{m}$. \fxg{which polynomial order?} The simulation is stabilized with a constant coefficient Smagorinsky-Lilly SGS model.}
+\centerline{\includegraphics[width=0.7\textwidth]{figures/benchmarks/rtb/RTB-Robert--smgo-5mX5m-1080s0000.png}}
+\caption{Simulation of 2D rising thermal bubble triggered by initial perturbation. What is shown is the potential temperature $\theta$ at $t=1080\,\mathrm{s}$. The grid resolution is $\Delta x = \Delta z = 5\,\mathrm{m}$ using $4^{th}$-order polynomials. The simulation is stabilized with a constant coefficient Smagorinsky-Lilly SGS model.}
 \label{fig:benchmarks/robert_bubble}
 \end{figure}
 
 \subsection{Thermal Driven by Boundary Fluxes}
 
+\subsubsection{One Plume}
 An alternative way of driving a thermal is by specifying a heat flux at the lower boundary. This amounts to specifying the moist static energy flux at the surface,
 \begin{equation}
     \vec{\hat n} \cdot \rho (\vec{J} + \vec{D})_\mathrm{sfc} = \mathrm{MSEF}(\vec{x}, t).
@@ -1491,8 +1530,9 @@ where $r = |x-x_{c}|$, $x_c = 500\,\mathrm{m}$, $a=50~\mathrm{m}$, and $\sigma =
 \end{equation}
 where $t_0=0$ and $t_1 = 500~\mathrm{s}$ (that is, the energy flux at the surface has a top-hat profile in time). 
 
-To assist in weak-scaling tests, a periodic bottom heat flux is prescribed to allow multiple plumes to be generated, with the moist static energy flux given by
+\subsubsection{Multiple Plumes}
 
+To assist in weak-scaling tests, a heat flux at the lower boundary that is periodic in space can also be prescribed, to allow the generation of multiple plumes in larger domains. In that case, the moist static energy flux is given by
 \begin{equation}
 \mathrm{MSEF}(\mathbf{x},t) = 
    100~\mathrm{W~m^{-2}}\times \cos^2{\Big(\frac{2\pi x}{x_{0}}\Big)}\times \cos^2{\Big(\frac{2\pi y}{y_{0}}\Big)} \times
@@ -1501,8 +1541,7 @@ To assist in weak-scaling tests, a periodic bottom heat flux is prescribed to al
     0 & \text{if } t > t_1, \\
      \end{array}\right.
 \end{equation}
-
-where $x_{0}$ and $y_{0}$ are parameters that control the number of plumes in the domain.  
+The parameters $x_{0}$ and $y_{0}$ are parameters control the number of plumes in the domain.  
 
 The surface stress is taken to be zero (free-slip boundary condition). In the standard dry case, evaporation is also taken to be zero. Generalizations with nonzero evaporation, to trigger a moist thermal and possibly a cloud as in section~\ref{s:rtb_moist}, are also possible. 
 
@@ -1522,50 +1561,211 @@ The perturbation is linear and defined as
  0 & \mathrm{if } r > 1\,{\mathrm K}\\
  0.5 \theta_c \left(1 + \cos(\pi r) \right) \leq 1\,{\mathrm K}\\
 \end{array} \right.
-\label{eq:robertIni2}
+\label{e:robertIni2}
 \end{equation}
 where $r = \sqrt[]{(x-x_{c})^2/r_x^{2} + (z-z_{c})^{2}/r_z^2}$, $(x_c,z_c) = (0,4000)\,\mathrm{m}$, $(r_x, r_z) = (4000, 2000)\,\mathrm{m}$ and $\theta_c=-15$ K. The fully developed density current at $t=900\,\mathrm{s}$ simulated with a grid effective resolution of $25$ m in both spatial directions is shown in Figure \ref{fig:benchmarks/dc25msmago}.
 
-\begin{figure}[htbp]
-\includegraphics[width=1.2\textwidth]{figures/DC-smgo-25mx25m-900s0000.png}
-\caption{2D density current stabilized via a constant coefficient Smagorinsky-Lilly SGS. Potential temperature $\theta$ at $t=900\,\mathrm{s}$ (top) and at $t=1200\,\mathrm{s}$ (bottom). Grid resolution: $\Delta x = \Delta z = 25\,\mathrm{m}$. \fxg{I assume this is the 900 second plot - there is no other plot. Which polynomial order?}
-}
-\label{fig:benchmarks/dc25msmago}
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{./figures/benchmarks/dc/DC_vreman_10m_paraview-notes.png}
+    \includegraphics[width=1\textwidth]{./figures/benchmarks/dc/DC_smago_10m_paraview-notes.png}
+     \caption{2D$\frac{1}{2}$ density current at 900 seconds computed with effective DG resolutions $\Delta x = \Delta z = 10\,{\rm m}$. Top: Vreman SGS. Bottom: Smagorinsky SGS.}
+\label{fig:dc}
+\end{figure}
+
+\section{Mountain-triggered gravity waves}
+To verify the correct behavior of the DG operator in the presence of non-flat domain and to assess the efficacy of the Rayleigh layer to damp fast moving gravity waves before they reach the top of the domain, a set of steady state mountain-triggered gravity wave problems suggested by \cite{smith1980} are solved. These problems consist of flow with uniform horizontal velocity ${\bf u}= [u,\,0,\, 0]\,{\rm m/s}$ moves eastwards in a doubly periodic domain. A witch-of-Agnesi ideal mountain of height $h_m$ and base length $a$ is centered at $x_c$ and is warped on the bottom boundary according to the function
+
+\begin{equation}
+    \label{eq:agnesi}
+    z_{sfc} = \frac{h_m a^2}{(x - x_c)^2 + a^2}.
+\end{equation}
+
+The background state is in hydrostatic balance with Brunt-V\"ais\"al\"a frequency $\mathcal{N}$ such that
+
+\[
+\theta = \theta_{sfc} {\rm e}^{\frac{z\mathcal{N}^2}{g}}
+\]
+for a given surface potential temperature $\theta_0 = T_0$. The hydrostatically balanced pressure 
+\begin{equation}
+    \label{eq:pressure_hs_brunt}
+    p = p_{sfc}\left[ 1 + \frac{g^2}{c_p\theta_0\mathcal{N}^2}
+    \left( {\rm e}^{\frac{-z\mathcal{N}^2}{g}} - 1 \right)  \right]^{c_p/R_{gas}}
+\end{equation}
+which yields, by means of the gas law, the following density background:
+
+\begin{equation}
+    \label{eq:pressure_hs_brunt}
+    \rho = \frac{p_{sfc}}{\theta R_{gas}}\left(\frac{p}{p_{sfc}}\right)^{c_v/c_p}.
+\end{equation}
+
+\subsection{Linear hydrostatic}
+The linear hydrostatic case consists of a neutrally stratified isothermal atmosphere with $\theta=\theta_{sfc} = T=250\,{\rm K}$. Because it is isothermal, the Brunt-V\"ais\"al\"a frquency is 
+\[
+\mathcal{N} = \frac{g}{\sqrt{c_p T_0}}.
+\]
+The flow moves in a periodic channel along the $x$-direction with velocity ${\bf u}={20, 0, 0}\,{\rm m/s}$ over a mountain with $h_m=1\,{\rm m}$ and $10,000\,{\rm m}$. A Rayleigh absorbing layer is added at $z_s=25\,{km}$; the layer absorption coefficient is defined as 
+\[
+\tau_s = \alpha * \sin\left(0.5\pi \frac{z - z_s}{H - z_s} \right)^2,
+\]
+where we took $\alpha=0.5\,{s}$ and domain top $H=30\,{\rm km}$.
+
+The domain extends from $0$ to $240\,{\rm km}$ in the horizontal direction. 
+
+The steady state solution at $t=15,000$ seconds is shown in the left panel of Figure~\ref{fig:mountainWaves}.
+
+\subsection{Linear non-hydrostatic}
+The linear non-hydrostatic mountain waves are forced by a flow of uniform horizontal velocity $u=10\,{\rm m/s}$ over a mountain with $h_m=1\,{\rm}$ and $a=1,000\,{\rm m}$.
+
+
+The steady state solution at $t=18,000$ seconds is shown in the right panel of Figure~\ref{fig:mountainWaves}.
+
+\begin{figure}
+    \centering
+    %\includegraphics[width=0.49\textwidth]{./figures/benchmarks/mountain_waves/LHS-color.png}
+    %\includegraphics[width=0.49\textwidth]{./figures/benchmarks/mountain_waves/LNH-color.png}
+    \includegraphics[width=\textwidth]{./figures/benchmarks/mountain_waves/LHS-color-full-domain-500mx240m-notes.png}
+    \includegraphics[width=\textwidth]{./figures/benchmarks/mountain_waves/LNH-color-full-domain-200mx160m-notes.png}
+     \caption{Vertical velocity $w$ for two linear mountain wave tests. Left:  hydrostatic test at $t=15,000$ seconds. 
+     Left: The contours are shown in the range $-4e-3 < w ({\rm m/s})< +4e-3$. The results are shown for effective horizontal resolution $\Delta x=500\,{m}$ and effective vertical resolution $\Delta x=240\,{m}$ using $4^{th}$-order elements.
+     Right: non-hydrostatic test at $t=18,000$ seconds. The contours are shown in the range $-4.8e-3 < w ({\rm m/s}) < +4.8e-3$. The results are shown for effective horizontal resolution $\Delta x=200\,{m}$ and effective vertical resolution $\Delta x=160\,{m}$ using $4^{th}$-order elements. The full domain is shown to identify the effectiveness of the Rayleigh absorbing layer.}
+\label{fig:mountainWaves}
 \end{figure}
 
 
+
 %%
-\section{Rising Thermal Bubble in a Saturated Atmosphere}
-\label{s:rtb_moist}
-The moist dynamics is tested by means of the saturated rising bubble test described in \cite{Pressel15a}. The initial conditions are setup as follows:
 
+%%
+\section{Barbados Oceanographic and Meteorological Experiment: BOMEX}
+
+This is a case of shallow, non-precipitating cumulus convection, modeled on a field study off Barbados in 1969. The LES setup consists of a 6.4km $\times$ 6.4km (horizontal) $\times$ 3km (vertical) domain, with effective resolutions of 100m in the horizontal, and 40m in the vertical coordinate. 
+
+\subsection{Initial Condition}
+
+\cite{Siebesma2003} provides the following initial distributions:
 \begin{itemize}
-\item Initialize dry atmosphere with uniform background $\theta_{ref} = 320$ K
-\item Add thermal perturbation $\Delta \theta$ of radius $r=2$ km
-\item Set a uniform total mixing ratio $q_t = 0.0192 \,\mathrm{kg/kg}$ and $q_l = q_i = 0.0\,\mathrm{kg/kg}$
-\item Calculate the gas constants for moist air: 
-\[\begin{array}{lcl}
-R_{gas} &=& {\tt MoistThermodynamics.gas\_constant\_air(q_t, q_l, q_i)}\\
-c_v     &=& {\tt MoistThermodynamics.cv\_m(q_t, q_l, q_i)}\\
-c_p     &=& {\tt MoistThermodynamics.cp\_m(q_t, q_l, q_i)}\\
-\end{array}
-\]
-\item  Compute $\theta$, $\rho$, and $T$ as if the background were dry:\\
-    \[ \begin{array}{lcl}
-  \theta &=& \theta_{ref} + \Delta\theta\\
- \pi & =& 1 - gz/(c_p\theta)\\
- \rho & = & p_0/(R_{gas}\theta)\pi^{c_v/R_{gas}}\\
- T   & = &\pi \theta
-\end{array}\]
-
-\item Add the contribution of moisture to the internal energy and recalculate $T$ and $P$, and obtain $e^{\rm tot}$ using the following {\tt MoistThermodynamics} functions:
-\[\begin{array}{lcl}
-I &=& {\tt MoistThermodynamics.internal\_energy(T + T_0, q_t, q_l, q_i)}\\
-T &=& {\tt MoistThermodynamics.air\_temperature(I, q_t, q_l, q_i)}\\
-P &=& {\tt MoistThermodynamics.air\_pressure(T - T_{ref} , \rho, q_t, q_l, q_i)}\\
-e^{\rm tot} &=& {\tt MoistThermodynamics.total\_energy(0.5\|{\bf u} \|^2, gz, T, q_t)}
-\end{array}\]
+    \item Liquid water potential temperature (K)
+\begin{equation}\label{e:bomex_init_thetal}
+\theta_l(z) = 
+    \begin{cases}
+    298.7 & z\leq z_{i1},\\
+    298.7 + (302.4-298.7)\frac{z - z_{i1}}{z_{i2} - z_{i1}} &  z_{i1} < z \leq z_{i2}, \\
+    302.4 + (308.2-302.4)\frac{z - z_{i2}}{z_{i3} - z_{i2}} &  z_{i2} < z \leq z_{i3}, \\
+    308.2 + (311.85-308.2)\frac{z - z_{i3}}{z_{i4} - z_{i3}} &  z > z_{i3}.
+    \end{cases}
+\end{equation}
+\item Total specific humidity ($\mathrm{g~kg^{-1}}=10^{-3}$)
+\begin{equation}\label{e:bomex_init_qt}
+q_t(z) = 
+    \begin{cases}
+    17.0 + (16.3-17.0)\frac{z}{z_1} & z\leq z_{i1},\\
+    16.3 + (10.7-16.3)\frac{z - z_{i1}}{z_{i2} - z_{i1}} &  z_{i1} < z \leq z_{i2}, \\
+    10.7 + (4.2-10.7)\frac{z - z_{i2}}{z_{i3} - z_{i2}} &  z_{i2} < z \leq z_{i3}, \\
+    4.2 + (3.0-4.2)\frac{z - z_{i3}}{z_{i4} - z_{i3}} &  z > z_{i3}.
+    \end{cases}
+\end{equation}
+\item Zonal wind ($\mathrm{m~s^{-1}}$)
+\begin{equation}\label{e:bomex_init_u}
+u(z) = 
+    \begin{cases}
+    -8.75 & z\leq z_{i5},\\
+    -8.75 + (-4.61+8.75)\frac{z - z_{i5}}{z_{i4}-z_{i5}} &  z > z_{i5}.
+    \end{cases}
+\end{equation}
+\item Meridional wind ($\mathrm{m~s^{-1}}$)
+\begin{equation}\label{e:bomex_init_v}
+v(z) = 0.
+\end{equation}
 \end{itemize}
+Here, $z_{i1}=520~\mathrm{m}$, $z_{i2}= 1480~\mathrm{m}$, $z_{i3}=2000~\mathrm{m}$, $z_{i4}= 3000~\mathrm{m}$, $z_{i5}=700~\mathrm{m}$.
+
+To specify the thermodynamic state completely, we additionally need to specify an initial density. We do so by first specifying an initial pressure
+\[
+p(z) = p_{s} \exp(-z/H), \qquad H = \frac{R_{m,s} T_{s}}{g},
+\]
+where $R_{m,s} = R_m(q_{t,s})$ is the gas constant for moist air, $q_{t,s} = 22.45~\mathrm{g~kg^{-1}}$ is the surface specific humidity, $T_{s} = 300.4~\mathrm{K}$ is surface temperature, and $p_s = 1.015\times 10^{5}~\mathrm{Pa}$ is the surface pressure. \hl{[This is ok. But using some average BL temperature in the scale height would be a bit more accurate.]} We calculate thermodynamic quantities with this reference pressure $p(z)$. We get the initial temperature profile $T(z)$ from $\theta_l(z)$, $p(z)$, and $q_t(z)$. Density is then obtained from the ideal gas law as
+\[
+\rho(z) \approx \frac{p(z)}{R_m(q_t(z)) T(z)},
+\]
+thus completely specifying the initial state. 
+
+\subsection{Boundary Conditions}
+
+The bottom boundary conditions for BOMEX are prescribed energy and water fluxes and a drag law for momentum, as described in section~\ref{s:bottom_bc}. The prescribed surface fluxes are given by \cite{Siebesma2003}: $w'\theta'=8\times10^{-3}~\mathrm{K~m~s^{-1}}$, $w'q'_t=5.2\times10^{-5}~\mathrm{m~s^{-1}}$, $\vec{u'}w'=-u^2_*\vec{u}/\|\vec{u}\|$ where $u_{*}=0.28~\mathrm{m ~s^{-1}}$. The corresponding fluxes at the surface are:
+\begin{itemize} 
+\item Energy flux $\vec{\hat n} \cdot \rho (\vec{J}_{\mathrm{sfc}} + \vec{D}_{\mathrm{sfc}}) = \mathrm{SHF}+\mathrm{LHF} = \rho[c_{pm}(w'\theta') + L_v (w'q'_t)] = 156.7~\mathrm{W~m^{-2}}$, with $c_{pm}$ and $L_v$ are defined in Sections \ref{s:heat_capacities} and \ref{s:latent_heats}.
+\item Latent heat flux $\mathrm{LHF} = \rho L_v w'q'_t=147.2~\mathrm{W~m^{-2}}$
+\item Momentum flux $\vec{\hat n} \cdot (\rho \vec{\tau})  = - \rho u^2_*\vec{u}/\|\vec{u}\|$, where $\vec{u}$ is near-surface wind parallel to the surface (i.e., wind at a fixed height above surface). The first interior nodal point above the surface informs the height at which the flow speed is computed.
+\end{itemize}
+As usual, we need a sponge layer at the top of the domain to absorb waves. 
+
+\subsection{Sources}
+
+\subsubsection{Large-scale cooling and drying}
+
+Large-scale forcing processes are imposed through the prescribed profiles  \citep{Siebesma2003}. 
+\begin{itemize}
+    \item Radiative cooling rate ($\mathrm{K~day^{-1}}$) (potential temperature tendency)
+\begin{equation}\label{e:bomex_forcing_qrad}
+Q_r(z) = 
+    \begin{cases}
+    -2.0 & z\leq z_{f1},\\
+    -2.0 + 2.0\frac{z-z_{f1}}{z_{f2}-z_{f1}} &  z > z_{f1}.
+    \end{cases}
+\end{equation}
+\item Large-scale drying rate ($\mathrm{s^{-1}}$)
+\begin{equation}\label{e:bomex_forcing_dqtdt}
+\mathcal{S}_{q_t} = 
+    \begin{cases}
+    -1.2\times10^{-8} & z\leq z_{f3},\\
+    -1.2\times10^{-8} + 1.2\times10^{-8}\frac{z-z_{f3}}{z_{f4}-z_{f3}} &  z_{f3} < z\leq z_{f4},\\
+    0 & z > z_{f4}.
+    \end{cases}
+\end{equation}
+\end{itemize}
+Here, $z_{f1}=1500~\mathrm{m}$, $z_{f2}=3000~\mathrm{m}$, $z_{f3}=300~\mathrm{m}$, $z_{f4}=500~\mathrm{m}$. They give rise to a source 
+\[
+\rho (c_{vm}\Pi_0 Q_r + I_{v,0}\mathcal{S}_{q_t})
+\]
+in the energy equation (where $\Pi_0 = \left( p/p_0 \right)^{R_{gas}/c_{pd}}$ is the Exner function) and a source
+\[
+\rho \mathcal{S}_{q_t}
+\]
+in the total water specific humidity equation.
+
+\subsubsection{Large-scale subsidence}
+The large-scale subsidence velocity $W$ ($\mathrm{m~s^{-1}}$) is prescribed following \cite{Siebesma2003}:
+\begin{equation}\label{e:bomex_forcing_sub}
+W(z) = 
+    \begin{cases}
+    -0.65\times10^{-2}\frac{z}{z_{f1}} & z\leq z_{f1},\\
+    -0.65\times10^{-2} + 0.65\times10^{-2}\frac{z-z_{f1}}{z_{f5}-z_{f1}} &  z_{f1} < z\leq z_{f5}, \\
+    0 & z > z_{f5}.
+    \end{cases}
+\end{equation}
+where $z_{f5}=2100~\mathrm{m}$. This gives rise to a source
+\[
+-\rho W \vec{\hat k} \cdot \nabla h^\mathrm{tot}
+\]
+in the energy equation (with total enthalpy $h^\mathrm{tot}$) and a source
+\[
+-\rho W \vec{\hat k} \cdot \nabla q_t
+\]
+in the total water specific humidity equation.
+
+\subsubsection{Coriolis forcing}
+
+The geostrophic wind is prescribed following \cite{Siebesma2003} as $u_g = -10.0~\mathrm{m~s^{-1}} + (1.8\times10^{-3}~\mathrm{s^{-1}})z$  and $v_g = 0~\mathrm{m~s^{-1}}$. This gives rise to a source
+\[
+-\rho f\vec{\hat k} \times (\vec{u}-\vec{u_g})
+\]
+in the momentum equation, with Coriolis parameter $f = 0.376\times10^{-4}~\mathrm{s^{-1}}$.
+
+\subsection{Results}
+\hl{add BOMEX results (last hour profiles) here?}
+
+%%
 
 %%
 \section{Dynamics and Chemistry of Marine Stratocumulus: DYCOMS RF01}
@@ -1573,7 +1773,7 @@ e^{\rm tot} &=& {\tt MoistThermodynamics.total\_energy(0.5\|{\bf u} \|^2, gz, T,
 \subsection{Initial Condition}
 
 \cite{Stevens05a} provide the following initial distributions of liquid water potential temperature,
-\begin{equation}\label{eq:dycoms1}
+\begin{equation}\label{e:dycoms1}
 \theta_l(z) = 
     \begin{cases}
     289.0\;\mathrm{K} & z\leq z_i,\\
@@ -1581,7 +1781,7 @@ e^{\rm tot} &=& {\tt MoistThermodynamics.total\_energy(0.5\|{\bf u} \|^2, gz, T,
     \end{cases}
 \end{equation}
 and total specific humidity, 
-\begin{equation}\label{eq:dycoms2}
+\begin{equation}\label{e:dycoms2}
 q_t(z) = 
     \begin{cases}
     q_{t,0} & z\leq z_i,\\
@@ -1589,7 +1789,7 @@ q_t(z) =
     \end{cases}
 \end{equation}
 Here, $z_i$ is the initial cloud top set to $z_i=840\,\mathrm{m}$. \cite{Stevens05a} state that ``modeling groups were also asked to standardize their thermodynamic calculations'' so that the initial state corresponds to a cloud layer between 600 and 800~m with liquid water specific humidity
-\begin{equation}\label{eq:dycoms3}
+\begin{equation}\label{e:dycoms3}
 q_l(z) = 
     \begin{cases}
     0 & z\leq 600~\mathrm{m},\\
@@ -1601,16 +1801,16 @@ With our thermodynamics and standard thermodynamical constants, we obtain such a
 
 To specify the thermodynamic state completely, we additionally need to specify an initial density. We do so by first specifying an initial pressure
 \[
-p_0(z) = p_{s} \exp(-z/H), \qquad H = \frac{R_m T_{BL}}{g},
+p(z) = p_{s} \exp(-z/H), \qquad H = \frac{R_m T_s}{g},
 \]
-where $R_m = R_m(q_t, q_l)$ is the gas constant for moist air, $T_{BL} = 285.0~\mathrm{K}$ is an average boundary-layer temperature, and $p_s = 1.0178\times 10^{5}~\mathrm{Pa}$ is the surface pressure, with surface density $\rho_s = 1.22~\mathrm{kg/m^3}$ and surface temperature $T_s = p_s/(\rho_s R_{m,s})$. Consistent with the Boussinesq or anelastic approximation used in most DYCOMS simulations, we calculate thermodynamic quantities with this reference pressure $p_0(z)$. We use the linearized expression for the liquid-water potential temperature,
+where $R_m = R_m(q_t, q_l)$ is the gas constant for moist air. \hl{[This is ok. But using some average BL temperature in the scale height would be a bit more accurate.]} $p_s = 1.0178\times 10^{5}~\mathrm{Pa}$ is the surface pressure \hl{[would be good to change the code to use $p_s$ rather than MSLP]}, $\rho_s = 1.22~\mathrm{kg/m^3}$ is the surface density and $T_s = 290.4~\mathrm{K}$ is the surface temperature. Consistent with the Boussinesq or anelastic approximation used in most DYCOMS simulations, we calculate thermodynamic quantities with this reference pressure $p(z)$. We use the linearized expression for the liquid-water potential temperature,
 \begin{equation}
-    \label{eq:betts1973}
+    \label{e:betts1973}
     \theta_l = \theta \left(1 - \frac{L_{v,0} q_l}{c_{pm} T} \right) = \theta - \frac{L_{v,0} q_l}{c_{pm} \Pi_0},
 \end{equation}
 where $\theta = T/\Pi_0$, and 
 \[
-\Pi_0 = \left( \frac{p_0(z)}{p_{s}} \right)^{R_d/c_{pd}}
+\Pi_0 = \left( \frac{p(z)}{p_0} \right)^{R_d/c_{pd}}
 \]
 is evaluated with the pressure profile $p_0(z)$. This can be solved for temperature as a function of height $z$,
 \[
@@ -1618,21 +1818,21 @@ T = \Pi_0 \theta_l + \frac{L_{v,0} q_l}{c_{pm} \Pi_0},
 \]
 given $\theta_l(z)$, $q_l(z)$, and $\Pi(z)$. Density is then obtained from the ideal gas law as
 \[
-\rho(z) \approx \frac{p_0(z)}{R_m T(z)},
+\rho(z) \approx \frac{p(z)}{R_m T(z)},
 \]
 thus completely specifying the initial state. 
 
 The initial state of all the quantities described above are plotted in Figure \ref{dycomsInitFig}
 \begin{figure}
     \centering
-	\includegraphics[width=0.49\textwidth]{figures/dy_tempe.eps}
-	\includegraphics[width=0.49\textwidth]{figures/dy_pot_temp.eps}
-	\includegraphics[width=0.49\textwidth]{figures/dy_mixing_ratios.eps}
-	\includegraphics[width=0.49\textwidth]{figures/dy_press.eps}
-	\includegraphics[width=0.49\textwidth]{figures/dy_densi.eps}
+	\includegraphics[width=0.49\textwidth]{figures/benchmarks/dycoms/dy_tempe.eps}
+	\includegraphics[width=0.49\textwidth]{figures/benchmarks/dycoms/dy_pot_temp.eps}
+	\includegraphics[width=0.49\textwidth]{figures/benchmarks/dycoms/dy_mixing_ratios.eps}
+	\includegraphics[width=0.49\textwidth]{figures/benchmarks/dycoms/dy_press.eps}
+	\includegraphics[width=0.49\textwidth]{figures/benchmarks/dycoms/dy_densi.eps}
 	%\includegraphics[width=0.49\textwidth]{figures/dy_Rm.eps}
 	%\includegraphics[width=0.49\textwidth]{figures/dy_cpm.eps}
-      \caption{Dycoms: initial states of $T, T_v, \theta, \theta_v, \theta_l, q_t, q_l, p, \rho$.}
+      \caption{DYCOMS: initial states of $T, T_v, \theta, \theta_v, \theta_l, q_t, q_l, p, \rho$.}
 \label{dycomsInitFig}
 \end{figure}
 
@@ -1640,16 +1840,17 @@ The initial state of all the quantities described above are plotted in Figure \r
 
 The bottom boundary conditions for DYCOMS are prescribed energy and water fluxes and a drag law for momentum, as described in section~\ref{s:bottom_bc}. The prescribed fluxes at the surfaces are
 \begin{itemize} 
-\item Sensible heat flux $\mathrm{SHF} = \vec{\hat n} \cdot (\rho \vec{J}_{\mathrm{sfc}}) = 15\,\mathrm{W/m^2}$
-\item Latent heat flux $\mathrm{LHF} = \vec{\hat n} \cdot (\rho \vec{D}_{\mathrm{sfc}}) = 115\,\mathrm{W/m^2}$
-\item Energy flux $\vec{\hat n} \cdot \rho (\vec{J}_{\mathrm{sfc}} + \vec{D}_{\mathrm{sfc}}) = \mathrm{SHF + LHF} = 130\,\mathrm{W/m^2}$
-\item Evaporation $E = \mathrm{LHF}/[L_{v,0} + c_{pv}(T_\mathrm{sfc} - T_0)]$
+\item Sensible heat flux $\mathrm{SHF} = \vec{\hat n} \cdot (\rho \vec{J}_{\mathrm{sfc}}) = 15\,\mathrm{W~m{^{-2}}}$
+\item Latent heat flux $\mathrm{LHF} = \vec{\hat n} \cdot (\rho \vec{D}_{\mathrm{sfc}}) = 115\,\mathrm{W~m^{-2}}$
+\item Energy flux $\vec{\hat n} \cdot \rho (\vec{J}_{\mathrm{sfc}} + \vec{D}_{\mathrm{sfc}}) = \mathrm{SHF + LHF} = 130\,\mathrm{W~m^{-2}}$
+\item Evaporation $E = \mathrm{LHF}/L_{v}(T_\mathrm{sfc})$ \hl{[Would be good to update code here to use $L_v$ evaluated at surface temperature (but makes little difference).]}
+\item \hl{[add surface drag]}
 \end{itemize}
 
 \subsection{Sources}
 
 \subsubsection{Radiative cooling}
-Radiative cooling is imposed through the simple model described by \cite{Stevens05a}. It specifies the vertical radiative energy flux $\Frad = F_R \vec{\hat k}$ (part of the non-diffusive energy fluxes \eqref{eq:ndf_flux}) as
+Radiative cooling is imposed through the simple model described by \cite{Stevens05a}. It specifies the vertical radiative energy flux $\Frad = F_R \vec{\hat k}$ (part of the non-diffusive energy fluxes \eqref{e:ndf_flux}) as
 \begin{equation}
     \label{e:radiativeStevens05}
     F_{R}({\bf x}, t) = F_0{\rm e}^{-Q(z,\infty)} +
@@ -1675,9 +1876,50 @@ in the energy equation (with total enthalpy $h^\mathrm{tot}$) and a source
 \]
 in the total water specific humidity equation.
 
+\subsubsection{Coriolis forcing}
+
+The geostrophic wind is prescribed following \cite{Stevens05a} as $u_g = 7.0~\mathrm{m~s^{-1}}$ and $v_g = -5.5~\mathrm{m~s^{-1}}$. This gives rise to a source
+\[
+-\rho f\vec{\hat k} \times (\vec{u}-\vec{u_g})
+\]
+in the momentum equation, with Coriolis parameter $f = 0.762\times10^{-4}~\mathrm{s^{-1}}$.
+
 \subsection{SGS Fluxes}
 
-The interaction of the resolved flow with SGS fluxes is crucial for a successful simulation of stratocumulus \citep{Pressel17a}. If there is too much spurious mixing across the sharp inversion interface, the clouds dissipate because too much dry air from above the clouds is mixed into the clouds. Hence, it is important to use SGS schemes that limit mixing near the stable inversion interface.
+The interaction of the resolved flow with SGS fluxes is crucial for a successful simulation of stratocumuli \citep{Pressel17a}. If there is too much spurious mixing across the sharp inversion interface, the clouds dissipate because too much dry air from above the clouds is mixed into the clouds. Hence, it is important to use SGS schemes that limit mixing near the stable inversion interface.
+
+\subsection{Results}
+Figures \ref{fig:dycomsWWresultLSRK14-smago} and \ref{fig:dycomsWWresultLSRK14-vreman} show the 4-hr time-averaged vertical moment $<w'w'>$ for the explicit (single-rate) LSRK14 solution using the Smagorinsky-Lilly SGS models and, respectively, the Vreman SGS model. The solution corresponds to a simulation in domain $\Omega=1000\times 1000 \times 2500\,{\rm m^3}$ using the vertical and horizontal resolutions indicated in each figure. 
+
+\begin{figure}
+    \centering
+	\includegraphics[width=0.3\textwidth]{./figures/benchmarks/dycoms/dycoms_smago_dz_3m_vs_2m_qt9_dycoms_ql_15mX15mX2m_t14200s-legend}
+	\includegraphics[width=0.3\textwidth]{./figures/benchmarks/dycoms/dycoms_smago_dz_3m_vs_2m_qt9_dycoms_qt_15mX15mX2m_t14400s}
+	\includegraphics[width=0.3\textwidth]{./figures/benchmarks/dycoms/dycoms_smago_dz_3m_vs_2m_qt9_dycoms_thl_15mX15mX2m_t14400s}
+	
+	\includegraphics[width=0.3\textwidth]{./figures/benchmarks/dycoms/dycoms_smago_dz_3m_vs_2m_qt9_dycoms_tke_15mX15mX2m_t14200s-legend}
+	\includegraphics[width=0.3\textwidth]{./figures/benchmarks/dycoms/dycoms_smago_dz_3m_vs_2m_qt9_dycoms_ww_15mX15mX2m_t14400s}
+	\includegraphics[width=0.3\textwidth]{./figures/benchmarks/dycoms/dycoms_smago_dz_3m_vs_2m_qt9_dycoms_www_15mX15mX2m_t14400s}
+	
+    \caption{DYCOMS reference solutions with  Smagorinsky-Lilly SGS using effective vertical resolution $\Delta z=2\,{\rm m}$ and $\Delta z=3\,{\rm m}$ and horizontal resolution $\Delta x=\Delta y=15\,{\rm m}$. The black circles indicate the measurements collected during the research flight.}
+\label{fig:dycomsWWresultLSRK14-smago}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+        \includegraphics[width=0.5\textwidth]{./figures/benchmarks/dycoms/cloud_b747.png}
+		\includegraphics[width=0.425\textwidth]{./figures/benchmarks/dycoms/dycoms-view-below-angle.png}
+	\caption{Dycoms: instantaneous volume rendering of $q_l$ at $t=4\,{\rm h}$. Left: planar with a superimposed silhouette of the airplane was for scale. Right: south-view of a cloud section. Domain size: $3 \times 3 \times 1.5\,{\rm km^3}$ and effective resolution $\Delta x = \Delta y = 25\,{\rm m} \times \Delta z = 12\,{\rm m}$. This effective resolution using $4^{th}$-order  yields a smallest nodal distance of $17\,{\rm m}$ and $8\,{\rm m}$ in the horizontal and vertical directions, respectively.  (Airplane silhouette source: clipart-library.com).}
+	\label{fig:DYCOMS_ql_rendering}
+\end{figure}
+
+\begin{figure}
+    \centering
+        \includegraphics[width=0.9\textwidth]{./figures/benchmarks/dycoms/qtot0060.png}
+	\caption{Dycoms: an instantaneous perspective view of $q_t$ during the simulation. Domain size: $3 \times 3 \times 1.5\,{\rm km^3}$ and effective resolution $\Delta x = \Delta y = 25\,{\rm m} \times \Delta z = 12\,{\rm m}$. This effective resolution using $4^{th}$-order  yields a smallest nodal distance of $17\,{\rm m}$ and $8\,{\rm m}$ in the horizontal and vertical directions, respectively. The turbulent structure of the rising plumes of total water is visible. }
+	\label{fig:DYCOMS_qt_contours}
+\end{figure}
 
 \section{3D Squall Line}
 \label{sq3D}
@@ -1695,7 +1937,7 @@ $60\times 60\times24\,\mathrm{km}^3$.
 \item Lateral: periodic in both horizontal directions.
 \end{itemize}
 
-\paragraph{Grid resolution} For testing purpuses only, a relatively coarse resolution is the default setting with $(\Delta {\rm horizontal}\times \Delta {\rm vertical}) = (250\,{\rm m}, \times 100\,{\rm m})$. To decrease the number of vertical layers, a stretched grid along $z$ can be used to make the resolution higher in the lower atmosphere where convection is triggered. 
+\paragraph{Grid resolution} For testing purposes only, a relatively coarse resolution is the default setting with $(\Delta {\rm horizontal}\times \Delta {\rm vertical}) = (250\,{\rm m}, \times 100\,{\rm m})$. To decrease the number of vertical layers, a stretched grid along $z$ can be used to make the resolution higher in the lower atmosphere where convection is triggered. 
 
 \paragraph{Physical phenomenon}
 The domain is crossed by a horizontal wind along the x-direction with a $12\,\mathrm{m\,s^{-1}}$ shear at $z=2000\,\mathrm{m}$.
@@ -1792,3 +2034,25 @@ Statistical quantities are now written out to ASCII files which are read and plo
 \bibliography{Giraldo_refs,CLIMA-refs}
 
 \end{document}
+
+% Previous reference state definition
+
+It helps here to distinguish the cases of an isothermal atmosphere and of an atmosphere with nonzero lapse rate:
+\begin{itemize}
+
+\item \textbf{Nonzero Lapse Rate ($\Gamma \ge 0$, $T_{v, \mathrm{sfc}} \ge T_{\min}$).}
+Integrating the general expression \eqref{e:hydro_pressure} for the hydrostatic pressure for a temperature profile \eqref{e:ref_temperature} with nonzero lapse rate yields
+\begin{equation}\label{e:hydro_pressure_lapse}
+p_r(z) = p_{\mathrm{MSLP}} \times
+\begin{cases}
+\left(1 - \frac{\Gamma z}{T_{v, \mathrm{sfc}}} \right)^{g/(R_d \Gamma)} & \text{for } z \le z_t, \\[1.5ex]
+  \left(\frac{T_{\min}}{T_{v, \mathrm{sfc}}} \right)^{g/(R_d \Gamma)}
+ \exp  \left(-\frac{z - z_t}{H_{\min}} \right) & \text{for } z\ge z_t, 
+\end{cases}
+\end{equation}
+where 
+\begin{equation}
+H_{\min} = \frac{R_d T_{\min}}{g}
+\end{equation}
+is the ``stratospheric'' scale height. See See Fig.~\ref{f:hydrostatic_state}b (red line) for an example. (The expression \eqref{e:hydro_pressure_lapse} for nonzero lapse rate converges to the expression \eqref{e:hydro_pressure_iso} for zero lapse rate in the limit $\Gamma \to 0$, as can be verified by L'H{\^o}pital's rule.)
+\end{itemize}

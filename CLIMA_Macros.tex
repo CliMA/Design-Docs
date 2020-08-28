@@ -16,8 +16,26 @@
 \usepackage{subfigure}
 \usepackage{stmaryrd}
 \usepackage{mathrsfs}
+\usepackage[inline]{enumitem}
+\usepackage{hyperref}
+\newcommand{\comment}[1]{}
+\usepackage{bbm}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    filecolor=cyan,      
+    urlcolor=cyan,
+}
+
+\usepackage{empheq}
+\definecolor{paleblue}{rgb}{.8, .8, 1} 
+\newcommand*\eqnbox[1]{%
+    \colorbox{paleblue}{\hspace{1em}#1\hspace{1em}}}
+\newcommand{\hlpaleblue}[1]{{\sethlcolor{paleblue}\hl{#1}}}
 
 \renewcommand{\vec}[1]{\boldsymbol{{#1}}} 
+\DeclareMathOperator\atanh{atanh}
 
 \newcommand{\laplacian}{\nabla^2}
 \newcommand{\divergence}{\nabla \cdot}
@@ -46,8 +64,6 @@
  \newtheorem{solution}[theorem]{Solution}
  \newtheorem{summary}[theorem]{Summary}
  \newenvironment{proof}[1][Proof]{\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
-
-\newcommand{\comment}[1] {}
 
 \newcommand{\Norder} {N}
 \newcommand{\order}{\mathcal{O}}
@@ -249,6 +265,7 @@
 \newcommand{\etotal}{e^{\mathrm{tot}}}
 \newcommand{\Etotal}{E^{\mathrm{tot}}}
 \newcommand{\Fvector}{\vec{\mathcal{F}}}
+\newcommand{\Hvector}{\vec{\mathcal{H}}}
 \newcommand{\Pvector}{\vec{\mathcal{P}}}
 \newcommand{\Fndiff}{\vec{\mathcal{F}}^{\mathrm{nondiff}}}
 \newcommand{\Frad}{\vec{\mathcal{F}}^{\mathrm{rad}}}
@@ -259,8 +276,13 @@
 \newcommand{\Source}{\vec{\mathcal{S}}}
 
 %DG specific variables
-\newcommand{\gradvariables}{\vec{\mathcal{G}}}
-\newcommand{\diffusive}{\vec{\mathcal{D}}}
+\newcommand{\Yvector}{\vec{\mathcal{Y}}}
+%\newcommand{\Fvector}{\vec{\mathcal{F}}}. % already defined!
+%\newcommand{\Svector}{\vec{\mathcal{H}}}
+%\newcommand{\Hvector}{\vec{\mathcal{H}}}
+\newcommand{\Gvector}{\vec{\mathcal{G}}}
+\newcommand{\Dvector}{\vec{\mathcal{D}}}
+
 
 \newcommand{\fxg}[1]{\textcolor{cyan}{FXG: #1}}
 

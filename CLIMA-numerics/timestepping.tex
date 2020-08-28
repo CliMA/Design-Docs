@@ -1,0 +1,430 @@
+\documentclass{article}
+
+\newcommand{\hlc}[2][yellow]{ {\sethlcolor{#1} \hl{#2}} }
+
+\include{CLIMA_Macros}
+\usepackage[inline]{enumitem}
+
+
+\title{Notes on Single- and Multi-rate Runge-Kutta methods}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\hl{[Thomas]: These notes will eventually be merged into the main numerics file.
+	While these notes are being developed, let's keep them separate until we know
+	how these notes fit into the main text.}
+
+\section{Introduction}
+
+\subsection{Overview of Basic Runge-Kutta Methods} To ensure a strong foundation, we start
+with a brief overview of Runge-Kutta methods, with a particular emphasis
+on the algorithmic aspects of the method. Suppose we wish to solve the following
+ordinary differential equation (ODE):
+\begin{equation}\label{eq:generic-ODE}
+	\ddt{\vec{y}} = \vec{\mathcal{T}}(\vec{y}), \quad \vec{y}(t_0) = \vec{y}_0,
+\end{equation}
+where $\vec{y}(t)$ is the state vector, $\vec{\mathcal{T}}(\vec{y}(t)) = \vec{\mathcal{T}}(t, \vec{y})$
+is the total tendency, and $\vec{y}(t_0) = \vec{y}_0$ describes an abstract initial-value condition.
+
+\subsubsection{General Runge-Kutta methods}
+A single step of an $s$-stage Runge-Kutta (RK) method for
+solving \eqref{eq:generic-ODE} can be expressed as the following:
+\begin{equation}\label{eq:gen-rk}
+	\vec{y}^{n+1} = \vec{y}^n + \Delta t \sum_{i=1}^{s} b_i \vec{\mathcal{T}}(\vec{Y}^i),
+\end{equation}
+where $\vec{\mathcal{T}}(\vec{Y}^i)$ is the evaluation of the right-hand side tendency at the stage value $\vec{Y}^i$,
+defined at each stage of the RK method:
+\begin{equation}\label{eq:gen-rk-stage-vals}
+	\vec{Y}^i := \vec{y}^{n} + \Delta t \sum_{j=1}^{s} a_{i,j} \vec{\mathcal{T}}(\vec{Y}^j).
+\end{equation}
+At the start of the RK method, the stage values are initialized as $\vec{Y}^{0} \leftarrow \vec{y}^n$
+and the process above is executed overall all stages until $\vec{Y}^s$ is computed as the approximation
+to $\vec{y}^{n+1}$. Mathematically, the stage vectors $\vec{Y}^i$ are best interpreted as
+approximations to the state at the ``stage-times'' $t_n + c_i\Delta t$:
+\begin{equation}
+	\vec{Y}^i \approx \vec{y}(t_n + c_i\Delta t),
+\end{equation}
+where $c_i$ denote scaling factors which helps determine a point in the interval $\lbrack t_n, t_{n+1}\rbrack$. That
+is, the coefficients determine the stage time: $t_n + c_i\Delta t \in \lbrack t_n, t_{n+1}\rbrack$.
+
+In the above expressions, we define $\vec{A} = \lbrace a_{i,j} \rbrace \in \mathbb{R}^{s\times s}$,
+$\vec{b} = \lbrace b_i \rbrace \in \mathbb{R}^s$, and
+$\vec{c} = \lbrace c_i \rbrace \in \mathbb{R}^s$ as the characteristic coefficients of
+a given RK method. This means we can associate any RK method with its so-called \textbf{Butcher Tableau}:
+\begin{equation}\label{eq:gen-bt}
+\begin{array}{c|c}
+\ST \vec{c} &\vec{A}\\
+\hline
+\ST  & \vec{b}^T
+\end{array} =
+\begin{array}{c|c c c c}
+\ST c_1 & a_{1,1} & a_{1,2} & \cdots & a_{1,s}\\
+\ST c_2 & a_{2,1} & a_{2,2} & \cdots & a_{2,s}\\
+\ST \vdots & \vdots & \vdots & \ddots & \vdots \\
+\ST c_s & a_{s,1} & a_{s,2} & \cdots & a_{s,s}\\
+\hline
+\ST  & b_1 & b_2 & \cdots & b_s
+\end{array}.
+\end{equation}
+The vector $\vec{c}$ is often called the \emph{consistency vector}, and is typically subject
+to the row-sum condition:
+\begin{equation}
+c_i = \sum_{j=1}^{s} a_{i,j}, \quad \forall i = 1, \cdots, s.
+\end{equation}
+This simplifies the order conditions for higher-order RK methods. For more information
+on general RK methods, we refer the interested reader to \cite[Ch. 5.2]{atkinson2011numerical}.
+
+\subsubsection{Embedded Runge-Kutta methods} Embedded RK (ERK) methods are designed to readily provide
+an estimate of the local truncation error of a single RK step. As a result, this
+can be used to allow more fine-grain control of the error with \textbf{adaptive time-step sizes}.
+This is accomplished using a second approximation $\widehat{\vec{y}}^{n+1}$ using the \emph{same}
+stage values $\vec{Y}^i$ and coefficients $\vec{A}$ as in \eqref{eq:gen-bt}.
+The second approximation is defined using a second set of coefficients $\widehat{\vec{b}} =
+\lbrace \widehat{b}_i, i = 1, \cdots, s\rbrace$, with
+\begin{equation}
+	\widehat{\vec{y}}^{n+1} = \vec{y}^n + \Delta t \sum_{i=1}^{s} \widehat{b}_i \vec{\mathcal{T}}(\vec{Y}^i).
+\end{equation}
+Once both $\vec{y}^{n+1}$ and $\widehat{\vec{y}}^{n+1}$
+are determined, an approximation to the truncation error is arrive at via:
+\begin{equation}
+	\vec{e}^{n+1} := \vec{y}^{n+1} - \widehat{\vec{y}}^{n+1} =
+	\Delta t \sum_{i=1}^{s}\left(b_i - \widehat{b}_i\right)\vec{\mathcal{T}}(\vec{Y}^i).
+\end{equation}
+For ERK methods, the coefficients are summarized in the following expanded Butcher Tableau:
+\begin{equation}\label{eq:gen-bt-form}
+\begin{array}{c|c}
+\ST \vec{c} &\vec{A}\\
+\hline
+\ST  & \vec{b}^T \\
+\hline
+\ST  & \widehat{\vec{b}}^T
+\end{array} =
+\begin{array}{c|c c c c}
+\ST c_1 & a_{1,1} & a_{1,2} & \cdots & a_{1,s}\\
+\ST c_2 & a_{2,1} & a_{2,2} & \cdots & a_{2,s}\\
+\ST \vdots & \vdots & \vdots & \ddots & \vdots \\
+\ST c_s & a_{s,1} & a_{s,2} & \cdots & a_{s,s}\\
+\hline
+\ST  & b_1 & b_2 & \cdots & b_s \\
+\hline
+\ST  & \widehat{b}_1 & \widehat{b}_2 & \cdots & \widehat{b}_s
+\end{array}.
+\end{equation}
+Examples of ERK methods include the Runge-Kutta-Fehlberg \cite{fehlberg1969low}
+and the Bogacki-Shampine \cite{bogacki19893} methods. ERK methods can be explicit
+or implicit.
+
+\paragraph{Explicit RK methods.} Whenever an RK method is fully explicit,
+then all stage evaluations of the tendency
+only depend on its previous evaluations. Within Butcher tableau notation, this
+produces a coefficient matrix $\vec{A}$ which is strictly lower-triangular:
+\begin{equation}
+	\vec{A} = \begin{bmatrix}
+	0        & 0        & 0      & \cdots     & 0 \\
+	a_{2, 1} & 0        & 0      & \cdots     & 0 \\
+	a_{3, 1} & a_{3, 2} & 0      & \cdots     & 0 \\
+	\vdots   &          & \ddots & \ddots     & \vdots \\
+	a_{s, 1} & a_{s, 2} & \cdots & a_{s, s-1} & 0
+	\end{bmatrix}.
+\end{equation}
+As a result, $c_1 = 0$ clearly. Due to the lower-triangular structure, an explicit RK
+method will have stage evaluations running from $j$ to $i-1$ (rather than $s$ as shown
+for the general case in \eqref{eq:gen-rk-stage-vals}).
+
+\paragraph{Implicit RK methods.} A general implicit RK method will have a
+full Butcher Tableau matrix $A$ (as shown in \eqref{eq:gen-bt})
+and stage evaluations of the tendencies require significantly more
+computation per step size. However, they are far more stable for stiff differential equations;
+this means that implicit methods often are able to take substantially larger
+time-step sizes $\Delta t$ versus explicit RK methods.
+
+Among the most popular implicit RK methods are known as \textbf{Explicit first step, Single
+diagonal coefficient, Diagonally Implicit Runge-Kutta (ESDIRK)} methods.
+The Butcher Tableau for such methods typically take the form
+\begin{equation}\label{eq:esdirk-bt}
+\begin{array}{c|c c c c c}
+\ST 0 & 0 & 0 & 0 & \cdots & 0 \\
+\ST 2\gamma & \gamma & \gamma & 0 & \cdots & 0\\
+\ST c_3 & a_{3, 1} & a_{3, 2} & \gamma & \cdots & 0 \\
+\ST \vdots & \vdots & \vdots & \vdots & \ddots & \vdots \\
+\ST 1 & a_{s,1} & a_{s,2} & a_{s,3} & \cdots & \gamma \\
+\hline
+\ST  & b_1 & b_2 & b_3 & \cdots & \gamma \\
+\hline
+\ST  & \widehat{b}_1 & \widehat{b}_2 & \widehat{b}_3 & \cdots & \widehat{b}_s
+\end{array}.
+\end{equation}
+
+For the remainder of this section, we shall associate a given RK (explicit, implicit, embedded) method with its
+\emph{generalized Butcher Tableau} of the form \eqref{eq:gen-bt-form}.
+
+\subsection{Additively-Partitioned Runge-Kutta (ARK) Methods}
+Additively-partitioned RK methods allow for more specialized treatment of
+specific tendency terms. For a more general case, suppose \eqref{eq:generic-ODE}
+can be written as:
+\begin{equation}\label{eq:additiveode}
+	\ddt{\vec{y}} = \vec{\mathcal{T}}(\vec{y}) =
+	\sum_{\nu = 1}^{N} \vec{\mathcal{T}}^{\lbrack \nu\rbrack}(\vec{y}),
+\end{equation}
+where $\vec{\mathcal{T}}^{\lbrack \nu\rbrack}$ denote certain components of the right-hand side
+tendency, whose distinctive properties warrant separate consideration. In general, a single step of
+an $s$-stage, $N$-part additive RK method ($ARK_N$) 
+is defined by its generalized Butcher tableau:
+\begin{equation}\label{eq:ARKN-BT}
+\begin{array}{c|c| c | c}
+\ST \vec{c} &\vec{A}_{1} & \cdots & \vec{A}_{N}\\
+\hline
+\ST  & \vec{b}_1^T & \cdots & \vec{b}_N^T\\
+\hline
+\ST  & \widehat{\vec{b}}_1^T & \cdots & \widehat{\vec{b}}_N^T
+\end{array} =
+\begin{array}{c|c c c | c | c c c }
+\ST c_1 & a^{\lbrack 1 \rbrack}_{1,1} & \cdots & a^{\lbrack 1 \rbrack}_{1,s} & \cdots
+& a^{\lbrack \nu \rbrack}_{1,1} & \cdots & a^{\lbrack \nu \rbrack}_{1,s}\\
+\ST \vdots & \vdots & \ddots & \vdots & \cdots
+& \vdots & \ddots & \vdots \\
+\ST c_s & a^{\lbrack 1 \rbrack}_{s,1} & \cdots & a^{\lbrack 1 \rbrack}_{s,s} & \cdots
+& a^{\lbrack \nu \rbrack}_{s,1} & \cdots & a^{\lbrack \nu \rbrack}_{s,s}\\
+\hline
+\ST  & b^{\lbrack 1 \rbrack}_1 & \cdots & b^{\lbrack 1 \rbrack}_s & \cdots
+& b^{\lbrack \nu \rbrack}_1 & \cdots & b^{\lbrack \nu \rbrack}_s\\
+\hline
+\ST  & \widehat{b}^{\lbrack 1 \rbrack}_1 & \cdots & \widehat{b}^{\lbrack 1 \rbrack}_s &
+& \widehat{b}^{\lbrack \nu \rbrack}_1 & \cdots & \widehat{b}^{\lbrack \nu \rbrack}_s
+\end{array}
+\end{equation}
+and is given by
+\begin{equation}
+	\vec{y}^{n+1} = \vec{y}^n + \Delta t\left(
+	\underbrace{\sum_{i=1}^{s}}_{\text{Stages}}
+	\underbrace{\sum_{\nu=1}^{N}}_{\text{Components}}
+	b_i^{\lbrack \nu \rbrack} \vec{\mathcal{T}}^{\lbrack \nu\rbrack}(\vec{Y}^i),
+	\right)
+\end{equation}
+where the stage values are given by:
+\begin{equation}
+	\vec{Y}^i = \vec{y}^n + \Delta t \sum_{j=1}^{s} \sum_{\nu = 1}^{N} a_{i,j}^{\lbrack \nu \rbrack}
+	\vec{\mathcal{T}}^{\lbrack \nu\rbrack}(\vec{Y}^j).
+\end{equation}
+Similar to standard RK methods, the stage vectors are approximations to the state at each stage
+of the $ARK_N$ method. Moreover, the temporal coefficients $c_i$ satisfy a similar
+row-sum condition, holding for all $\nu = 1, \cdots, N$:
+\begin{equation}
+	c_i = \sum_{j=1}^{s} a_{i, j}^{\lbrack \nu \rbrack}, \quad \forall \nu = 1, \cdots, N.
+\end{equation}
+The Butcher coefficients $\vec{c}$, $\vec{b}_{\nu}$, $\vec{A}_{\nu}$, and $\widehat{\vec{b}}_{\nu}$
+are constrained by certain accuracy and stability requirements, which are summarized in
+\cite{kennedy2001additive}.
+
+\subsubsection{Implicit-Explicit (IMEX) Runge-Kutta methods}
+A common setting is the case $N = 2$. This gives the typical context for
+Implicit-Explicit (IMEX) splitting methods, where the tendency $\vec{\mathcal{T}}$
+is assumed to have the decomposition:
+\begin{equation}
+	\ddt{\vec{y}} =
+	\vec{\mathcal{T}}_{s}(\vec{y}) + \vec{\mathcal{T}}_{ns}(\vec{y}),
+\end{equation}
+where the right-hand side has been split into a ``stiff'' component $\vec{\mathcal{T}}_{s}$,
+to be treated implicitly, and a non-stiff part $\vec{\mathcal{T}}_{ns}$ to be treated explicitly.
+Two different RK methods are applied to $\vec{\mathcal{T}}_{s}$ and $\vec{\mathcal{T}}_{ns}$
+separately, which have been specifically designed and coupled. Examples can be found in
+\cite{giraldo:2013}. The Butcher Tableau for an $ARK_2$ method will have the
+form
+\begin{equation}\label{eq:imex-bt}
+	\begin{array}{c|c|c}
+	\ST \vec{c} &\vec{A}_E &\vec{A}_I\\
+	\hline
+	\ST  & \vec{b}_E^T & \vec{b}_I^T \\
+	\hline
+	\ST  & \widehat{\vec{b}}_E^T & \widehat{\vec{b}}_I^T
+	\end{array},
+\end{equation}
+with
+\begin{equation}
+	\vec{A}_O = \left\lbrace a_{i, j}^O \right\rbrace, \quad
+	\vec{b}_O = \left\lbrace b_{i}^O \right\rbrace, \quad
+	\widehat{\vec{b}}_O = \left\lbrace \widehat{b}_{i}^O \right\rbrace,
+\end{equation}
+where $O$ denotes the label (either $E$ for explicit or $I$ for implicit).
+One step of an $s$-stage $ARK_2$ method defined by the Butcher tableau \eqref{eq:imex-bt}
+is given by
+\begin{equation}
+	\vec{y}^{n+1} = \vec{y}^n + \Delta t \sum_{i=1}^{s}\left(
+	b_i^E \vec{\mathcal{T}}_{ns}(\vec{Y}^i) + b_i^I \vec{\mathcal{T}}_{s}(\vec{Y}^i)
+	\right),
+\end{equation}
+with stage values defined as
+\begin{equation}
+	\vec{Y}^i = \vec{y}^n + \Delta t \sum_{j=1}^{s}
+	\left(
+	a^E_{i,j} \vec{\mathcal{T}}_{ns}(\vec{Y}^j) +
+	a^I_{i,j} \vec{\mathcal{T}}_{s}(\vec{Y}^j)
+	\right).
+\end{equation}
+Restricting our attention on $ARK_2$ schemes using a diagonally
+implicit RK scheme (upper-triangular part of $\vec{A}_I$ is zero, see for example \cite{giraldo:2013}),
+we can rearrange the expression for $\vec{Y}^i$ as:
+\begin{equation}
+	\vec{Y}^i = \vec{y}^n + \Delta t \sum_{j=1}^{i-1}\left(
+	a^E_{i,j} \vec{\mathcal{T}}_{ns}(\vec{Y}^j) +
+	a^I_{i,j} \vec{\mathcal{T}}_{s}(\vec{Y}^j)
+	\right)
+	+ \Delta t a^I_{i,i} \vec{\mathcal{T}}_{s}(\vec{Y}^i).
+\end{equation}
+After another rearranging, we obtain the implicit equation
+for the stage vector $\vec{Y}^i$:
+\begin{equation}\label{eq:implicit-equation-IMEX}
+	\left( \vec{I} - \Delta t a_{i,i}^I \vec{\mathcal{T}}_{s}\right)\vec{Y}^i
+	= \vec{y}^n + \Delta t \sum_{j=1}^{i-1}\left(
+	a^E_{i,j} \vec{\mathcal{T}}_{ns}(\vec{Y}^j) +
+	a^I_{i,j} \vec{\mathcal{T}}_{s}(\vec{Y}^j)
+	\right).
+\end{equation}
+
+In general, the left-hand side operator of \eqref{eq:implicit-equation-IMEX}
+may be \emph{nonlinear}, in which case, a nonlinear solver will need to be
+employed. In the case that $\vec{\mathcal{T}}_{s}$ is \emph{linear},
+then $\vec{\mathcal{T}}_{s}(\vec{Y}^i) = \vec{\mathcal{L}}\vec{Y}^i$, with
+$\vec{\mathcal{L}}$ a linear operator. Then at each stage of the ARK method,
+we require the solution to the discrete linear system:
+\begin{equation}
+	\left( \vec{I} - \Delta t a_{i,i}^I \vec{\mathcal{L}}\right)\vec{Y}^i =
+	\widehat{\vec{Y}}^i,
+\end{equation}
+where
+\begin{equation}
+	\widehat{\vec{Y}}^i = \vec{y}^n + \Delta t \sum_{j=1}^{i-1}\left(
+	a^E_{i,j} \vec{\mathcal{T}}_{ns}(\vec{Y}^j) +
+	a^I_{i,j} \vec{\mathcal{T}}_{s}(\vec{Y}^j)
+	\right).
+\end{equation}
+
+If available, an error estimator can be constructed using the embedded scheme:
+\begin{equation}
+	\widehat{\vec{y}}^{n+1} = \vec{y}^n + \Delta t \sum_{i=1}^{s}\left(
+	\widehat{b}_i^E \vec{\mathcal{T}}_{ns}(\vec{Y}^i) + \widehat{b}_i^I \vec{\mathcal{T}}_{s}(\vec{Y}^i)
+	\right),
+\end{equation}
+which can be used in the error estimate: $\vec{e}^{n+1} = \vec{y}^{n+1} - \widehat{\vec{y}}^{n+1}$.
+
+\subsection{Generalized Additively-Partitioned Runge-Kutta (GARK) Methods}
+The GARK family of RK methods extends the traditional approach of ARK methods
+by allowing for different stage values for the different components of the right-hand side.
+Following \cite{sandu2015generalized}, suppose the ODE in question has
+the form
+\begin{equation}\label{eq:gark-ode}
+\ddt{\vec{y}} = \sum_{\nu = 1}^{N} \vec{\mathcal{T}}^{\lbrack \nu\rbrack}(\vec{y}).
+\end{equation}
+Then one step of a GARK scheme reads as follows:
+\begin{equation}
+	\vec{y}^{n+1} = \vec{y}^n + \Delta t \left(
+	\underbrace{\sum_{\nu = 1}^{N}}_{Components}
+	\underbrace{\sum_{i = 1}^{s(\nu)}}_{Stages}
+	b_i^{\lbrack \nu\rbrack} \vec{\mathcal{T}}^{\lbrack \nu\rbrack}(\vec{Y}^i_{\nu})
+	\right),
+\end{equation}
+where the stage values $\vec{Y}^i_{\nu}$ are determined via:
+\begin{equation}
+	\vec{Y}^i_{\nu} = \vec{y}^n + \Delta t \sum_{m=1}^{N} \sum_{j=1}^{s(m)} a_{i, j}^{\lbrack \nu,m\rbrack}
+	\vec{\mathcal{T}}^{\lbrack m\rbrack}(\vec{Y}^j_{m}).
+\end{equation}
+The corresponding Butcher tableau now has the block-wise form
+\begin{equation}
+	\begin{array}{c|c|c|c|c}
+	\ST \vec{c}_{1} &\vec{A}_{1,1} &\vec{A}_{1,2} & \cdots & \vec{A}_{1,N}\\
+	\ST \vec{c}_{2} &\vec{A}_{2,1} &\vec{A}_{2,2} & \cdots & \vec{A}_{2,N}\\
+	\ST \vdots & \vdots & \vdots & \ddots & \vdots \\
+	\ST \vec{c}_N & \vec{A}_{N,1} &\vec{A}_{N,2} & \cdots & \vec{A}_{N,N}\\
+	\hline
+	\ST  & \vec{b}_{1}^T & \vec{b}_{2}^T & \cdots & \vec{b}_{N}^T
+	\end{array}
+\end{equation}
+where
+\begin{equation}
+	\vec{A}_{\sigma, \nu} = \left\lbrace a_{i, j}^{\lbrack \sigma, \nu \rbrack} \right\rbrace, \quad
+	\vec{b}_{\nu} = \left\lbrace b_i^{\lbrack \nu \rbrack}\right\rbrace.
+\end{equation}
+The coefficient arrays $\vec{A}_{\nu, \nu}$ and $\vec{b}_{\nu}$ are best interpreted as stand-alone
+RK methods applied to the $\nu$-th component of \eqref{eq:gark-ode}.
+The consistency arrays $\vec{c}_m = \lbrace c_i^{\lbrack m \rbrack}\rbrace$
+must adhere to a so-called \emph{internally consistent GARK condition},
+namely:
+\begin{equation}
+	c_i^{\lbrack m \rbrack} = \sum_{j=1}^{s(1)} a_{i, j}^{\lbrack m, 1 \rbrack} =
+	\sum_{j=1}^{s(2)} a_{i, j}^{\lbrack m, 2 \rbrack} = \cdots =
+	\sum_{j=1}^{s(N)} a_{i, j}^{\lbrack m, N \rbrack},
+\end{equation}
+for $i = 1, \cdots, s(m)$, $m = 1, \cdots, N$.
+
+The off-diagonal matrices $\vec{A}_{\sigma, \nu}$, $\sigma \neq \nu$ are generally non-square
+and should be regarded as a coupling mechanism among the various components, i.e.
+$\vec{A}_{\sigma, \nu}$ couples together the $\sigma$- and $\nu$-components together when assembling
+the full approximation.
+
+\hl{[Thomas]: TODO: expand this once we finish GARK details.}
+
+\section{Multirate Runge-Kutta Methods}
+
+\subsection{An explicit two-rate example}
+
+Suppose we have an ODE of the form:
+\begin{equation}
+	\ddt{\vec{y}} = \vec{\mathcal{S}}(\vec{y}) + \vec{\mathcal{F}}(\vec{y}), \quad \vec{y}(t_0) = \vec{y}_0,
+\end{equation}
+where $\vec{\mathcal{S}}$ denotes a ``slow'' tendency and $\vec{\mathcal{F}}$ is the ``fast'' (stiff) tendency.
+Then, for a given time-step size $\Delta t$, the two-rate method in \cite{Schlegel_2009} is summarized
+as the following:
+\begin{align}
+	\vec{Y}_1 &= \vec{y}(t_n), \\
+	\vec{r}_{i} &= \sum_{j=1}^{i-1}\tilde{a}^O_{ij}\vec{\mathcal{S}}(\vec{Y}_{j}), \\
+	\vec{w}_{i,1} &= \vec{Y}_{i-1},\\
+	\vec{w}_{i,k} &= \vec{w}_{i,k-1} + \Delta t \tilde{c}_i^O \sum_{j=1}^{k-1}\tilde{a}^I_{k,j}
+	\left(\frac{1}{\tilde{c}_i^O}\vec{r}_i + \vec{\mathcal{F}}(\vec{w}_{i,j})\right),\\
+	& \quad\quad i = 2, \cdots, s^O + 1 \text{ and } k = 2, \cdots, s^I + 1,\nonumber \\
+	\vec{Y}_i &= \vec{w}_{i,s^I + 1}
+\end{align}
+where the tilde parameters denote increments per RK stage:
+\begin{align}
+	\tilde{a}_{ij} &= \begin{cases}
+		a_{i,j} - a_{i-1, j} & \text{if } i < s + 1 \\
+		b_j - a_{s,j} & \text{if } i = s + 1
+	\end{cases},\\
+	\tilde{c}_{i} &= \begin{cases}
+		c_{i} - c_{i-1} & \text{if } i < s + 1 \\
+		1 - c_{s} & \text{if } i = s + 1
+	\end{cases},
+\end{align}
+where the coefficients $a$, $b$, and $c$ correspond to the Butcher tableau for a given RK method.
+The superscripts ``$O$'' and ``$I$'' denote the outer (slow) and inner (fast) components of the multirate method
+respectively. Thus, tilde coefficients should be associated with the RK method indicated by the superscripts.
+In other words, the RK methods for the slow $\vec{\mathcal{S}}$ and fast $\vec{\mathcal{F}}$ components
+have Butcher tables given by:
+\begin{equation}
+	\begin{array}{c|c}
+	\ST \vec{c}_{O} &\vec{A}_{O} \\
+	\hline
+	\ST  & \vec{b}_O^T
+	\end{array}, \quad
+	\begin{array}{c|c}
+	\ST \vec{c}_{I} &\vec{A}_{I} \\
+	\hline
+	\ST  & \vec{b}_I^T
+	\end{array},
+\end{equation}
+where $\vec{A}_O = \lbrace a_{i,j}^O\rbrace$, $\vec{b}_O = \lbrace b_i^O \rbrace$, and
+$c_O = \lbrace c_i^O \rbrace$ (similarly for $\vec{A}_I$, $\vec{b}_I$, and $\vec{c}_I$).
+The method described here is for an explicit RK outer method with $s$ stages.
+
+\hl{[Thomas]: TODO: expand on details.}
+
+\subsection{Multirate GARK}
+\hl{[Thomas]: TODO: finish GARK details.}
+
+%-------Bibliography
+\bibliographystyle{plain}
+\bibliography{Giraldo_refs}
+
+\end{document}

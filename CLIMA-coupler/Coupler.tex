@@ -1,0 +1,23 @@
+\documentclass{article}
+
+\include{CLIMA_Macros}
+\usepackage[inline]{enumitem}
+\usepackage{xcolor}
+
+
+\title{CLIMA coupler} 
+\author{ }
+
+\begin{document}
+
+\maketitle
+
+\section{Mixed-layer Ocean}
+The governing equation for ocean mixed layer temperature $T_o$ is:
+\begin{equation}
+\rho_o c_{po} h_o \frac{dT_o}{dt} = RAD - SHF - LHF + Q
+\end{equation}
+where $\rho_o$ is the density of ocean water, $c_{po}$ is the heat capacity of ocean water, $h_o$ is the mixed layer depth. RAD is the net radiative flux into the surface. SHF and LHF are sensible and latent heat fluxes, respectively. Q is the prescribed ocean heat flux.
+
+\section {Thoughts on coupler}
+\end{document}
