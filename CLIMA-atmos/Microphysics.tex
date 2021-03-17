@@ -378,6 +378,22 @@ Time stepping $\theta$.
 
 \hl{Toby's comment: Will need to split this section into two when sedimentation and condensation has been addressed.}
 
+\section{Parameterizing Collisions using Normalizing Flows}
+
+An alternative way of parameterizing the collision process is with the help of invertible transforms of a base mass distribution. Consider a distribution $n_0(m)$ (e.g., an exponential or gamma distribution). If we have an invertible map $f_\theta:\mathbb{R} \rightarrow \mathbb{R}$, that is parameterized by a parameter vector $\theta$, then we can perform a change of variables that defines a new distribution
+\begin{equation}
+    \label{eq:normalizing_flow}
+    n_\theta(m) = \Big|\frac{\partial f_\theta(m)}{\partial m}\Big| n_0(f_\theta(m)).
+\end{equation}
+By picking a friendly base distribution $n_0$ it becomes very easy to generate samples from $n_\theta$. One simply samples from $n_0$ and applies the back transformation $f^{-1}$ to generate samples from $n$.
+
+Given that the general collision process is governed by an equation of the form
+\begin{equation}
+    \label{eq:gen_coll_process}
+    \frac{\partial n_\theta(m)}{\partial t} = \int \int K(m, m',m'')n_\theta(m')n_\theta(m'')\, \mathrm{d}m'\mathrm{d}m'',
+\end{equation}
+we can design a potentially efficient way of solving \eqref{eq:gen_coll_process} using the normalizing flow definition given by \eqref{eq:normalizing_flow}.
+
 \subsection{Kernel Library}
 TBD
 

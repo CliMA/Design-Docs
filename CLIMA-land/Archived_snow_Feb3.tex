@@ -1,0 +1,624 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Archived CliMA Snow on Feb3 after discussions on temperature profile}
+\author{ecoshuang }
+\date{February  2021}
+
+\begin{document}
+
+\maketitle
+
+\chapter{Snow}
+Lead & POC: Shuang Ma
+Others: Marcos Longo, Katherine Deck, Anthony Bloom, Pierre Gentine, Elias Massoud, Anna Gagné-Landmann, Renato Braghiere, et al.
+
+A  version one single-layer energy balance snow module is designed. The snow surface temperature is different from the snow average temperature using an equilibrium gradient parameterization based on the surface energy balance (Semtner et al., 1976; You et al., 2014). It approximate surface energy flux as a gradient between the surface temperature and average temperature of snow over the snow depth. Snow water equivalent is calculated to convert to Snow Cover Fraction. Energy and Water budgets are calculated. References for snow module are mainly from Bonan book (2019), MOdular Distributed Watershed Educational Toolbox (MOD-WET, Margulis 2017),  Utah Energy Balance (UEB) snowmelt model (You et al., 2014), ED2 (Longo et al., 2019; Walko et al., 2000), and the existing CliMA soil physics model. Throughout the text we demonstrate our assumptions for processes in current version and list alternative approaches for improvement in the next version.\\
+There are a few assumptions come with this first version design:\\
+1. no standing water in snow pack\\
+2. a linear temperature profile in the snowpack\\
+
+
+\section{Mass balance equation }
+The snow model solves an equation for the total mass of the snow. The partitioning into liquid or frozen water is computed using a liquid water fraction, which is computed as a diagnostic based on the internal energy of the snow. The total mass of the snow is represented using the snow water equivalent $SWE$, defined as the height equivalent amount of water mass would have if the snow were melted:
+\begin{equation}
+    SWE =\int_0^{z_{\rm snow}} dz \rho_{\rm snow}(z)/\rho_w,
+\end{equation}
+where $z_{\rm snow}$ is the height of the snowpack, $\rho_{\rm snow}$ is the density of the snow, which in principle can vary in height, and $\rho_w$ is the density if liquid water. In the first version we leave density as a fixed constant, \hl{add comments about uncertainty in modeling}, but discuss this later.
+
+This variable satisfies the following conservation law:
+\begin{equation}
+\frac{dSWE}{dt} = \tilde{P} - \tilde{E} - \tilde{M}
+\end{equation}
+where $\tilde{P}$ is volume flux ($\mathrm{m~s^{-1}}$)from precipitation (we assume this has accounted for canopy interception), $\tilde{E}$ is volume flux from sublimation and evaporation, and $\tilde{M}$ is the net volume flux of liquid water leaving the snow system. To convert to mass fluxes, multiple by the density of water.
+
+Excess liquid water leaving the snow is partitioned into runoff or infiltration by the soil model (i.e. $\tilde{M}$ is considered a boundary flux for the soil model in snow covered regions).
+\begin{equation}
+\tilde{M} = q^{surface} + \tilde{R}.
+\end{equation}
+$q^{surface}$ is infiltration \hl{(see 2.5, check sign) do we need this?}
+
+\subsubsection{Vapor flux from evaporation and sublimation}
+\begin{equation}
+\tilde{E}=  -\frac{\rho_a}{\rho_w}g_{ae}(q_a-q_{surf})
+\end{equation} 
+This vapor flux $\tilde{E}$ is the total, from both sublimation and evaporation. It is calculated in a similar formula as the water vapor fluxes in soil physics module (equation 2.8.2, also see in UEB and MOD WET)\hl{clarify if $q_{surf}$ is saturated value, clarify if $g_{ae}$ is the same as for snow as for soil}.  $\rho_a$ is air density in $kg/m^3$, computed from appendix equations A1. $q_{surf}$ is surface specific humidity, computed from ice saturated vapor pressure $e_{ice}$ in Pa and surface pressure in Pa ($p_{srf}$), using appendix equations A2; $q_a$ is specific humidity, input variable; $g_{ae}$ is turbulent transfer conductance for latent heat, which use the same equations in the section for turbulent transfer conductance for sensible heat, check that section (3.2.6) for detailed equations.
+
+
+\subsubsection{Liquid water loss: a bucket model for liquid water in snow}
+$\tilde{M}$ is the liquid water flux leaving the snowpack. We take a bucket model approach. Liquid precipitation $P_{\rm liq}$ and melting snow $M_{\rm snowmelt}$ fill the bucket, and when it reaches a capacity, a flux $\tilde{M}$ leaves.
+\hl{fill in}
+
+If liquid water is assumed to leave the system immediately, we would require
+\begin{equation}
+    \tilde{M} = \tilde{P}_{\rm liq} + \tilde{M}_{\rm snowmelt},
+\end{equation}
+where $\tilde{M}_{\rm snowmelt}$ is the volume flux resulting from melting snow, and $\tilde{P}_{\rm liq}$ presents liquid precipitation.
+
+%Taking the same approach as in MOD-WET model, we compute the energy associated with snowmelt first and then the snowmelt water flux. Equations are in the energy balance equation section-3.2.5.
+
+
+%where $\tilde{M}_{snowmelt}$ is a volume flux of liquid water, generated by snowmelt. It is defined in snowmelt Section 3.25 \hl{Anna: if M m/s, are units of Qsnowmelt $\mathrm{J~m^{-2}s^{-1}}$ ?, here maybe introduce Qsnowmelt more, as it is new, like described how it will be calculated}, $\rho_w$ is density of water (constant), $L_f$ is latent heat of fusion. \hl{kd: should this a specific heat component in the denominator as well? or no b/c the reference T is the melting T?} \hl{Yes. please see section 3.2.5}
+%************ to be deleted ************
+
+\section{Conservation of internal energy}
+We consider thermal heat conduction and neglect energy fluxes within the snowpack due to diffusion of liquid water. In this case, the conservation law is
+\begin{align}
+    \sum \text{surface fluxes} &= -\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{z_{\rm snow}/2} \nonumber \\
+        %\sum \text{bottom fluxes} &= -\kappa_{\rm snow} \frac{\bar{T}-T_{\rm bottom}}{z_{\rm snow}/2} \nonumber \\
+        %T_{\rm ground} & = T_{\rm bottom} \nonumber \\
+        \frac{\partial \bar{I}_{\rm snow}}{\partial t} &= -\bigg(-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{z_{\rm snow}/2}\bigg) - \text{Runoff} - \text{Sensible heat loss to ground} \nonumber \\
+       % \frac{\partial \bar{I}_{\rm snow}}{\partial t} &= -\bigg(-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{z_{\rm snow}/2}\bigg) - \text{Runoff} \nonumber \\
+        %& - \kappa_{\rm ground-snow}(T_{\rm bottom}- T_{\rm ground})
+\end{align}
+
+\begin{equation}
+    \frac{\partial I_{\rm snow}}{\partial t} = -\frac{\partial }{\partial z}\bigg(-\kappa_{\rm snow} \frac{\partial T}{\partial z}\bigg)
+\end{equation}
+where $I_{\rm snow}$ is the internal energy of the snowpack, $T$ is the temperature of snowpack (assuming any liquid water and ice is in thermal equilibrium), and $\kappa_{\rm snow}$ is the thermal conductivity of the snowpack. We treat $\kappa_{\rm snow}$ as constant($Wm^{-1}K^{-1}$), it can be written as
+\begin{equation}
+\kappa_{\rm snow} = k_{snow} c_i \rho_{snow}
+\end{equation}
+where k is thermal diffusivity of snow,  $\rho_{snow}$ is snow density, $c_i$ is specific heat of ice.
+
+
+Boundary fluxes to be included are:
+\begin{itemize}
+    \item Radiation (assumed to only enter as a boundary condition)
+    \item Sensible heat flux at the surface and bottom of the snowpack
+    \item Latent heat flux due to evaporation at the snow surface
+    \item Changes in internal energy due to water fluxes (runoff or precipitation)
+\end{itemize}
+
+Internal energy of snowpack ($I_{\rm snow}= Q_{\rm tsw}$):\\
+%****************************************************************************************************************
+%**Our first attempt does not consider liquid phase in snowpack, we assume all rainfall and snowmelt are directly counted as runoff and infiltraion, in this case $l$ always equal zero and:
+%\begin{equation}
+%Q_{tsw} =\begin{cases} 
+%%      M_{tsw}c_iT_{tsw} & T_{tsw} <= T_f \\
+%      M_{tsw}[c_iT_f+L_f+c_w(T_{tsw}-T_f)]  &  T_{tsw}> T_f 
+%   \end{cases}
+%\end{equation}
+%\hl{remove $c_w$ contribution}\\
+%\hl{Shuang: rewriting the above equations here}:
+%\begin{equation}
+%Q_{tsw} =\begin{cases} 
+%      M_{tsw}c_iT_{tsw} & T_{tsw} <= T_f \\
+%      M_{tsw}[c_iT_f+L_f]  &  T_{tsw}> T_f 
+%   \end{cases}
+%\end{equation}
+%where $M_tsw$ is the snowpack mass (kg/m2), calculated in the equation below.
+%*******************************************************************************************************%**********
+%\begin{equation}
+%Q_{tsw} =\begin{cases} 
+%      M_{tsw}c_iT_{tsw} & T_{tsw} < T_f \\
+%       M_{tsw}[c_iT_f+lL_f] &  T_{tsw}=T_f \\
+%      M_{tsw}[c_iT_f+L_f+c_w(T_{tsw}-T_f)]  &  T_{tsw}> T_f 
+%   \end{cases}
+%\end{equation}
+The specific internal energies of the ice and liquid water depend on the temperature $T$ of the snowpack (which are assumed to be in local thermal equilibrium, so they have the same temperature in any one location) and the specific heat capacities. Following \eqref{e:soil_internal_energies}, we define:
+\begin{subequations}\label{e:snow_internal_energies}
+\begin{align}
+I_l(T) & = c_{l} (T - T_0), \\
+I_i(T) & = c_{i} (T - T_0) - I_{i,0}.
+\end{align}
+\end{subequations}
+We use the same reference temperature as the soil and atmosphere models.  $I_{i,0}$ is the difference in specific internal energy between ice and liquid water at $T_0$, equal to the latent heat of fusion at $T_0$: 
+\begin{equation}
+    I_{i,0} = L_{f,0}.
+\end{equation} 
+
+The total internal energy of the snowpack is then (ignoring internal energy of the air in the pore spaces):
+
+
+\begin{empheq}[box=\eqnbox]{equation}\label{e:snow_internal_energy}
+\begin{split}
+    I(T, l)  &= l M_{\rm snow} I_l(T) + (1-l) M_{\rm snow}  I_i(T)\\
+    &= c_{\rm snow}M_{\rm snow}(T - T_0) - (1-l) M_{\rm snow} L_{f,0}.
+\end{split}
+\end{empheq}
+with 
+\begin{equation}
+    c_{\rm snow} = c_i(1-l)+lc_l
+\end{equation}
+\hl{Shuang: rewriting the above equations here}:
+\begin{equation}
+Q_{tsw} =\begin{cases} 
+      M_{tsw}c_iT_{tsw} & T_{tsw} < T_f \\
+       M_{tsw}[(1-l)(c_iT_{tsw})+l*(c_iT_f+L_f+c_w(T_{tsw}-T_f)] &  T_{tsw}=T_f \\
+      M_{tsw}[c_iT_f+L_f+c_w(T_{tsw}-T_f)]  &  T_{tsw}> T_f 
+   \end{cases}
+\end{equation}
+\\
+where $M_{tsw}$ $M_tsw$ is the snowpack mass (kg/m2), calculated in the equation below, and $l$ is the liquid water fraction. \hl{Anna: if l is liquid water fraction, shouldnt there be an ice fraction as well to make the sum 1? l=1 in the third equation? Should we use I instead of Q as internal energy var? Also instead of ci*Tf, how about ci*(Tf-T0)? I think reexpressing 3.9 as 2.13bc-2.16, where ice and water treated separately, would be good, to stay consistent and simpler not to have three different expressions dependent on T }
+\hl{agree with Anna re: consistency! also if we defined Tref = tfreeze, then the mass at t = tfreeze shouldnt have specific heat contribution. $c_i$ shouldnt be in the third equation}
+\hl{Shuang also agree, write out the water and ice internal energy separately to be clear and consistent with soil physics section}
+
+If account for liquid phase in the snowpack, then  $l$ vary between 0 and 1, here is how $l$ is derived:  
+when snowpack is at freezing temperature ($T_{tsw}$=$T_f$), 
+if there is no liquid ($l=0$):
+\begin{equation}
+Q_{tsw0} = M_{tsw}c_i  T_{f} 
+\end{equation}if there is no ice ($l$=1): \hl{Anna: if no ice shouldnt the first term (ciTf) dissappear? I guess we are thinking in terms of the energy that would be transferred from the ice were it all melted.}
+\hl{agreed, this seems inconsistent with above equations}
+
+\begin{equation}
+Q_{tsw1} = M_{tsw}[c_iT_f+L_f]
+\end{equation}
+then at freezing temperature, the internal energy is:
+\begin{equation}
+Q_{tsw} = lQ_{tsw1}+(1-l)Q_{tsw0}
+\end{equation}
+reorganize the equation above we have:
+\begin{equation}
+l = (\frac{Q_{tsw}-Q_{tsw0}}{Q_{tsw1}-Q_{tsw0}})
+\end{equation}
+$T_f$ is freezing temperature constant, $c_i(c_w)$ are specific heat capacity of ice(water); $L_f$ is latent heat of fusion constant; This assumes that $Q_{tsw}$ = 0 when $T$ = 0K and that melting/freezing can only occur at the melting/freezing temperature (0°C). $T_{tsw}$ is the temperature of the Temporary Surface Water, it could be either snowpack, ponding, or a mix of both. Check with the soil hydrology team which term they use for standing water on top of the soil to keep the naming consistent.
+\hl{It's a little unclear, can l be nonzero when we arent at freezing?}
+****************************************************************************************************************
+
+
+
+\subsection{Surface Boundary Conditions}
+
+\hl{Anna: make clearer which are prognostic and diagnostic vars}
+\subsubsection{Net radiation ($R_n$)}
+\begin{equation}
+R_n = LW_{net} + SW_{net}
+\end{equation}
+where $SW_{net}$ is net shortwave radiation; $LW_{net}$ is  net long wave radiation.
+The current documentation covers the basic terms for calculating snow energy balance, as represented in simple snow models (eg. MOD-WET). Some other terms we might consider to add: black body emission from soil to snow, downward shortwave radiation into soil when snow exist (penetrate though snowpack, used in soil energy balance), please list anything else you think is important and corresponding equations:
+
+\subsubsection{Net long wave radiation}
+Snowcover, even when shallow, acts nearly as a blackbody to longwave radiation. Thus, when snowcover is present, the top snow layer replaces the top soil layer \hl{anna:clarify meaning of replace, will we have one snow layer or multiple} as a radiating and absorbing surface. Soil and vegetation likewise have high emissivities (low reflectivities). Following ED-2, we make the assumption that multiple longwave reflections do not occur; once-reflected radiation is assumed to be fully absorbed upon next reaching a surface (Walko et al 2000; Longo et al. 2019).
+Upwelling long wave ($LW_{up}$) is a function of snow surface temperature; Downwelling long wave radiation ($LW_{down}$) is from input data;
+\begin{align*}
+    
+\end{align*}
+LW_{net} = LW^{\downarrow}-LW^{\uparrow}\\
+= LW_{down} - [(1-\epsilon_{snow})LW^{\downarrow}+\epsilon_{snow}\cdot SB_{const} \cdot T_{snowsurf}^4] \\
+= \epsilon_{snow}LW^{\downarrow}-\epsilon_{snow}\cdot SB_{const} \cdot T_{snowsurf}^4    
+\end{align}
+where $emiss_{snow}$ is snow long wave emissivity constant 0.99 (same value used in MOD WET model and UEB model), $SB_{const}$ is Stefan-Boltzman constant, $T_{snowsurf}$ is snow surface temperature.
+
+\subsubsection{Net shortwave radiation ($SW_{net}$)}
+In simple models such as MOD-WET and UEB, the incident downward short wave radiation (SW) is directly used in for calculating net shortwave radiation, for both bare ground and vegetated surface:
+\begin{equation}
+SW_{net} = SW (1-\alpha_{snow})
+\end{equation}where $SW$ is downward short wave radiation as input variable, $\alpha_{snow}$ is snow albedo. 
+Some other models (eg. ED2) calculate shortwave radiation separately for bare ground and vegetated area.  Net shortwave radiation for bare ground fraction on a pixel is the same as equation above. For areas with vegetation, downward shortwave radiation to snow is determined from canopy radiation model. 
+Once the downward short wave reach snowpack, it penetrates to considerable depths into snowcover. 
+
+\hl{If we keep the $gamma$ factor, we need to remember to add the difference to the soil net radiation boundary term}
+ED2 (LEAF-2) considers the transmissivity of each snow layer.  Net shortwave radiation received by snowcover is:
+\begin{equation}
+SW_{net} = SW(1-\alpha_{snow})(1-\gamma_{snow}+\gamma_{snow}\alpha_{bg})
+\end{equation}where $SW$ is downward short wave radiation as input variable,$\gamma_{snow}$ is transmissivity of snow pack: 
+\begin{equation}
+\gamma_{snow} = e^{-{\epsilon}z_{snow}}
+\end{equation}
+where $z_{snow}$ is snowcover depth, $\epsilon$ is extinction coefficient equals 20$m^{-1}$  based on average value in de Quervain (1973).
+
+\textbf{when there is light snowcover, shortwave radiation can still penetrate into the soil, $SW_{down}$ for soil surface when snow exist need to considered separately during the coupling.}
+In CLM5: With a thin snowpack, penetrating solar radiation to the underlying soil can be quite large and heat cannot be released from the soil to the atmosphere in this situation. Thus, if the snowpack has total snow depth less than 0.1 m and there are no explicit snow layers, the solar radiation is absorbed by the top soil layer.
+\textbf{Next, we list a few methods for calculating snow albedo used in different models, Renato will bring up more options and we need to discuss which level of complexity is necessary for CliMA purpose.}
+Snow albedo ranges between about 0.50 and 0.90, and decreases with grain size, the angle of solar incidence, impurities, and the ratio of direct to diffuse sunlight. Here, $\alpha_{snow}$ (snow albedo) is calculated using USACE (1956) formulation:
+\begin{equation}
+\alpha_{snow} = \alpha_0+K \cdot \exp(-day_{counter} * r)    
+\end{equation}
+where $\alpha_0$ is minimum snowpack albedo ~0.4, $K$ is a constant ~0.44, K and $\alpha_0$ define the maximum albedo of fresh snow, $day_{counter}$ is number of days since the last snowfall, calculate from snowfall time series, $r$ is recession coefficients, 0.12 for $T_{air}>T_f$ and 0.05 for $T_{air}<T_f$, $T_f$ is water freezing temperature constant. Equations are used in MOD-WET model. 
+This method is used in MOD-WET model. 
+ECMWF land surface model used a different method, which differ for melting and non-melting conditions (Dutra et al., 2010).
+
+In UEB model (Dickinson et al., 1993, Tarboton and Luce 1996, You et al., 2014), when the snowpack is shallow (<0.1m), the surface albedo is interpolated from snow albedo ($\alpha_{snow}$) and bare ground albedo ($\alpha_{bg}$):
+\begin{equation}
+\alpha_{surf} = r_\alpha\alpha_{bg}+(1-r_\alpha)\alpha_{snow}\\
+r_\alpha = (1-z/h)e^{-z/2h}
+\end{equation}where $r_\alpha$approximate the exponential extinction of radiation penetration of snow scaled to $1/e^2$
+at depth h.
+\textbf{Renato bring up alternative plans for radiation transfer and albedo.}
+
+\subsubsection{Precipitation}
+\hl{anna remove this secn on rain heat flux?}
+The internal energy flux associated with precipitation ($Q_{prec}$) follow the definition of internal energy, assuming precipitation is in thermal equilibrium with the air temperature:
+\begin{equation}
+Q_{prec} = Q_{advec} + LE_{prec}        
+\end{equation}
+where $Q_{advec}$ is from warm rain,  $LE_{prec}$ is the energy released from freezing of rain (if happens), and:
+\begin{equation}
+Q_{advec}=\rho_wP (T_{air}-T_f)c_w 
+\end{equation}
+freezing of rain happens before it hits the snow/ground
+\begin{equation}
+LE_{prec}=\rho_wP L_f    
+\end{equation}
+If precipitation is in form of snow:
+\begin{equation}
+Q_{advec}=\rho_iP \cdot T_{air}c_i 
+\end{equation}
+If precipitation is in mixed phase, use the above two equations.
+where $T_{air}$ is air temperature, $T_f$ is water freezing temperature constant, $c_w$ is the specific heat capacity of water constant, $\rho_w$ is density of water constant, $L_f$ is latent heat of fusion constant.
+
+
+\subsection{Bottom Boundary Conditions}
+
+A separate representation of surface snow temperature and average snow temperature in a one layer snow model is necessary for calculating surface energy exchanges that depend on surface temperature, while retaining a parsimonious model structure. To do this, we assume  a linear temperature profile in the snowpack, such that fluxes at any cross section in the snow is equivalent (Semtner 1976); From Fourier's law, we have:
+\begin{equation}
+F = -\lambda_{snow}\frac{\partial T}{\partial z}
+\end{equation}where F is heat flux by conduction ($Wm^{-2}$), T is temperature (K), z is depth (m). the term $\frac{\partial T}{\partial z}$is the vertical temperature gradient and is positive when temperature decreases with depth in the snow. The negative sign denotes that heat transfer is negative in the downward direction. $\lambda_{snow}$ is snow thermal conductivity ($Wm^{-1}K^{-1}$),
+\begin{equation}
+\lambda_{snow} = k_{snow} c_i \rho_{snow}
+\end{equation}
+where k is thermal diffusivity of snow,  $\rho_{snow}$ is snow density, $c_i$ is specific heat of ice.
+
+and we have:
+\begin{equation}
+R_n - LE + H = \lambda_{snow}\frac{T_{surf}-T_{tsw}}{z_{snow}/2}
+\end{equation}where $T_{surf}$ surface temperature of snow cover, $T_{tsw}$ is temperature in the middle of snow cover, z_{snow} is snow depth.
+Equation above can be solved numerically for $T_{surf}$ using the Newton-Rhapson scheme. Other approximation methods may be discussed later. \textbf{Please put your recommended solving approach here. }
+
+Method listed above is from Semtner 1976. Other approaches to calculate surface snow temperature exist (equilibrium gradient approach, force-restore approach, modified force-restore approach, etc.) and can be found in the references below. \textbf{Please add other alternative approaches that you think is helpful.}
+
+References for temperature profile calculation:
+Semtner Jr, Albert J. "A model for the thermodynamic growth of sea ice in numerical investigations of climate." Journal of Physical Oceanography 6, no. 3 (1976): 379-389.
+Kondo, J., & Yamazaki, T. (1990). A prediction model for snowmelt, snow surface temperature and freezing depth using a heat balance method. Journal of applied meteorology, 29(5), 375-384.
+You, J., Tarboton, D. G., & Luce, C. H. (2014). Modeling the snow surface temperature with a one-layer energy balance snowmelt model.
+Sultana, R., K-L. Hsu, J. Li, and S. Sorooshian. "Evaluating the Utah Energy Balance (UEB) snow model in the Noah land-surface model." Hydrology and Earth System Sciences 18, no. 9 (2014): 3553-3570.\section{Energy balance equation}
+
+
+
+
+\hl{Anna: Would it would be better to remove LE and H from this equation as these termes only enter as boundary conditions? (just like in this comment in heat section. "Radiative
+fluxes penetrating into the soil are generally not resolved in soil models and only
+enter as upper boundary conditions (section 2.8), so that their flux divergence in
+the soil vanishes.1)" so we dont consider these fluxes in the heat balance law.}
+\begin{equation}
+\begin{split}
+\frac{dQ_{tsw}}{dt} = R_n - LE + H
+\end{split}
+\end{equation}
+where $Q_{tsw}$ is the internal energy of snowpack (a mixture of ice and water), here we assume internal energy = 0 when T=0K \hl{Anna: should we use same ref temperature as above, near eq 2.13? ("Temperature T0 is a reference temperature at which the specific internal energy of
+soil and liquid water are taken to vanish..what is T0 in our model currently?")}\hl{Shuang: Yes let's keep it consistent}; $R_n$ is net radiation; $LE$ is energy fluxes associated with latent heat; H is sensible heat fluxes. 
+\begin{equation}
+LE = Q_{subl/evap}+Q_{snowmelt}
+\end{equation}
+$Q_{subl/evap}$ is latent energy change due to both phase changes and mass exchange, from sublimation/frost and evaporation/dew; \hl{Anna: should we represent the energy loss from mass exchange as a separate term? Shouldnt LE only represent heat loss due to phase change as that is the defn of LE? }hl{there're a mix of different representations out there in different models, let's pick a way easiest and consistant with soil}\\
+$Q_{snowmelt}$ is latent energy change due to both phase changes and mass exchange, from snowmelt; \\
+\begin{equation}
+H =  Q_{prec}- H_{snow2atm} - H_{snow2soil}
+\end{equation}
+$Q_{prec}$ is energy brought in from precipitation \hl{Anna: we mentioned this flux for soil as well, but decided we wouldnt consider it. So we should be consistent and not consider it for snow either, right?}\hl{Shuang: we could do the same as soil for now, if it matters we could revisit}, including advection energy and possible latent heat from freezing of rain; \\
+$H_{snow2atm}$ is sensible heat loss through heat diffusion at snow-atmosphere boundary layer;\\ \hl{Anna: should we define the fluxes as positive upwards? so soil2snow and snow2atm?}
+$H_{snow2soil}$ is sensible heat loss through heat diffusion at snow-soil boundary layer;\\
+\\
+Internal energy of snowpack ($Q_{tsw}$):\\
+****************************************************************************************************************
+**Our first attempt does not consider liquid phase in snowpack, we assume all rainfall and snowmelt are directly counted as runoff and infiltraion, in this case $l$ always equal zero and:
+\begin{equation}
+Q_{tsw} =\begin{cases} 
+      M_{tsw}c_iT_{tsw} & T_{tsw} <= T_f \\
+      M_{tsw}[c_iT_f+L_f+c_w(T_{tsw}-T_f)]  &  T_{tsw}> T_f 
+   \end{cases}
+\end{equation}
+\hl{remove $c_w$ contribution}\\
+\hl{Shuang: rewriting the above equations here}:
+\begin{equation}
+Q_{tsw} =\begin{cases} 
+      M_{tsw}c_iT_{tsw} & T_{tsw} <= T_f \\
+      M_{tsw}[c_iT_f+L_f]  &  T_{tsw}> T_f 
+   \end{cases}
+\end{equation}
+where $M_tsw$ is the snowpack mass (kg/m2), calculated in the equation below.
+*****************************************************************************************************************
+** Equations for $Q_tsw$ if account for liquid phase in snow pack **
+\begin{equation}
+Q_{tsw} =\begin{cases} 
+      M_{tsw}c_iT_{tsw} & T_{tsw} < T_f \\
+       M_{tsw}[c_iT_f+lL_f] &  T_{tsw}=T_f \\
+      M_{tsw}[c_iT_f+L_f+c_w(T_{tsw}-T_f)]  &  T_{tsw}> T_f 
+   \end{cases}
+\end{equation}
+\\
+\hl{Shuang: rewriting the above equations here}:
+\begin{equation}
+Q_{tsw} =\begin{cases} 
+      M_{tsw}c_iT_{tsw} & T_{tsw} < T_f \\
+       M_{tsw}[(1-l)(c_iT_{tsw})+l*(c_iT_f+L_f+c_w(T_{tsw}-T_f)] &  T_{tsw}=T_f \\
+      M_{tsw}[c_iT_f+L_f+c_w(T_{tsw}-T_f)]  &  T_{tsw}> T_f 
+   \end{cases}
+\end{equation}
+\\
+where $M_{tsw}$ $M_tsw$ is the snowpack mass (kg/m2), calculated in the equation below, and $l$ is the liquid water fraction. \hl{Anna: if l is liquid water fraction, shouldnt there be an ice fraction as well to make the sum 1? l=1 in the third equation? Should we use I instead of Q as internal energy var? Also instead of ci*Tf, how about ci*(Tf-T0)? I think reexpressing 3.9 as 2.13bc-2.16, where ice and water treated separately, would be good, to stay consistent and simpler not to have three different expressions dependent on T }
+\hl{agree with Anna re: consistency! also if we defined Tref = tfreeze, then the mass at t = tfreeze shouldnt have specific heat contribution. $c_i$ shouldnt be in the third equation}
+\hl{Shuang also agree, write out the water and ice internal energy separately to be clear and consistent with soil physics section}
+
+If account for liquid phase in the snowpack, then  $l$ vary between 0 and 1, here is how $l$ is derived:  
+when snowpack is at freezing temperature ($T_{tsw}$=$T_f$), 
+if there is no liquid ($l=0$):
+\begin{equation}
+Q_{tsw0} = M_{tsw}c_i  T_{f} 
+\end{equation}if there is no ice ($l$=1): \hl{Anna: if no ice shouldnt the first term (ciTf) dissappear? I guess we are thinking in terms of the energy that would be transferred from the ice were it all melted.}
+\hl{agreed, this seems inconsistent with above equations}
+
+\begin{equation}
+Q_{tsw1} = M_{tsw}[c_iT_f+L_f]
+\end{equation}
+then at freezing temperature, the internal energy is:
+\begin{equation}
+Q_{tsw} = lQ_{tsw1}+(1-l)Q_{tsw0}
+\end{equation}
+reorganize the equation above we have:
+\begin{equation}
+l = (\frac{Q_{tsw}-Q_{tsw0}}{Q_{tsw1}-Q_{tsw0}})
+\end{equation}
+$T_f$ is freezing temperature constant, $c_i(c_w)$ are specific heat capacity of ice(water); $L_f$ is latent heat of fusion constant; This assumes that $Q_{tsw}$ = 0 when $T$ = 0K and that melting/freezing can only occur at the melting/freezing temperature (0°C). $T_{tsw}$ is the temperature of the Temporary Surface Water, it could be either snowpack, ponding, or a mix of both. Check with the soil hydrology team which term they use for standing water on top of the soil to keep the naming consistent.
+\hl{It's a little unclear, can l be nonzero when we arent at freezing?}
+****************************************************************************************************************
+
+\begin{equation}
+M_{tsw}=(\rho_w l+\rho_i (1-l))SWE
+\end{equation}
+where $M_{tsw}$ is the snowpack mass (kg/m2), $\rho_w$ and $\rho_i$ are the density of water and ice, l=0 if assume no liquid phase in the snowpack
+
+No liquid phase in the snow pack:
+\begin{equation}
+T_{tsw} = Q_{tsw} / (c_iM_{tsw}) 
+\end{equation}
+With liquid phase in the snow pack:
+\begin{equation}
+T_{tsw} = Q_{tsw} / ((1-l)c_i\rho_i+l*c_w\rho_w)SWE 
+\end{equation}
+
+\subsection{Snowmelt}
+According to MOD WET, if the internal energy $E_{tsw} > M_{tsw}  c_i  T_f$:
+\begin{equation}
+Q_{snowmelt} = (T_{tsw}-T_f)c_i M_{tsw}
+\end{equation}the volumetric water loss rate from snowmelt, M_{snowmelt}, in unit of $m/m^2/s$ \hl{Anna, change units}:
+\begin{equation}
+M_{snowmelt} = Q_{snowmelt} /(\rho_w (L_f+c_wT_{surf}))
+\end{equation}where $T_{surf}$ is snow surface temperature, calculated in section 3.3 (Temperature profile), $L_f$ is specific latent heat of fusion, it's a constant value because snowmelt only occur at certain temperature. 
+The amount of snowmelt may exceed available SWE, cap it with upper limit:
+\begin{equation}
+M_{max}  = SWE + P - E
+\end{equation}\begin{equation}
+M = min(M_{max} , M)
+\end{equation}where $M_{max}$ is maximum snowmelt available.
+\hl{Anna: do we rly need this caping?}
+
+\subsection{Latent heat flux - Sublimation}
+Latent heat flux in the snow module describes moisture fluxes between the atmosphere and the land surface, including sublimation of water from snowpack, in the future may include evaporation of water from snowpack (when account for liquid phase in snowpack). Same as ED2 model, the total enthalpy flux associated with vapor loss (sublimation) is the sum of enthalpy flux due to phase change and enthalpy flux due to mass exchange (correspond to ED2 equations 73- 74):
+\begin{equation}
+Q_{subl}=(l_{iv} +c_iT_{surf})E_{mass}
+\end{equation}
+where $l_{iv}$ is specific latent heat of sublimation, unlike the specific latent heat of fusion,  where $l_{if}=l_{if3}$ because fusion only occur at $T_3$, $c_i$ is specific heat of ice,  $l_{iv}$ change as a function of snow surface temperature $T_{surf}$:  
+\begin{equation}
+l_{iv} = l_{iv3} + (c_{pv}-c_i)(T_{surf}-T_3)
+\end{equation}where $l_{iv3}$ is the specific latent heat of sublimation at the water triple point ($T_3$), $c_{pv}$ is the specific heat of water vapor at constant pressure. Look up to equation in ED2 model if liquid phase in considered in snowpack to calculate evaporation fluxes.
+equation for $E_{mass}$ is listed in previous mass balance section;
+
+
+\subsection{Sensible heat flux at upper and lower boundaries}
+Snow-air boundary sensible heat flux is referenced from MOD-WET (MATLAB-based Modular Distributed Watershed Educational Toolbox, Margulis 2017 Introduction to Hydrology, aerodynamic resistance, ra), and UEB (Utah Energy Balance snowmelt model, turbulent transfer conductance for sensible heat, $K_h$):\hl{can leave in terms of conductance for now, we wont have to define this ourselves (should be computed for us).}
+\begin{equation}
+H_{snow2atm}= \rho_a c_p (T_{surf}-T_{air})K_h
+\end{equation}
+where $\rho_a$ is air density, $c_p$ is specific heat capacity of air (1004 J/kg/K), $T_{surf}$ is snow surface temperature, $T_{air}$ is air temperature (in CLM said ‘atmosphere potential temperature’, use the same term with soil physics team in their upper boundary layer condition); $K_h$($K_e$) is aerosol resistance constant computed from von Karman's constant ($k_v=0.4$), horizontal wind speed at reference height (u),wind speed measurement (reference) height (z), zero-plane displacement height (d), and the aerodynamic (momentum) roughness height ($z_0$ ), all the height/length value are in unit of meter:
+\begin{equation}
+K_h = K_e =  (\frac{{k^2_vu}}{ln((z-d)/z_0)^2})
+\end{equation}
+$z_0$: Roughness length is defined as the height at which the mean velocity is zero due to substrate roughness. Real walls/ground are not smooth and often have varying degrees of roughness, this parameter (which is determined empirically) accounts for that effect.forests tend to have much larger roughness lengths than tundra. The roughness length does not exactly correspond to any physical length. However, it can be considered as a length-scale representation of the roughness of the surface. MOD-WET let $z_0$ = 0.1* $h_{snow}$ (characteristic roughness height, or height of snow roughness elements, a physical constant value = 0.03, unit m) 
+d: Zero Plane displacement height is defined as the height at which the mean velocity is zero due to large obstacles such as buildings/canopy. If there are no large obstacles then d≈0, UEB treated d as zero, MOD-WET let d = 0.7* $h_{snow}$ (characteristic roughness height, or height of snow roughness elements, a physical constant value = 0.03, unit m) 
+
+When there is a temperature gradient near the surface, buoyancy effects may enhance or dampen the turbulent transfers, $K_e$ and $K_h$ need adjustment using stability functions for momentum, sensible heat, and water vapor. This adjustment was not applied in MOD-WET model but was used in UEB, we'll check if the adjustment is necessary after the first round of tests, see equations 7-11 from You et al., 2014.
+
+Snow-soil boundary sensible heat flux is referenced from ED-2 (Walko et al., 2000 equations 6-8):
+\begin{equation}
+H_{snow2soil}=\frac{-0.5(K_s + C_g \lambda)(T_{tsw}-T_{topsoil} )}{(0.5 z_{snow}- 0.5 z_{topsoil})}
+\end{equation}
+where $K_s$ is heat diffusion coefficient represented by an empirical function with snow temperature and density, as in equation (fill); $C_g$ is specific heat capacity of dry soil particles; $\lambda$ is soil thermal conductivity calculated by surface soil water potential in equation below; $T_{stw}$ is the temperature of snowpack (total standing water); $T_{topsoil}$ is temperature of topsoil, $z_{snow}$ and $z_{topsoil}$ is the thickness of snowpack and topsoil layer. 
+\begin{equation}
+K_s= (1.093 * 10^{-3})*exp(0.027*T_{tsw} * [0.03+0.303(\rho_s*10^{-3})-0.177(\rho_s 10^{-3})^2 +2.25(rhos*10^{-3})^3]
+\end{equation}
+for $log_{10}|100\phi|\leqslant5.1$:
+\begin{equation}
+\lambda = e^{-log_{10}|100\phi|+2.7} \cdot 4.186 \cdot 10^2
+\end{equation}
+for $log_{10}|100\phi|>5.1$:
+
+\begin{equation}
+\lambda = 0.00041 \cdot 4.186 \cdot 10^2
+\end{equation}
+where $\phi$ is surface soil water potential, an input from soil physics module.
+\hl{as written, if the soil model resolution changes, this changes. may need to rethink a little.}
+
+\hl{In the above, which temperature for snow is used? is the surface T used in top BC, and bottom T used for bottom BC?}
+\begin{equation}
+\end{equation}
+
+\section{Temperature profile}
+A separate representation of surface snow temperature and average snow temperature in a one layer snow model is necessary for calculating surface energy exchanges that depend on surface temperature, while retaining a parsimonious model structure. To do this, we assume  a linear temperature profile in the snowpack, such that fluxes at any cross section in the snow is equivalent (Semtner 1976); From Fourier's law, we have:
+\begin{equation}
+F = -\lambda_{snow}\frac{\partial T}{\partial z}
+\end{equation}where F is heat flux by conduction ($Wm^{-2}$), T is temperature (K), z is depth (m). the term $\frac{\partial T}{\partial z}$is the vertical temperature gradient and is positive when temperature decreases with depth in the snow. The negative sign denotes that heat transfer is negative in the downward direction. $\lambda_{snow}$ is snow thermal conductivity ($Wm^{-1}K^{-1}$),
+\begin{equation}
+\lambda_{snow} = k_{snow} c_i \rho_{snow}
+\end{equation}
+where k is thermal diffusivity of snow,  $\rho_{snow}$ is snow density, $c_i$ is specific heat of ice.
+
+and we have:
+\begin{equation}
+R_n - LE + H = \lambda_{snow}\frac{T_{surf}-T_{tsw}}{z_{snow}/2}
+\end{equation}where $T_{surf}$ surface temperature of snow cover, $T_{tsw}$ is temperature in the middle of snow cover, z_{snow} is snow depth.
+Equation above can be solved numerically for $T_{surf}$ using the Newton-Rhapson scheme. Other approximation methods may be discussed later. \textbf{Please put your recommended solving approach here. }
+
+Method listed above is from Semtner 1976. Other approaches to calculate surface snow temperature exist (equilibrium gradient approach, force-restore approach, modified force-restore approach, etc.) and can be found in the references below. \textbf{Please add other alternative approaches that you think is helpful.}
+
+References for temperature profile calculation:
+Semtner Jr, Albert J. "A model for the thermodynamic growth of sea ice in numerical investigations of climate." Journal of Physical Oceanography 6, no. 3 (1976): 379-389.
+Kondo, J., & Yamazaki, T. (1990). A prediction model for snowmelt, snow surface temperature and freezing depth using a heat balance method. Journal of applied meteorology, 29(5), 375-384.
+You, J., Tarboton, D. G., & Luce, C. H. (2014). Modeling the snow surface temperature with a one-layer energy balance snowmelt model.
+Sultana, R., K-L. Hsu, J. Li, and S. Sorooshian. "Evaluating the Utah Energy Balance (UEB) snow model in the Noah land-surface model." Hydrology and Earth System Sciences 18, no. 9 (2014): 3553-3570.
+
+\section{Snow Cover Fraction (SCF)}
+The fraction of the ground covered by snow is important to calculate how much of the soil surface is interacting with the atmosphere. Snow rarely covers the ground uniformly and instead is distributed patchily across the surface. Models partition the land surface into snow-covered and snow-free fractions when calculating surface energy fluxes and the hydrologic cycle. 
+In CLM4, surface energy fluxes are calculated assuming a uniform snow cover. To more realistically simulate environments having patchy snow cover, CLM4 modify the model by computing the surface fluxes separately for snow‐free and snow‐covered fractions of a grid cell. 'The direct exposure of the snow‐free surfaces to the atmosphere leads to greater heat loss from the ground during autumn and greater heat gain during spring. The net effect is to reduce annual mean soil temperatures by up to 3°C in snow‐affected regions.' (Swenson & Lawrence 2017)
+The relationship between snow depth and snow cover fraction is complex, differs between accumulation and melt because of the patchiness of snowmelt, and the parameterizations used in models vary considerably.
+
+There are several alternative ways to calculate SCF, from simple to complex, we list 3 generations of SCF equations here:
+
+1st generation: Yang et al., 1997 SCF is a function of snow depth ($z_{snow}$) and soil roughness length ($z_{0soil}$) (source paper: Yang et al., 1997; same equation was then used in MOD-WET and CLM3):
+
+\begin{equation}
+f_{snow}= \frac{z_{snow}}{z_{snow}+10*z_{0soil}}
+\end{equation}This function calculates fractional snow covered area ($f_{snow}$) based on the BATS model. The equations are taken from: Yang et al., 1997: Validation of the snow submodel of the Biosphere-Atmosphere Transfer Scheme with Russian snow cover and meteorological observational data, J. Climate, doi:10.1175/1520-0442(1997)010<0353:VOTSSO>2.0.CO;2
+
+2nd generation: Niu and Yang 2007 used tanh plus snow density (to approximate seasonal variation), SCF perform good against observation (except mountain areas), while SWE tend to accumulate too snow and disappear too fast. This method was later used in CLM4.0. 
+
+A 10 cm snowpack has fsnow = 1 when density is low (50–100 kg m–3), such as may be found in fresh snow, and a smaller snow fraction (fsnow = 0.76) when density is high (400 kg m–3), such as may be found when snow is melting. The ground is mostly covered when snow depth is 20 cm regardless of density.
+\begin{equation}
+f_{snow} = \tanh( \frac{z_{snow}}{(2.5 z_0  ) (\rho_{snow}/\rho_{newsnow} )^{-m}} )
+\end{equation}
+where $\rho_{snow}$ is the density of snow (kg m-3), $\rho_{newsnow}$= 100 kg m-3 is the density of fresh snow, and m, a melting factor determining the curves in melting season, is adjustable depending on scale (generally, a larger value for a larger scale). It can be calibrated against observed snow cover fraction or surface albedo. In Niu and Yang 2007 study, it is estimated at 1.6 as calibrated against the AVHRR SCF data. In CLM4,  m = 1.
+3rd generation: Swenson and Lawrence 2012 found the last gen is based on an analysis of monthly averaged SCF and snow depth that showed a seasonal shift in the snow depth–SCF relationship. In 3rd gen, they show that this shift is an artifact of the monthly sampling and that the current parameterization does not reflect the relationship observed between snow depth and SCF at the daily time scale. 
+3rd gen use an analytical snow depth–SCF parameterization that reproduces the general features of the observed relationship, and is straightforward to implement in a land surface model. 
+3rd gen was implemented in CLM4.5 and CLM5:
+
+Because the processes governing snowfall and snowmelt differ, changes in SCF are calculated separately for accumulation and depletion. In CLM4.5 and 5, different equations are used during the accumulation and melt phases. 
+
+SNOW MELT EVENTS
+During melt, snow fraction varies depending on an index of topographic variability, defined by the standard deviation of elevation within a model grid cell. With low topographic variability (n = 8), the ground is completely covered by snow when depth is 50 cm. Greater topographic variability (lower values for n) give correspondingly lower snow fraction.
+In balance between representing unresolved processes and computational efficiency and numerical stability, the following empirically derived expression is developed to relate SCF to the dimensionless snow water equivalent during melting events
+\begin{equation}
+f_{snow}=1 - [ \frac{1}{\pi} acos (2\frac{W_{snow}}{W_{snow,max}}  - 1) ]^{N_{melt}} 
+\end{equation}
+where $W_{snow}$ is the snow water equivalent (kg m-2), $W_{snow,max}$ is the maximum accumulated snow water equivalent, and $N_{melt} = \frac{200}{min(10,\sigma_{topo})}$ is an index of topographic variability defined in relation to the standard deviation of elevation within a grid cell ( n = 1 when $\sigma_{topo}$ = 200 m). $acos$ is arccosine, the reverse of $cosine$ 
+The inverse cosine function possesses the flexibility to capture the spread in snow depth–SCF trajectories, as well as having numerical properties that facilitate an internally consistent description of snow depth, density and SCF. An additional benefit of this SCF parameterization is its computationally efficient closed form (see figure 8 in Swenson & Lawrence 2012).
+
+SNOWFALL EVENTS
+To parameterize the increase in SCF due to a snowfall event, Swenson & Lawrence (2012) assume that precipitation is distributed randomly throughout a region, e.g., a model grid cell or satellite pixel, and that events having greater amounts of snowfall lead to higher SCF. Thus, the fraction of a pixel that is snow covered after a single precipitation event can be expressed as
+\begin{equation}
+s = min(1,kSWE)
+\end{equation}where s is the probability that a point within the pixel is snow covered after a single snowfall event, SWE is the snow water equivalent, and k is a scale factor. In principle, k can be estimated by measuring s and SWE when precipitation occurs over an initially snow-free area. The SCF due to snowfall event N+1 is:
+\begin{equation}
+f_{snow}^{n+1} = 1-(1-s_{N+1})(1-s_{N}) = 1-(1-kSWE_{N+1})(1-kSWE_{N})
+\end{equation}if plot the snow depth (x axis) against SCF (y axis), the curve looks like the hyperbolic tangent function used in 2nd generation, except in 2nd generation it calls for four parameters in total: m, $\rho_{snow}$, $\rho_{newsnow}$, and $z_0$. But here it only need one parameter k, and the functional form of the relationship emerges naturally from its probabilistic. 
+When snowfall occurs,$f_{snow}$ is updated as
+
+\begin{equation}
+f_{snow}^{n+1} = 1-[1-tanh(k_{accum}q_{snow}\Delta t)][1-f_{snow}^{n}]
+\end{equation}where $k_{accum}$ is a constant whose default value is 0.1, $q_{snow}\Delta t$ is the amount of new snow mass, $f_{snow}^{n+1}$ is the updated snow covered fraction (SCF), and $f_{snow}^{n}$ is the SCF from the previous time step.
+
+\begin{equation}
+\end{equation}
+
+\section{Snow density}
+There are several choices for snow density. 1) Some models use a constant value, with supporting augment that 'the errors in modeling the density may introduce errors in modeling the surface heat conduction and the internal energy content'. 2) Some account for compaction, overburden, and metamorphism (eg. MOD-WET). 3) CLM5 calculate density based on snowpack mass and depth, and the change in depth is related to new snowfall rate and new snowfall density.
+\textbf{For the first try we could follow CLM5.}
+In UEB (Tarboton & Luce 1996), snow density is a constant value, 450 $kg/m^{-3}$.
+In UEB (You et al., 2014), the surface UEB uses a single thermal conductivity value and snow density, and the values of $\lambda s$ = 0.33 kJm−1 h−1 K−1 and $\rho_{snow}$ = 200 kgm−3 were calibrated to fit the internal energy measurements. Snow density is reflective of the density of the snow surface, involved in surface energy exchanges, rather than the snowpack as a whole. Modeling the thermal conductivity as a function of density may improve the performance of snowmelt models (if the density was able to be appropriately modeled). However, the errors in modeling the density may introduce errors in modeling the surface heat conduction and the internal energy content.
+In MOD-WET (Margulis 2017), snow depth is calculated with snow mass and snow density (reverse of CLM5); snow density is assumed to be constant with depth and evolve exponentially toward a maximum density (Verseghy 1991) approach is from Dutra et al., (2010) (\textbf{Appedix 5&6} An improved snow scheme for the ECMWF land surface model: Description and offline validation, JHM, doi: 10.1175/2010JHM1249.1.) It accounts for overburden, thermal metamorphism, and compaction from retained meltwater in the snowpack.
+In CLM5, snow density is calculated from snow mass, snow cover fraction, and snow depth :
+
+\begin{equation}
+\rho_{snow} = \frac{M_{stw}}{f_{snow}z_{snow}}
+\end{equation}Equations for snow mass and cover fraction is shown in the previous sections. Here snow depth is updated based on the previous timestep:
+\begin{equation}
+z_{snow}^{n+1} = z_{snow}^{n} + \Delta z_{snow}
+\end{equation}where 
+\begin{equation}
+\Delta z_{snow} = \frac{P_{snowfall}\Delta t}{f_{snow}\rho_{newsnow}}
+\end{equation}
+and $\rho_{newsnow}$ is the density of new snowfall ($kg/m^{-3}$), as a function of temperature and 10m wind speed ($W_{atm}$), same approach for new snowfall is used in Dutra 2010 (ECMWF land surface model) and Boone& Etchevers 2001, originally used in CROCUS (Brun et al 1989, 1992).
+
+FYI: In reversed order, in MOD-WET, Snow depth $z_{snow}$ is a function of Snow Water Equivalence (SWE) and snow density ($\rho_{snow}$):
+\begin{equation}
+z_{snow} = \frac{\rho_w}{ \rho_{snow} SWE }
+\end{equation}
+
+\begin{equation}
+\end{equation}
+\section{Snow module input}
+\textbf{From atmosphere or radiation transfer module:}\\
+shortwave downward radiation\\
+longwave downward radiation\\
+air temperature \\
+wind speed\\
+total pressure\\
+precipitation in snowfall and rainfall form, respectively\\
+\textbf{From soil module:}\\
+soil surface temperature
+
+\section{Parameters can be optimized}
+snow density, heat capacity of snow, heat conductivity of snow, snow albedo, characteristic roughness height 
+\section{Physical constants}
+cp=1004;        % Specific heat capacity of air (J/kg/K)
+rhow=1000;      % Density of water (kg/m^3)
+rhoi=917;       % Density of ice (kg/m^3)
+ci=2102;        % Specific heat capacity of ice (J/kg/K)
+cw=4216.;       % Specific heat capacity of water (J/kg/K)
+Rd=287;         % Ideal gas constant of dry air (J/kg/K)
+Rv=461;         % Ideal gas constant of water vapor (J/kg/K)
+$\epsilon$=0.622;  % Rd/Rv (-)
+e_s0=611;       % Reference staurated vapor pressure in
+                % Clausius-Clapeyron Equatioin (Pa)
+T_0=273.15;     % Reference temperature in Clausius-Clapeyron Equatioin (K)
+Lv=2.5e6;       % Latent heat of vaporzation (J/kg)
+Lf=3.34e5;      % Latent heat of fusion (J/kg)
+Ls=2.83e6;      % Latent heat of sublimation (J/kg)
+SB_const=5.67e-8;  % Stefan-Boltzman constant (W/m^2/K^4)
+kappa=0.4;          % Von Karman constant (-)
+T_f=273.15;     % Water freezing temp.(K)
+
+\section{Appendix}
+\subsection{A1}
+A1 calculate air density from air temperature ($T_a$), total pressure P in Pa, and physical constants Rv, Rd, $e_{s0}$
+
+Air temperature $T_a$, in K, saturated vapor pressure e in Pa, total pressure P in Pa, and ideal gas constant of dry air $R_d$ (287 J/kg/K):
+\begin{equation}
+\rho_a=P/(R_d T_v)
+\end{equation}where $T_v$ is virtual temperature, the virtual temperature of a moist air parcel is the temperature at which a theoretical dry air parcel would have a total pressure and density equal to the moist parcel of air:
+\begin{equation}
+T_v=T_a./(1-(1-\epsilon)*(e_a/P))
+\end{equation}
+where $\epsilon$ is the ratio of ideal gas constant of dry air ($R_d$ 287 J/kg/K) and ideal gas constant of water vapor ($R_v$ 461 J/kg/K), 0.622, unit-less. $e_a$ is air vapor pressure computed from:
+
+\begin{equation}
+e_a = q_aP_{srf}/\epsilon
+\end{equation}
+a function of specific humidity ($q_a$), and surface pressure ($P_srf$) in Pa, both as input; 
+\subsection{A2}
+A2 calculate snow surface specific humidity in unit kg H2O/kg air, which requires ice saturated vapor pressure $e_{ice}$ in Pa (calculated from $T_{air}$) and atmospheric pressure P in Pa.
+\begin{equation}
+e_{ice}=e_{s0}  e^{(\frac{ls}{Rv(1/T_0-1/T)})};
+\end{equation}\begin{equation}
+q_{surf}=\epsilon * e_{ice}/P
+\end{equation}
+where e_s0=611(Pa) is reference saturated vapor pressure in Clausius-Clapeyron Equation , Rv=461(J/kg/K) is ideal gas constant of water vapor , T_0=273.15 is reference temperature in Clausius-Clapeyron Equation (K), ls=2.83e6 (J/kg) is latent heat of sublimation , $\epsilon$ is $R_d/R_v$ =0.622, unitless.
+
+
+
+\section{General Comments and notes}
+\section{Questions to be discussed}
+
+
+\end{document}
