@@ -641,13 +641,22 @@ is sometimes employed\footnote{\citet{KurylykWatanabe2013} and \citet{WatanabeEx
 
 
 \subsection{Freezing and Thawing}
-Freezing and thawing---that is, the conversion of liquid water volume fraction $\theta_l$ to ice volume fraction $\theta_i$ and vice versa---likewise need to be parameterized to obtain a closed set of equations for the liquid and ice water balances \eqref{e:soil_water_conservation}. The simplest option is to assume that below the freezing temperature $T_f$, liquid water freezes instantaneously, and that ice thaws instantaneously above the freezing temperature. In that case, the model would only need to solve for total water $\theta_w$ prognostically, and the phase partitioning $\theta_l$ and $\theta_i$ and temperature $T$ could be obtained diagnostically from the internal energy \citep{Longo19a}. However, this does not account for the negative potential of liquid water in unsaturated soil, which allows for a nonzero equilibrium value of the volumetric water fraction even below the freezing point (see e.g. \citet{KurylykWatanabe2013} for a good review of modeling freezing processes in soil). It also assumes that the model resolves scales over which temperatures can be treated as homogeneous, and that the phase change occurs instantaneously.
+Freezing and thawing---that is, the conversion of liquid water volume fraction $\theta_l$ to ice volume fraction $\theta_i$ and vice versa---likewise need to be parameterized to obtain a closed set of equations for the liquid and ice water balances \eqref{e:soil_water_conservation}. The simplest option is to assume that below the freezing temperature $T_f$, liquid water freezes instantaneously, and that ice thaws instantaneously above the freezing temperature. In that case, the model would only need to solve for total water $\theta_w$ prognostically, and the phase partitioning $\theta_l$ and $\theta_i$ and temperature $T$ could be obtained diagnostically from the internal energy \citep{Longo19a}. In reality, however, there is a relationship between the pressure of the liquid water and the temperature of the soil (when the two phases coexist), which can be obtained from the Clausius-Clapeyron equation, and so no prescribed partitioning needs to be occur\footnote{Note that our parameterization is still prescribed, as we have specified an a priori functional form for $F_T$, that then requires us to specify a timescale. Other authors \citep{Hansson04a, dallamico2011} use the Clapeyron equation directly and avoid this.}.
 
-The Clausius-Clapeyron relationship gives the pressure/temperature curve along which two phases can be in equilibrium, assuming that both phases are at the same pressure and temperature. Liquid water in soil has an additional (negative) pressure from the attractive forces between water and soil. At a temperature $T$ below the freezing point, there is a balance between the matric potential ($\psi$) and the potential associated with being in the ice phase. A more general (and linearized) Clausius-Clapeyron equation \citep{dallamico2011} can be used to show that in equilibrium
+The Clausius-Clapeyron relationship gives the pressure/temperature curve along which two phases can be in equilibrium, assuming that both phases are at the same pressure and temperature. Liquid water in soil has a negative pressure from the attractive forces between water and soil, that ice in soil does not have, so the equilibrium occurs at equal temperature, but unequal pressure. A more general Clausius-Clapeyron equation, allowing for different ice and liquid water pressures, was used by \citet{dallamico2011} to show that in phase equilibrium the liquid water pressure satisfies
 \begin{equation}
-    \psi(\theta_l^*) = \frac{L_f}{g T_f}(T-T_f),
+    dP_l = \rho_l L_f \frac{dT}{T}
 \end{equation}
-below the freezing point. Given a temperature $T$, we can then solve for the equilibrium value of $\theta_l^*$.  For temperatures above the freezing point, the equilibrium value of $\theta_i$ is zero.
+below the freezing point, or
+\begin{equation}
+    P_l \approx P_{l,0} + \rho_l L_f \frac{T-T_f}{T_f}\mathcal{H}(T_f-T))
+\end{equation}
+For unsaturated soils, the pressure head $P_l/(\rho_l g)$ of the liquid water is equal to the soil water retention curve, $\psi(\theta_l)$. In a freezing, without water diffusion, $P_{l,0} = \rho_l g \psi(\theta_m)$, with $\theta_m = \theta_l+\rho_i/\rho_l\theta_i$, because the total water mass is conserved as freezing occurs. This suggests an equilibrium liquid water content satisfying
+\begin{equation}
+    \theta_l^* = \psi^{-1}(\psi(\theta_m) + \rho_l L_f \frac{T-T_f}{T_f}\mathcal{H}(T_f-T))
+\end{equation}
+
+Above the freezing point, the equilibrium is $\theta_i^* = 0$.
 
 The water/ice system does not reach this equilibrium instantaneously. Unresolved subgrid-scale temperature variations across a cell lead to different portions undergoing the phase transition at different times, effectively smearing out the transition. Therefore, in coarser-resolution models, it is more realistic to assume that the phase partitioning between liquid and ice relaxes over a finite time toward thermodynamic equilibrium. Even if temperature variations are well resolved, however, the phase change does not occur immediately. At some temperature $T<T_f$ ($T>T_f$), an energy equal to the difference in internal energy between the liquid and solid phases (primarily due to the latent heat) is lost from (gained by) the cell, and this diffusion takes finite time. 
 
@@ -655,7 +664,7 @@ To represent these processes, we express the conversion of liquid/solid water ma
 \begin{empheq}[box=\eqnbox]{equation}\label{e:freeze_thaw}
     F_T = \frac{\rho_l(\theta_l-\theta_l^*) \mathcal{H}(\theta_l-\theta_l^*) \mathcal{H}(T_f - T) - \rho_i\theta_i \mathcal{H}(T - T_f)}{\tau_{\mathrm{FT}}}.
 \end{empheq}
-Here, $\mathcal{H}$ is the Heaviside step function, and $\tau_{\mathrm{FT}}$ is a timescale for the entire cell to reach thermodynamic equilibrium and undergo the phase transition. The first term on the right-hand side is the freezing term: the liquid water content approaches the equilibrium value from above when $T<T_f$, at a rate proportional to how far the system is from equilibrium. If the water content is below the equilibrium value, however, ice does not  melt\footnote{For example, in completely frozen soil, with $\theta_l=0$, ice does not spontaneously melt below the freezing temperature, even though $\psi(0) \rightarrow -\infty$.}. The second term is the thawing term: ice thaws at temperatures $T>T_f$ at a rate that is proportional to the mass of ice that is present in a volume (again, how far the system is from equilibrium).
+Here, $\mathcal{H}$ is the Heaviside step function, and $\tau_{\mathrm{FT}}$ is a timescale for the entire cell to reach thermodynamic equilibrium and undergo the phase transition. The first term on the right-hand side is the freezing term: the liquid water content approaches the equilibrium value from above when $T<T_f$, at a rate proportional to how far the system is from equilibrium. If the water content is below the equilibrium value, however, ice does not  melt\footnote{For example, in completely frozen soil, with $\theta_l=0$, ice does not spontaneously melt below the freezing temperature.}. The second term is the thawing term: ice thaws at temperatures $T>T_f$ at a rate that is proportional to the mass of ice that is present in a volume (again, how far the system is from equilibrium).
 
 
 What remains is to specify the timescale $\tau_{\mathrm{FT}}$, which controls the freezing and thaw process. We will approximate it by the maximum of the two timescales of interest: that of smoothing out subgrid variations in $T$, denoted $\tau_{\mathrm{LTE}}$, and that of undergoing the (first order) phase transition ($\theta_i \rightarrow 0$ or $\vartheta_l \rightarrow \vartheta_l*$) at constant $T$, denoted $\tau_{\mathrm{PT}}$.
@@ -680,14 +689,14 @@ We can then follow an order of magnitude argument for the timescale
 \end{equation}
 with $\Delta T = |\partial_z T| \Delta z$. We will neglect the difference in density between water and ice in this timescale, keeping it order of magnitude. On an order of magnitude scale, this timescale is considerably longer than $\tau_{\rm LTE}$. Note that the factor multiplying $\tau_{\rm LTE}$ is the dimensionless Stefan number appearing in the one-phase Stefan problem, setting the timescale for how long a freezing front takes to move $\Delta z$ under certain assumptions and boundary conditions \cite{Alexiadesbook}. One could also motivate this timescale by asking how long \emph{in total} it would take to change internal energy by $L_f\rho_w\Delta \theta$, with $\Delta \theta = \theta_i$ or $\Delta \theta$ = $\theta_l - \theta_l^*$, and $\rho_w$ the density of frozen or liquid water, respectively, and then dividing by $\Delta \theta$. Our current model uses $\tau_{\rm PT}$ as an e-folding time.
 
-Lastly, if the physical timescale associated with the phase change is short compared with the timestep of the model $\Delta t$, numerical stability issues could arise. For that reason, we further soften the phase transition process by choosing
+By that argument, we soften the phase transition process by choosing
 \begin{equation}
-    \tau_{\mathrm{FT}} = \max\left(\tau_{\mathrm{LTE}},\tau_{\rm PT}, \Delta t \right),
+    \tau_{\mathrm{FT}} = \max\left(\tau_{\mathrm{LTE}},\tau_{\rm PT}\right),
 \end{equation}
 in expression \eqref{e:freeze_thaw}. 
 
 
-This model is approximate. Among other things, we have not accounted for the deviations in the  matric potential from the van Genuchten curve as the ice content increases \citep{KurylykWatanabe2013, WatanabeExperiment}, or the pressure of ice in saturated soil (heaving). However, we find that this model produces results that agree favorably with the laboratory data of \citet{Mizoguchi1990} and of \citet{WatanabeExperiment}, given uncertainties in soil properties, boundary conditions (for the Mizoguchi data), and our neglecting of the residual water content. Both experiments are of freezing fronts in soil columns which are initially unfrozen. We also found close agreement in the temperature profile between a simulation of the two-phase Stefan problem and an analytical solution \citep{dallamico2011}.
+This model is approximate. Among other things, we have not accounted for the deviations in the  matric potential from the van Genuchten curve as the ice content increases \citep{KurylykWatanabe2013, WatanabeExperiment}, or the pressure of ice in saturated soil (heaving), or the freezing point depression \citep{dallamico2011}. However, we find that this model produces results that agree favorably with the laboratory data of \citet{Mizoguchi1990} and of \citet{WatanabeExperiment}, given uncertainties in soil properties, boundary conditions (for the Mizoguchi data). Both experiments are of freezing fronts in soil columns which are initially unfrozen. We also found good agreement in the temperature profile between a simulation of the two-phase Stefan problem and an analytical solution \citep{dallamico2011}.
 %\footnote{We found that the ratio of the timecale for vertical Darcy flow relative to the phase change timescale controlled the amount of cryosuction; if the phase change proceeds slowly compared to the timescale for flow in the vertical, there was little cryosuction. However, if the phase change occurred quickly, relatively speaking, the soil effectively "dries" as it freezes, creating a large potential gradient in the upwards direction. Our model as presented here generated excess cryosuction compared to the Mizoguchi lab data. }. 
 %If we treat $\divergence (\kappa \nabla T)$ as approximately $\kappa \Delta T/\Delta z^2$, the ratio of the two timescales is given approximately by
 %\begin{equation}
@@ -715,8 +724,7 @@ This model is approximate. Among other things, we have not accounted for the dev
 %Note that if energy is entering the cell, as in melting, $\divergence (\kappa \nabla)>0$, and the signs are as expected in expressions \eqref{e:sources_pt} (and vice-versa). One can check that the second equalities in the expressions for the sources hold when $\tau_{\mathrm{FT}} = \tau_{\mathrm{PT}}$.
 
 \subsection{Runoff}
-
-Runoff from soil is composed of surface and sub-surface contributions.  At the surface, runoff occurs when conditions do not allow for precipitation to soak into the soil, either due to a saturated soil or to a slow infiltration rate relative to precipitation. Within the water table, lateral flow (baseflow) can be a source of runoff when the water table intersects the surface, for example, at a stream. In all cases, a resolution of surface moisture levels is crucial for determining runoff. Variations across the landscape in topography, soil type and vegetation lead to some regions being more likely to accumulate water and hence impact the runoff process. 
+At the surface, runoff occurs when conditions do not allow for precipitation to soak into the soil, either due to a saturated soil or to a slow infiltration rate relative to precipitation. Within the water table, lateral flow (baseflow) occurs, and this can be a source of surface runoff when the water table intersects the surface, for example, at a stream. In each case, a resolution of surface moisture levels is crucial for determining runoff. Variations across the landscape in topography, soil type and vegetation lead to some regions being more likely to accumulate water and hence impact the runoff process. 
 
 %surface runoff = Overland flow
 % base flow occurs out of any layer that is below or contains the top of the water table
@@ -724,42 +732,80 @@ Runoff from soil is composed of surface and sub-surface contributions.  At the s
 %Summarize this from Gedney and Cox: Current LSSs are applied directly at the GCM resolution, which is much too coarse to explicitly represent important aspects of land surface heterogeneity. Surface fluxes tend to be calculated from the grid box mean soil water stores, without taking account of subgrid variations in soil moisture that can significantly modify grid box mean fluxes (Stieglitz et al. 1997)... Indeed, most of the differences in hydrological behavior in the LSSs studied in Gedney et al. (2000) are due to runoff formulations, rather than evaporation.
 
 
-The objective here is to describe runoff generation, including that due to subgrid variations in the water table, in terms of grid-averaged and other known quantities, and to describe how to implement these effects. Our first model is motivated by TOPMODEL; we make use of a result which links local surface moisture conditions to the topographic index, a quantity reflecting local topographic conditions. The argument is sketched in Appendix \ref{Appendix:TOPMODEL}. Improvements to this model are discussed in Section \ref{sec:topmodelImprovement}.  In our first iteration, we do not include ponding of water (also called temporary surface water by some models), so that all runoff is assumed to be lost to the soil.
+The objective here is to describe runoff generation, including that due to subgrid variations in the soil moisture, in terms of grid-averaged and other known quantities, and to describe how to implement these effects. Our first model is motivated by TOPMODEL; we make use of a result which links local surface moisture conditions to the topographic index, a quantity reflecting local topographic conditions. The argument is sketched in Appendix \ref{Appendix:TOPMODEL}. Improvements to this model are discussed in Section \ref{sec:topmodelImprovement}.  In our first iteration, we do not include ponding of water (also called temporary surface water by some models), so that all runoff does not interact with the soil or drain into the soil \footnote{This would be good to account for with 2D overland flow, however. We would have to think more about including it with a 1D river system, but there should be a delay term between precipitation and entering the river system. MOSART has an approach to this.}.
 
 \subsubsection{Surface runoff}
-Surface runoff is due to either Dunne runoff (saturation excess) or Horton runoff (infiltration excess). Saturation excess occurs when surface conditions become saturated, i.e. $S_{\rm l, sfc} \ge 1$. Surface saturation is assumed to imply that (1) the water table reaches the surface and (2) that the water table is in hydrostatic equilibrium (no net vertical drainage), so that there is no infiltration into the soil. Infiltration excess occurs when the net precipitation rate on the ground, $P-E_l$, exceeds the infiltration rate capacity of the soil, $i_c$, in unsaturated conditions ($S_{\rm l, sfc} < 1$). Evaporation in this expression refers to a loss of liquid water from the soil, and does not include water losses from the soil due to sublimation. As a result, the surface runoff at a subgrid point is \citep{Entekhabi89}:
+Surface runoff is usually described as being due to either saturation excess (Dunne runoff) or infiltration excess (Horton runoff). Saturation excess occurs, roughly speaking, when the soil column is full of water and hence all precipitation  becomes runoff. More precisely, this occurs when the water table reaches the surface and is either seeping water (exfiltration) or otherwise in hydrostatic equilibrium, so that there is no infiltration into the soil. Infiltration excess is described as occurring when the precipitation rate exceeds the infiltration rate capacity of the soil, usually in unsaturated conditions, such that the runoff is the residual. However, it should be possible to define saturation excess as a specific case of infiltration excess, with zero or negative infiltration. As we are solving a form of Richards equation which applies in both saturated and unsaturated soils, we extend the definition of infiltration capacity to saturated soils.  In what follows, we describe how we evaluate runoff at a single point, before generalizing to an integral over a column.
+
+We begin by motivating a functional form for the infiltration capacity, $i_c$. When the precipitation rate is larger than the infiltration capacity, water accumulates on the surface immediately, and a Dirichlet condition of $\vartheta_l(z_{\rm sfc}) = \nu$, or $S_l = 1,$ is appropriate\footnote{If we had a prognostic variable for the height $h$ of the surface water, as for overland flow, it would be appropriate to modify this boundary condition to be $\nu+S_s h$.}. This can instead be approximated with a flux condition equal to a value determined as if the only the top of the soil were saturated \citep{Entekhabi89}. The magnitude of this flux (in the $-\hat{n}$ direction) is expressed using Darcy's law as
+ \begin{equation}
+    i_c = K_{\mathrm{sat}} \left( \frac{\partial \psi}{\partial z}_{|S_{\rm l, sfc}=1} + 1 \right),
+\end{equation}
+where $\psi$ is now the pressure head, applicable for both saturated and unsaturated soils. We approximate the derivative using
+ \begin{equation}\label{eq:approximation_ic}
+   \frac{\partial \psi}{\partial z}_{|S_{\rm l, sfc} = 1} \approx \frac{\psi(S_l = 1)-\psi(S_l(z_{\rm sfc}-\Delta z))}{\Delta z} \approx -\frac{\psi(S_{l, \rm int})}{\Delta z},
+\end{equation}
+where $\Delta z >0$ is the vertical resolution near the top of the soil, we have used $\psi(1) = 0$, and we know the value of the effective saturation just interior to the soil $S_{l, \rm int}$. Again, the effective saturation at the boundary  $S_l(z_{\rm sfc})$ is not forced to be 1 - this is an estimate of the infiltration that would occur if it was while the profile underneath remained unchanged.  If the top portion of the soil is saturated, $i_c = K_{\rm sat}$, which is what CLM assumes for all infiltration excess. If the soil below the surface is oversaturated, we can model exfiltration.  If the water table reaches the surface and the profile is in hydrostatic equilibrium, we should recover that $i_c \rightarrow 0$, which is applicable for saturation excess. \hl{check more carefully, in the Maxwell Dunne benchmark.}
+
+Once we know the value of $i_c$, we compute the boundary flux into the soil using the precipitation $\vec{P} = -P\hat{z}$ ($P>0$) as
+\begin{equation}
+    \vec{F}_{bc}  = 
+        \begin{cases}
+        -i_c\hat{n} & \text{if } P > i_c \\
+        (\vec{P}\cdot \hat{n}) \hat{n}      & \text{if } P \leq i_c 
+    \end{cases}
+\end{equation}
+
+There are two important and kind of confusing things about this. First,  with our spatial discretization, the nodal point we have access to when evaluating boundary conditions is at the surface, so the interpretation of the approximation \eqref{eq:approximation_ic} is a little strange (will it change with FV, or CG?) Second, the boundary condition depends on the resolution $\Delta z$. However, we performed simulations on the soil alone comparing this boundary condition on flux with simulations applying the Dirichlet condition directly, and found that they agreed. Furthermore, the flux boundary condition simulations produced soil water profiles that converged, despite the explicit dependence on $\Delta z$. However, it may still be odd/undesirable that the threshold for switching between excess rain vs not is dependent on resolution.
+
+Ideally, we would then write the surface runoff at a point as \citep{Entekhabi89}:
  \begin{equation}
     R_l^{\rm sfc} = 
     \begin{cases}
-        (P-E_l-i_c) & \text{if } S_{\rm l, sfc} < 1 \text{ and } P-E_l >i_c \\
-        P-E_l       & \text{if } S_{\rm l, sfc} \ge 1 
+        P-i_c & \text{if } P >i_c \\
+        0      & \text{if } P \leq i_c.
     \end{cases}
-    \label{Surface_runoff_cases}
 \end{equation}
-Precipitation and evaporation are assumed to only have a component in the vertical, and $i_c$ similarly reflects vertical infiltration into the soil. In general, during precipitation events, $E_l \ll P$. 
-
-The grid average, or intensive, Horton runoff $R_l^{\rm sfc, H}$ is then computed by integrating over the subgrid areas where $P-E_l$ exceeds the local $i_c$ and where $S_{\rm l, sfc} <1$ \citep{Entekhabi89}:
+However, this would mean that the surface flow source term would depend on the soil model resolution, which is incorrect. This does not converge to anything fixed as the surface flow model is agnostic to the soil model resolution. Letting $f_{\rm sfc} = -\vec{F}_{\rm sfc} \cdot \hat{n}$ be the ``measured`` $i_c$ at the surface nodal point, we instead write
  \begin{equation}
-    R_l^{\rm sfc, H} =  \frac{1}{A}\int_{A} (P-E_l-i_c) \mathcal{H}(P-E_l-i_c) \mathcal{H}(1-S_{\rm l,sfc}) dA
-    \label{Integral_Horton}
+    R_l^{\rm sfc} = 
+        \begin{cases}
+        P-f & \text{if } P >f \\
+        0      & \text{if } P \leq f
+    \end{cases}
+\end{equation}
+If $f$ is negative, water is being forced out of the soil (Exfiltration), and all rain plus this extra water becomes runoff. Note that runoff should always be positive. If, e.g. $P = 0$, our model does not drain the surface water. Once runoff is generated, we do not currently allow for re-infiltration into the soil. 
+
+The loss of water vapor due to evaporation is an additional surface water flux of liquid water for the soil that we need to include somewhere in the flux boundary condition, but it does not contribute to runoff. We'll figure out how to include it later.
+
+
+\hl{it seems like there are a lot of conceptual questions with this approach. We stuck with it because the subgrid model is based off of it - see below - , but looking at that again, the resolution dependence of $i_c$ is going to be an issue. Maybe it is worth taking a step back. We could also try and derive a typical length scale for use in the $i_c$ expression. }
+\paragraph{Testing the runoff model at a point} 
+We will compare the output of our model, integrated with an overland flow model, to that from a  fully integrated overland/subsurface model. The differences between the two models are (1) the boundary conditions/source term for the overland flow, (2) that we do not allow surface water to drain into the soil once rainfall stops, (3) that we do not account for the extra pressure head at the surface when ponded water is present, and (4) the numerical methods used to solve the PDEs.
+
+Our test involves precipitation upon a tilted slab with constant slope. As such, there are no subgrid variations in topography to resolve. The initial water profile is in hydrostatic equilibrium, with a water table at some depth. The rainfall rate is chosen to either produce infiltration excess or saturation excess. We compare the water discharge per unit length perpendicular to the slope (m$^2$/s) at the bottom of the slab with published results for a fully integrated overland and subsurface flow model. The details are in \citet{Maxwell14a}. Note that the height of the surface water remains quite small ($<\sim 1e-2$), so difference (3) above should be irrelevant. 
+
+\hl{these are the plots I showed this morning}
+
+For what it is worth, Parflow and CATHY apply boundary conditions based on the surface height. This isn't really translatable to our coarse grid model, where we are not planning to model ponding (or if we do, it will be a coarse grid storage term that delays runoff entering the river system). 
+\paragraph{Extending the runoff model to account for subgrid moisture variations}
+The reason why we are using this approach for $i_c$ is because we can then follow \citep{Entekhabi89} in determining subgrid contributions. This approach is also described in \citet{Bonan19a}, Section 9.3, 9.3.1. I don't see how this avoid an issue by explicit dependence on $\Delta z$, but neither \citet{Entekhabi89} or \citet{Bonan19a} mention it. 
+
+The grid average, or intensive, runoff $\bar{R}_l^{\rm sfc}$ is then computed by integrating over the subgrid areas where $P$ exceeds the local $i_c$ \citep{Entekhabi89}:
+ \begin{equation}
+    \bar{R}_l^{\rm sfc} =  \frac{1}{A}\int_{A} (P-i_c) \mathcal{H}(P-i_c) dA
+    \label{Integral_Runoff}
 \end{equation}
 with $A$ the total area of the grid. 
 
-Similarly, the grid average, or intensive, Dunne runoff $R_l^{\rm sfc, D}$ is computed as
- \begin{equation}
-    R_l^{\rm sfc, D} =  \frac{1}{A}\int_{A} (P-E_l)\mathcal{H}(S_{\rm l,sfc}-1) dA.,
-    \label{Integral_Dunne}
-\end{equation}
-The net infiltration into the soil per unit area is assumed to be 0 in this case.
-
 The surface runoff in areas of the grid cell where these conditions are not met is zero, so that the grid-averaged flux into the soil is
  \begin{equation}
-    q^{\rm surface} =  \overline{P}-\overline{E}_l - R_l^{\rm sfc, D} - R_l^{\rm sfc, H},
+    q^{\rm surface} =  \overline{P} - \overline{R}_l^{\rm sfc},
     \label{flux_total}
 \end{equation}
-where $\overline{P}$ is the mean precipitation in the grid, and $\overline{E}_l$ is the mean evaporation. In this way, we conserve water between the atmosphere, runoff, and the soil (see following chapter on Boundary fluxes). 
+where $\overline{P}$ is the mean precipitation in the grid. In this way, we conserve water between the atmosphere, runoff, and the soil (see following chapter on Boundary fluxes). 
 
-To integrate equations \eqref{Integral_Horton} and \eqref{Integral_Dunne}, we need to (1) model the distribution of soil moisture at the subgrid scale, both for delineating between areas undergoing Dunne vs. Horton runoff, but also for determining the infiltration capacity $i_c(S_l)$, (2) define an expression for $i_c(S_l)$, and (3) determine a model for both precipitation and evaporation on subgrid scales, including possible correlations with topography and soil moisture. TOPMODEL provides an expression for how local water table height variations depend on the local topographic index, $\phi$, which is measurable from topographic maps, and defined as $\phi = \log{(a/\tan{\beta})}$, with $\beta$ the local hillslope angle, and $a$ a measure of upstream area flowing through a given contour line. Other works have empirically shown a linear relationship between soil moisture levels near the surface and the same topographic index \citep{Sorensen06}, of the form
+To integrate equation \eqref{Integral_Runoff}, we need to (1) model the distribution of soil moisture at the subgrid scale for determining the infiltration capacity $i_c(S_l)$, and (2) determine a model for precipitation on subgrid scales, including possible correlations with topography and soil moisture. TOPMODEL provides an expression for how local water table height variations depend on the local topographic index, $\phi$, which is measurable from topographic maps, and defined as $\phi = \log{(a/\tan{\beta})}$, with $\beta$ the local hillslope angle, and $a$ a measure of upstream area flowing through a given contour line. Other works have empirically shown a linear relationship between soil moisture levels near the surface and the same topographic index \citep{Sorensen06}, of the form
  \begin{equation}\label{eq:S_topo}
    S_{\rm l, sfc} = \overline{S}_{ \rm l, sfc} - m (\phi - \overline{\phi}),
 \end{equation}
@@ -771,7 +817,7 @@ where $m$ is a constant (per column) which must be inferred using data or high r
     \label{gamma}
 \end{equation}
 
-We also assume that precipitation is spatially distributed at the subgrid scale assuming a Gamma distribution $f(P; \alpha_P, \beta_P)$ and that precipitation is independent of soil moisture and topography (i.e. we neglect land-atmosphere feedback at the subgrid scale; \citet{martinez2019}). Furthermore, we assume that evaporation is constant on subgrid scales.
+We also assume that precipitation is spatially distributed at the subgrid scale assuming a Gamma distribution $f(P; \alpha_P, \beta_P)$ and that precipitation is independent of soil moisture and topography (i.e. we neglect land-atmosphere feedback at the subgrid scale; \citet{martinez2019}). 
 %\begin{equation}
 %    f_P(p; \lambda_P, \alpha_P)=\frac{\lambda_P^{\alpha_P}}{\Gamma(\alpha_P)}p^{\alpha_P-1}e^{-\lambda_P.p}
 %    \label{Precipitation_gamma}
@@ -781,53 +827,19 @@ We also assume that precipitation is spatially distributed at the subgrid scale 
 %    f_{TI}(ti;ti_{\rm min}, \lambda_{TI}, \alpha_{TI}) )=\frac{\lambda_{TI}^{\alpha_{TI}}}{\Gamma(\alpha_{TI})}{(ti-ti_{\rm min})}^{\alpha_{TI}-1}e^{-\lambda_{TI}.(ti-ti_{\rm min})}
 %%    \label{TI_gamma}
 %\end{equation}
-With these four assumptions regarding the subgrid variation, we can integrate the total Dunne and Hortonian runoff (Equations \eqref{Integral_Horton}, \eqref{Integral_Dunne}) over the grid cell.
- 
-%Then we need to find the subgrid areas where Hortonian runoff or Dunne runoff occur. This depends on local moisture conditions, which in turn depend on topography. As we will see, TOPMODEL allows us to model this dependence.
+With these assumptions regarding the subgrid variations, we can integrate the total runoff (Equations \eqref{Integral_Runoff}) over the grid cell.
 
-Saturation excess is due to the contributions of runoff due to inundated area across the subgrid domain, i.e. the subgrid regions where $S_{\rm l,sfc} >1$. This is found as the regions where:
- \begin{equation}
-   x < \frac{1}{m}(\overline{S}_{\rm l,sfc} -1) -\phi_{\rm min}+ \overline{\phi} \equiv x_{\rm sat}.
-\end{equation}
-We now integrate over the distributions for $x = \phi -\phi_{\rm min}$ and $P$,
-\begin{equation}
-    R_l^{\rm sfc, D}  = \int_{0}^{x_{\rm sat}} dx \int_{0}^{+\infty}dP (P-E_l)f_P(P; \alpha_P, \beta_P)  f_x(x;\alpha_x, \beta_x),
-\end{equation}
-resulting in 
-\begin{empheq}[box=\eqnbox]{equation}\label{eq:Integral_Dunne_result}
-    R_l^{\rm sfc, D} =  (\bar{P} - E_l)f_{\rm sat}
+\begin{empheq}[box=\eqnbox]{equation}\label{eq:Integral_Runoff_result}
+    \overline{R}_l^{\rm sfc} =  \int_{x=0}^{\infty} dx \int_{i_c(x)}^{\infty} dP (P-i_c(x))f_P(P; \alpha_P, \beta_P)  f_x(x;\alpha_x, \beta_x).
 \end{empheq}
-where $\bar{P} = \alpha_P/\beta_P$, 
-\begin{equation}
-    f_{\rm sat} = \frac{\gamma(\alpha_x, \beta_x x_{\rm sat})}{\Gamma(\alpha_x)} 
-\end{equation}
-and $\gamma(\cdot, \cdot)$ is the lower incomplete gamma function. 
+This integral can be estimated numerically using e.g. samples drawn from the two Gamma distributions. If we treat $i_c$ as constant (either equal to $K_{\rm sat}$, or by treating $S_l$ as constant, equal to the coarse grid value of $S_l$), the integral is easily computed. We should be aware that areas with $S_{\rm sfc} >1$ (smaller values of $x$, $\phi$) will generate exfiltration when testing. 
 
+Lastly, when ice is present at the top of the soil, the value of $K_{\rm sat}$ will be modified using the impedance factor. The coarse-grid value for $S_l$  will reflect the fact that the entire pore space is not available to liquid water by using an effective porosity $\nu - \theta_i$. 
 
-We now turn to the infiltration capacity $i_c$ required for the infiltration excess runoff \eqref{Integral_Horton}. When the precipitation rate is larger than the infiltration capacity, water accumulates on the surface immediately, and a Dirichlet condition of $\vartheta_l(z_{\rm sfc}) = \nu$ is appropriate. This can instead be approximated with a flux condition equal to a value determined as if the only the top of the soil were saturated \citep{Entekhabi89}. The magnitude of this flux (in the $-\hat{z}$ direction) is expressed using Darcy's law as
- \begin{equation}
-    i_c = K_{\mathrm{sat}} \left( \frac{\partial \psi}{\partial z}_{|S_{\rm l, sfc}=1} + 1 \right),
-\end{equation}
-and it can be approximated using
- \begin{equation}
-   \frac{\partial \psi}{\partial z}_{|S_{\rm l, sfc} = 1} \approx \frac{\psi(0)-\psi(S_l(z_{\rm sfc}-\Delta z))}{\Delta z} \approx \frac{-[\psi(S_l(z_{\rm sfc}))- \partial_z \psi(S_l(z_{\rm sfc}))\Delta z]}{\Delta z},
-\end{equation}
-where $\Delta z >0$ is the vertical resolution near the top of the soil. Note that the effective saturation $S_l(z_{\rm sfc})$ is not forced to be 1 - this is an estimate of the infiltration that would occur if it was while the profile underneath remained unchanged. The second approximation is one we may make if we don't have access to the soil moisture away from the surface when the boundary fluxes are computed. Simulations neglecting the $\mathcal{O}(\Delta z)$ term indicate that it could work well. However, an issue with these expressions is that they depend explicitly on the resolution of the simulation.  That said, the choice for $i_c$ only affects the infiltration prior to saturation in the upper regions of the soil, after which point, $i_c = K_{\rm sat}$ and is constant. A simpler option is to take $i_c = K_{\rm sat}$, as CLM does.
-
-We integrate the runoff generation based on the two assumed Gamma distributions: 
-\begin{empheq}[box=\eqnbox]{equation}\label{eq:Integral_Horton_result}
-    R_l^{\rm sfc, H} =  \int_{x=x_{\rm sat}}^{\infty} dx \int_{E_l+i_c(x)}^{\infty} dP (P-E_l-i_c(x))f_P(P; \alpha_P, \beta_P)  f_x(x;\alpha_x, \beta_x).
-\end{empheq}
-This integral can be estimated numerically using e.g. samples drawn from the two Gamma distributions. If we treat $i_c$ as constant (either equal to $K_{\rm sat}$, or by treating $S_l$ as constant, equal to the coarse grid value of $S_l$), the integral depends on $f_{\rm sat}$ and is easily computed.
-
-Lastly, when ice is present at the top of the soil, the value of $K_{\rm sat}$ will be modified using the impedance factor. The coarse-grid value for $S_l$ used in compute $x_{\rm sat}$ will reflect the fact that the entire pore space is not available to liquid water by using an effective porosity $\nu - \theta_i$. However, the matric potential used in $i_c$ is evaluated using the true porosity.
-
-
-
-
+IIRC, CLM uses TOPMODEL to compute the saturated fraction (this requires knowing the mean water table depth in the column). No runoff is generated from this area (saturation excess...) and then the infiltration capacity is fixed to be $K_{\rm sat}$. Infiltration is then something like $(1-f_{\rm sat})P$  if $P< K_{\rm sat}$ or $(1-f_{\rm sat})(P-K_{\rm sat})$ otherwise. 
 \subsubsection{Subsurface flow}
 The water table can be assumed to be in hydrostatic equilibrium in the vertical direction. As the water table depth varies with spatial location, the pressure within the table at a given value of $z$ will vary as well, and this drives lateral subsurface flow. The soil model is solved in three dimensions, and applies in both saturated and unsaturated soil. Because of this, we resolve the depth of the coarse-scale water table within a given column, as well as flow within the water table, including between columns. In Appendix \ref{Appendix:WaterTableSubGrid}, we provide an argument for why sub-grid variations in the water table height do not affect this lateral flow. However, if the water table intersects the surface, we do need to account for subgrid variations in the water table height: even if the mean water table does not intersect the surface within a given column, there are regions on the subgrid scale which do, and these lead preferentially to a loss of water. This ignores the possibility of ponding. 
-
+\hl{If the surface runoff piece described above applies for exfiltration, do we still need to account for this?}
 As motivated in Appendix \ref{Appendix:WaterTableSubGrid}, a simple expression for the sink term in the equation for $\vartheta_l$, resulting when the water table intersects the surface (as at a stream), is
 \begin{align}\label{eq:baseflow_sink}
     \mathcal{S_{\rm str}} &= -\frac{1}{A}\int dA \nu_{\rm sfc}\frac{S_{\rm sfc}-1}{\tau(\phi,...)} \mathcal{H}(S_{\rm sfc} - 1). \nonumber \\
@@ -1631,15 +1643,15 @@ Bottom boundary: no flux (?)
 Lead \& POC: Shuang Ma
 Others: Marcos Longo, Katherine Deck, Anthony Bloom, Pierre Gentine, Elias Massoud, Anna Gagné-Landmann, Renato Braghiere, et al.
 
-This section details the version one CliMA snow model. Our model is 1-D, with purely vertical fluxes. We model a single-layer snowpack and compute snow mass (via snow water equivalent) and internal energy given fluxes between the snow and soil and snow and atmosphere. The snow surface temperature is allowed to be different from the snow average temperature using an equilibrium gradient parameterization based on the surface energy fluxes (Semtner et al., 1976; You et al., 2014). This approximates surface energy flux as a gradient between the surface temperature and average temperature of snow over a characteristic depth. The snow water equivalent can be used to determine the snow cover fraction. References for snow module are mainly from Bonan's book (2019), MOdular Distributed Watershed Educational Toolbox (MOD-WET, Margulis 2017),  Utah Energy Balance (UEB) snowmelt model (You et al., 2014), ED2 (Longo et al., 2019; Walko et al., 2000), and the existing CliMA soil physics model. Throughout the text we indicate our assumptions and list possible approaches for improvement in the next version.\\
+This section details the version one CliMA snow model. Our model is 1-D, with purely vertical fluxes. We model a single-layer snowpack and compute snow mass (via snow water equivalent) and internal energy given fluxes at the snow surface and at the ground. The snow surface temperature is allowed to be different from the snow average temperature in an approach motivated by the force-restore and linear temperature profiles developed in \citet{Semtner76a, You2014}. Lastly, the snow water equivalent can be used to determine the snow cover fraction. References for snow module are mainly from \citet{Bonan19a}, Modular Distributed Watershed Educational Toolbox (MOD-WET, \citet{Margulis}),  Utah Energy Balance (UEB) snowmelt model \citep{TarbotonLuce, You2014}, ED2 \citep{Walko00a,Longo19a}, and the existing CliMA soil physics model. Throughout the text we indicate our assumptions and list possible approaches for improvement in the next version.\\
 
 To do:
 \begin{itemize}
-    \item add references to bib file
     \item decide on non-constant density model
     \item decide on non-constant albedo model
     \item answer highlighted questions
-    \item \ldots
+    \item add in Pierre's idea re: AR(1) for surface temperature
+    \item tidy up snow cover fraction section, additional references, etc
 \end{itemize}
 
 %There are a few assumptions come with this first version design:\\
@@ -1652,22 +1664,25 @@ To do:
 
 \section{Snow water mass}
 The total mass of the snow, including liquid and solid phases, is represented using the snow water equivalent $SWE$, defined as the height resulting if all of the snowpack melted (and there were no pore spaces),
-\begin{align}\label{eq:swe1}
-    SWE &=\int_0^{z_{\rm snow}} dz \rho_{\rm s}(z)/\rho_l \nonumber \\
-    & \equiv z_{\rm snow} \frac{\rho_{\rm snow}}{\rho_l},
-\end{align}
-where $z_{\rm snow}$ is the height of the snowpack, $\rho_l$ is the density of liquid water, $\rho_{\rm s}$ is the local density of the snow, and $\rho_{\rm snow}$ is the bulk density of the  snow. The density of snow is defined as the mass of the water in the snowpack divided by the total volume of the snow (i.e. with the air mass within the pores neglected).
+\begin{equation}
+    SWE =\int_0^{z_{\rm snow}} dz \rho_{\rm s}(z)/\rho_l 
+\end{equation}
+or
+\begin{empheq}[box=\eqnbox]{equation}\label{eq:swe1}
+SWE \equiv z_{\rm snow} \frac{\rho_{\rm snow}}{\rho_l}
+\end{empheq}
+where $z_{\rm snow}$ is the height of the snowpack, $\rho_l$ is the density of liquid water, $\rho_{\rm s}$ is the local density of the snow, and $\rho_{\rm snow}$ is the bulk density of the  snow. The density of snow is defined as the mass of the water in the snowpack divided by the total volume of the snow.
 
 The volume of the snow is given as
 \begin{equation}\label{eq:vsnow}
 V_{\rm snow} = A_{\rm snow} z_{\rm snow},
 \end{equation}
-where $A_{\rm snow} = A f_{\rm snow}$ is the cross sectional area of the snow - $A$ is the surface area of the column and $f_{\rm snow}$ is the snow covered fraction. 
+where $A_{\rm snow} = A f_{\rm snow}$ is the cross sectional area of the snow - $A$ is the surface area of the column and $f_{\rm snow}$ is the snow covered fraction (see Section \ref{sec:scf}. 
 
 The mass of the snow is
 \begin{equation}\label{eq:msnow}
 M_{\rm snow} = \rho_l SWE  A_{\rm snow} = \rho_{\rm snow}  z_{\rm snow}  A_{\rm snow}.
-
+\end{equation}
 The bulk internal energy value $\tilde{I}_{\rm snow}$ (Section \ref{sec:snow_energy}) determines the bulk mass fraction of liquid water, which is defined as 
 \begin{equation}
     l = \frac{M_{l}}{M_{\rm snow}} = \theta_l \frac{\rho_l}{\rho_{\rm snow}},
@@ -1676,17 +1691,16 @@ with $\theta_l$ the volumetric liquid fraction.
 \begin{framed}
 \textsc{Assumption:} Only the bulk liquid fraction is modeled, despite temperature variations within the snowpack.
 \end{framed}
-\end{equation}
 \subsection{Conservation law}
 The snow water equivalent satisfies the following (bulk) conservation law:
 \begin{empheq}[box=\eqnbox]{equation}
 \frac{dSWE}{dt} = \tilde{P} - \tilde{E} - \tilde{R}
 \end{empheq}
-where $\tilde{P}$ is volume flux ($\mathrm{m~s^{-1}}$) from precipitation (we assume this has accounted for canopy interception), $\tilde{E}$ is volume flux from sublimation and evaporation, and $\tilde{R}$ is the net volume flux of liquid water leaving the snow system (runoff). Excess liquid water leaving the snow is partitioned into runoff from the soil or infiltration into the soil by the soil model. Because this is a bulk approach, we do not track the drainage of liquid water through the snowpack. Runoff is discussed in Section \ref{sec:snow_runoff}, and we assume that the precipitation $\tilde{P}$ is provided either via the atmosphere model (in coupled mode), reanalysis data, or a user prescribed analytic function. 
+where $\tilde{P}$ is volume flux ($\mathrm{m~s^{-1}}$) from precipitation (we assume this has accounted for canopy interception), $\tilde{E}$ is volume flux from sublimation and evaporation, and $\tilde{R}$ is the net volume flux of liquid water leaving the snow system (runoff). Excess liquid water leaving the snow is partitioned into runoff from the soil or infiltration into the soil by the soil model. Because this is a bulk approach, we do not track the drainage of liquid water through the snowpack. Runoff is discussed in Section \ref{sec:snow_runoff}, and we assume that the precipitation $\tilde{P}$ is provided either by the atmosphere model (in coupled mode), by reanalysis data, or by a user prescribed analytic function. 
 
 
 \subsubsection{Vapor flux from evaporation and sublimation}
-The mass flux $E$ is the total mass flux from both sublimation and evaporation. It is calculated in a similar formula as the water vapor fluxes in soil physics module (equation 2.8.2, also see in UEB and MOD WET). We assume the mass flux from liquid water is $E^l$, and that the from ice is $E^i$, where $l$ is the liquid water mass fraction, and that the total mass flux is 
+The mass flux $E$ is the total mass flux from both sublimation and evaporation. It is calculated in a similar formula as the water vapor fluxes in soil physics module (Equation \eqref{eq:EvapFluxa}, also see in UEB and MOD WET). We assume the mass flux from liquid water is $E^l$, and that the from ice is $E^i$, where $l$ is the liquid water mass fraction, and that the total mass flux is 
 \begin{equation}\label{eq:snow_e}
     E = lE^l + (1-l)E^i,
 \end{equation}
@@ -1694,7 +1708,7 @@ with
 \begin{empheq}[box=\eqnbox]{equation}
 E^{l,i}=  -\rho_a g_{ae}(q_{t, int}-q_{v, \rm sfc}^{l,i}).
 \end{empheq} 
-Again, $\rho_a$ is air density in kg/m$^3$, $q_{t, int}$ is the total specific humidity at an interior point in the atmosphere near the surface, and $q_{v, \rm sfc}^{l,i} = q_v^*$ is surface specific humidity, computed as the saturated specific humidity over liquid water or ice. An expression is given in A2, and $g_{ae}$ is the turbulent transfer conductance over snow. It may be different than the same value over bare soil. 
+Again, $\rho_a$ is air density in kg/m$^3$, $q_{t, int}$ is the total specific humidity at an interior point in the atmosphere near the surface, and $q_{v, \rm sfc}^{l,i} = q_v^*$ is surface specific humidity, computed as the saturated specific humidity over liquid water or ice (a form can be provided for this if needed). $g_{ae}$ is the turbulent transfer conductance over snow. It may be different than the same value over bare soil. 
 
 The volume flux is related to the mass flux as
 \begin{equation}
@@ -1706,16 +1720,20 @@ where the density of liquid water is used because this volume flux adjusts the S
 \subsection{Snow density}
 Snow density varies as a function of age, snowmelt, and compaction. We will treat the snow density as independent of the vertical coordinate $z$, but will allow approaches of varying complexity to model the evolution through time and horizontal location.
 
-One approach is to prescribe a function for snow density, and from this, infer the snow depth $z_{\rm snow}$ from SWE (e.g. MOD-WET, Margulis 2017). The simplest models for snow treat the snow density as a constant. In an early version of UEB (Tarboton \& Luce 1996), the snow density is equal to 450 kg/m$^3$. In a  later version of UEB (You et al., 2014), the surface uses a single thermal conductivity value and snow density, and the values of $\lambda s$ = 0.33 kJ/m/hr/K and $\rho_{\rm snow}$ = 200 kg/m$^3$ were calibrated to fit the internal energy measurements. In this case, the snow density is reflective of the density of the snow surface, involved in surface energy exchanges, rather than the snowpack as a whole. \hl{Note that using a constant snow density is incorrect in the limit of the liquid water mass fraction $l \rightarrow 1$, as $\rho_{\rm snow}$ does not approach the density of liquid water. }
+One approach is to prescribe a function for snow density, and from this, infer the snow depth $z_{\rm snow}$ from SWE (e.g. MOD-WET, \citet{Margulis}). The simplest models for snow treat the snow density as a constant, e.g. $\rho_{\rm snow} = 450$ kg/m$^3$(early UEB, \citet{TarbotonLuce}).  Note that using a constant snow density is incorrect in the limit of the liquid water mass fraction $l \rightarrow 1$, as $\rho_{\rm snow}$ does not approach the density of liquid water. In practice, $l$ should remain small, as liquid water runs off, unless the entire snowpack melts. One idea is to define $\rho_{\rm ia} = m_{\rm ice}/(V_{\rm ice}+V_{\rm air})$, with $m_{\rm ice}$ the mass of ice, $V$ indicating a volume, and again neglecting the mass of any air or water vapor. Then we could define $\rho_{\rm snow} = \rho_{\rm ia}\theta_{\rm ia}+\rho_l\theta_l$, where $\theta$ is a volumetric fraction relative to the volume of snow. We also would have that $\theta_{\rm ia} = \theta_{\rm air}+\theta_{\rm ice} = 1-\theta_l$. Using $\theta_l = l\rho_{\rm snow}/\rho_l$, we obtain
+\begin{equation}
+    \rho_{\rm snow} = \rho_{\rm ia}\bigg(1+l\bigg( \frac{\rho_{\rm ia}}{\rho_l}-1\bigg) \bigg)^{-1}.
+\end{equation}
+As $l\rightarrow 1$, we recover $\rho_{\rm snow} = \rho_l$, as $l\rightarrow 0$, $\rho_{\rm snow}\rightarrow \rho_{\rm ia}$. The quantity $\rho_{\rm ia}$ is not necessarily intuitive - it is tempting to think of it as the density of the snow matrix ($m_{\rm ice}/(V_{\rm ice}+\nu)$, with $\nu$ the porosity of the snow). It only coincides with this with $l=0$. As snow melts, $\rho_{\rm ia}$ changes, so modeling it as a constant may also not be appropriate.
+%and the values of $\lambda s$ = 0.33 kJ/m/hr/K and $\rho_{\rm snow}$ = 200 kg/m$^3$ can be calibrated to fit the internal energy measurements. 
 
-Other models account for compaction, overburden, and metamorphism. This may be a prime area for learning a model for snow density (SNOTEL data may allow for this). Other prescribed forms include assuming the density evolves exponentially toward a maximum value with age (Verseghy 1991, Dutra et al., (2010), An improved snow scheme for the ECMWF land surface model: Description and offline validation).
+Other models account for compaction, overburden, and metamorphism. This may be a prime area for learning a model for snow density (SNOTEL data may allow for this). Other prescribed forms include assuming the density evolves exponentially toward a maximum value with age \citep{Verseghy1991,Dutra_Balsamo_2010}.
 
 Alternatively, CLM5 introduces the depth of the snow as a prognostic variable, and then solves for snow density using this and SWE via Equation \eqref{eq:swe1}. For example, 
 \begin{equation}
 \frac{d z_{\rm snow}}{d t} = \frac{P_{\rm snow}}{f_{\rm snow}\rho_{\rm newsnow}},
 \end{equation}
-where $P_{\rm snow}$ is the mass flux of snow onto the snowpack,  $\rho_{\rm newsnow}$ is the density of new snowfall (kg/m$^{-3}$), as a function of temperature and 10m wind speed ($u_{\rm int}$), same approach for new snowfall is used in Dutra 2010 (ECMWF land surface model) and Boone\& Etchevers 2001, originally used in CROCUS (Brun et al 1989, 1992).
-
+where $P_{\rm snow}$ is the mass flux of snow onto the snowpack,  $\rho_{\rm newsnow}$ is the density of new snowfall (kg/m$^{-3}$), as a function of temperature and 10m wind speed ($u_{\rm int}$), same approach for new snowfall is used in \citet{Dutra_Balsamo_2010} (ECMWF land surface model) and \citet{Boone_Etchevers_2001}, originally used in CROCUS \citep{Brun1989,Brun1992}.
 %A different approach, which accounts for snowmelt, is to assume that snowmelt water takes up pore space volume, i.e. it does not add to the volume of the snow. That is, the melting of snow decreases the volume of the snow, and the liquid that results settles into available pore space in the remaining snowpack. When that water refreezes, we could assume that the volume still does not change by ignoring the density differences between ice and water. We could model this as
 %\begin{equation}
 %    f_{\rm snow}\frac{d z_{\rm snow}}{dt} = \frac{P_{\rm snow}}{\rho_{\rm newsnow}} +\frac{\dot{M}_i}{\rho_{\rm snow}A}\mathcal{H}(\dot{M}_i < 0).
@@ -1742,19 +1760,17 @@ I_l(T) & = c_{l} (T - T_0), \\
 I_i(T) & = c_{i} (T - T_0) - I_{i,0}.
 \end{align}
 \end{subequations}
-We use the same reference temperature as the soil and atmosphere models.  $I_{i,0}$ is the difference in specific internal energy between ice and liquid water at $T_0$, equal to the latent heat of fusion at $T_0$: 
+We use the same reference temperature as the soil and atmosphere models. $T_0$ is the reference temperature at which the specific internal energy of snow is taken to vanish. $I_{i,0}$ is the difference in specific internal energy between ice and liquid water at $T_0$, equal to the latent heat of fusion at $T_0$: 
 \begin{equation}
     I_{i,0} = L_{f,0}.
 \end{equation} 
 
 The total specific internal energy is (ignoring internal energy of the air in the pore spaces)
 
-\begin{empheq}[box=\eqnbox]{equation}\label{e:snow_internal_energy}
-\begin{split}
+\begin{align}\label{e:snow_internal_energy}
     I_{\rm snow}(\bar{T}, l)  &= l I_l(T) + (1-l)  I_i(T)\\
     &= c_{\rm snow}(T - T_0) - (1-l)  L_{f,0}.
-\end{split}
-\end{empheq}
+\end{align}
 with 
 \begin{equation}
     c_{\rm snow} = c_i(1-l)+lc_l,
@@ -1762,9 +1778,10 @@ with
  and $l$ is the (in this section only, local) mass fraction of liquid water.
  
  The volumetric internal energy is related to the specific internal energy as
-\begin{equation}
-    I_{\rm snow} \rho_{\rm snow} = \tilde{I}_{\rm snow}.
-\end{equation}
+\begin{empheq}[box=\eqnbox]{equation}
+   \tilde{I}_{\rm snow} =  \rho_{\rm snow}[c_{\rm snow}(T - T_0) - (1-l)  L_{f,0}].
+\end{empheq}
+
 
  The liquid water mass fraction is a diagnostic variable which can be determined from $\tilde{I}_{\rm snow}$ uniquely, according to the following argument. 
  
@@ -1791,9 +1808,10 @@ l =
     \frac{\tilde{I}_{\rm snow}/\rho_{\rm snow}+L_{f,0}-c_i(T_f-T_0)}{(c_l-c_i)(T_f-T_0) +L_{f,0}} & \text{for         } \tilde{I}_{\rm snow,<} \leq \tilde{I}_{\rm snow} \leq \tilde{I}_{\rm snow,>} \\
     1 & \text{for          } \tilde{I}_{\rm snow} > \tilde{I}_{\rm snow,>}
 \end{cases}
-\end{empeq}
+\end{empheq}
+Note that changing $SWE$ via rain or snowfall, or evaporation vs. sublimation, does not change $l$ - $l$ is determined only via this volumetric energy relation only. 
 
-The temperature is a diagnostic variable, obtained from the internal energy and $l$ as 
+The temperature is also a diagnostic variable, obtained from the internal energy and $l$ as 
 \begin{equation}
 T = \frac{\tilde{I}_{\rm snow} +(1-l)L_{f,0}}{\rho_{\rm snow }c_{\rm snow}}+ T_0
 \end{equation}
@@ -1802,49 +1820,141 @@ We consider thermal heat conduction and neglect energy fluxes within the snowpac
 \begin{equation}\label{eq:i_continuous}
     \frac{\partial \tilde{I}_{\rm snow}}{\partial t} = -\frac{\partial }{\partial z}\bigg(-\kappa_{\rm snow} \frac{\partial T}{\partial z}\bigg) - S_R
 \end{equation}
-where $S_R$ denotes the energy loss due to liquid water runoff. Boundary fluxes to be included are: radiation (assumed to only enter as a boundary condition), sensible heat flux at the surface and bottom of the snowpack, latent heat flux due to evaporation at the snow surface, and changes in internal energy due to precipitation.
-\hl{One drawback of this approach is that changing $SWE$ via rain or snowfall, or evaporation vs. sublimation, does not change $l$ - $l$ is determined only via the volumetric energy relation.}
+where $S_R$ denotes the energy loss due to liquid water runoff. Boundary fluxes to be included are: radiation ($R_n$, assumed to only enter as a boundary condition), sensible heat flux $H$ at the surface and bottom of the snowpack, latent heat flux $LH$ due to evaporation at the snow surface.
+
+
+\begin{framed}
+\textsc{Assumption:} There is energy brought in from precipitation, including advection energy and possible latent heat from freezing of rain; currently we ignore these terms to keep the same with soil physics, we could revisit later if this term is necessary for snow.
+\end{framed}
+
 
 We now reduce this to a single layer model.
 \subsection{The single layer model}
-At this level of complexity, we only track the bulk volumetric internal energy. However, a separate representation of surface snow temperature and bulk snow temperature $\bar{T}$ in a one layer snow model is necessary for calculating surface energy exchanges that depend on surface temperature, while retaining a parsimonious model structure. Two options are given. As discussed in the section on snow water equivalent, we make several assumptions consistent with a bulk approach:
+Taking a nice summary of snow model complexity categories from Vionnet et al:
+At present, three major classes of snowpack models are used for various applications (Armstrong and Brun, 2008): single-layer snow scheme, scheme of intermediate complexity and detailed snowpack models.
+
+1) single-layer snow scheme featuring specific properties, such as a high albedo, a low thermal capacity and a low thermal conductivity. The snowpack is often represented with a fixed density. They are relatively inexpensive, have relatively few parameters, and capture first order processes. 
+
+2) Intermediate complexity were developed to account for some internal processes such as snow settling, water percolation and refreezing. These schemes generally vertically discretize the snowpack with a prescribed number of layers (from 2 to 5, generally) (Boone and Etchevers, 2001; Loth and Graf, 1998; Lynch-Stieglitz, 1994). In these schemes, most snowpack physical properties are parameterized as a function of snow density, which is a surrogate for taking into account snow ageing (Boone and Etchevers, 2001).
+
+3) A few detailed snowpack models belong to the third class and account explicitly for the layering of its physical properties. They include a more or less explicit description of the time evolution of the snow microstructure ). Regional or global simulations in coupled mode have been seldom carried out due to high computational costs (Brun et al., 1997).
+
+We start with the single layer model. At this level of complexity, we only track the bulk volumetric internal energy. However, a separate representation of surface snow temperature and bulk snow temperature $\bar{T}$ in a one layer snow model is necessary for calculating surface energy exchanges that depend on surface temperature, while retaining a parsimonious model structure. In modeling the surface temperature, we allow for a ``sub-grid" temperature profile $T(z)$ with various free parameters, and describe below how we determine those.
+
+Integrating the internal energy equation over the depth of the snow results in
+\begin{empheq}[box=\eqnbox]{equation}\label{eq:i_integrated}
+    z_{\rm snow}\frac{\partial \tilde{I}_{\rm snow}}{\partial t} = -[Q_{\rm surf}(T_{\rm surf}; \ldots) - Q_{\rm bottom}(T_{\rm bottom}; \ldots)] - S_R z_{\rm snow},
+\end{empheq}
+with $Q(T;\ldots)$ denoting a boundary energy flux (J/m$^2$/s) function. These functions are known and consist of contributions from latent heat fluxes, sensible heat fluxes, radiation, etc. They are functions of the snow temperature at the boundary as well as functions of atmospheric conditions, soil temperature etc (which are effectively provided parameters, denoted by $; \ldots$).
+
 \begin{framed}
-\textsc{Assumption:} Snow density, thermal conductivity, and liquid water fraction are constant with depth and represent bulk values. If the snow density is allowed to vary in time or horizontal location, one approach is to treat the thermal conductivity as a fixed function of that density using the expression from Bonan's book.}
+\textsc{Assumption:} Snow density, thermal conductivity, and liquid water fraction are constant with depth and represent bulk values. The thermal conductivity is computed from the (possible time dependent or horizontal location dependent) density using the expression given in \citet{Bonan19a}.
 \end{framed}
-Modeling the thermal conductivity as a function of density may improve the performance of snowmelt models (if the density was able to be appropriately modeled), though the errors in modeling the density may introduce errors in modeling the surface heat conduction and the internal energy content.
+Modeling the thermal conductivity as a function of density may improve the performance of snowmelt models, though the errors in modeling the density may introduce errors in modeling the surface heat conduction and the internal energy content. For some models that employ a distinct surface and bulk temperature, the values for thermal conductivity and snow density instead refer to surface values (e.g. \citet{You2014}). In this case, the snow density is reflective of the density of the snow surface, involved in surface energy exchanges, rather than the snowpack as a whole. This is not our approach.
+\subsubsection{Temperature profiles}
+We require a function $T(z)$ now which equates to $T_{\rm surf}$ at the surface, $T_{\rm bottom}$ at the bottom, and satisfies
+\begin{align}
+    1. \quad& \bar{T}  = \frac{1}{z_{\rm snow}}\int_0^{z_{\rm snow}} T(z)dz \label{eq:bulkT} \\
+    2. \quad& Q_{\rm surf}(T_{\rm surf}; \ldots) = -\kappa_{\rm snow}  \frac{\partial T(z)}{\partial z}\bigg|_{z = z_{\rm snow}}\label{eq:qsurf_tprofile} \\
+    3. \quad& Q_{\rm bottom}(T_{\rm bottom}; \ldots) = -\kappa_{\rm snow}  \frac{\partial T(z)}{\partial z}\bigg|_{z = 0} \label{eq:qbott_tprofile}
+\end{align}
+The first ensures that the value $\bar{T}$ determined by the bulk internal energy (assuming a constant liquid fraction throughout the snowpack) is consistent with the average temperature in the pack. Constraints \eqref{eq:qsurf_tprofile} and \eqref{eq:qbott_tprofile} are expressing flux boundary conditions, but they could be relaxed depending on the profile chosen. This is a system of three constraints (as $Q$ are known functions), allowing us at most temperature profiles with three unknowns. 
 
-\paragraph{Option 1:} The temperature within the snowpack varies linearly (Semtner 1976). We solve prognostically for the bulk volumetric internal energy (which is the average, given our assumption of constant $l$), and use the surface fluxes $Q_{\rm surf}$ to define the surface temperature given the average temperature. The bottom temperature is then determined by the slope and $z_{\rm snow}$, and it in general is different from $T_{\rm ground}$.
-
-We approximate the surface energy flux as equal to the internal heat flux within the snow pack, resulting from the difference in surface and average (middle) temperature of the snowpack (Semtner et al 1976). In this case,  the equations governing the bulk internal energy are
-\begin{empheq}[box=\eqnbox]{equation}
-Q_{\rm surf }(T_{\rm surf}, \bar{T}) =-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{z_{\rm snow}/2} = R_n - LE + H_{\rm surf}
-\end{empheq}
-\begin{empheq}[box=\eqnbox]{equation}
-\frac{d\tilde{I}_{snow}}{dt} = -\frac{1}{z_{\rm snow}}\bigg[Q_{\rm surf} - Q_{\rm bottom}\bigg]- S_R
-\end{empheq}
-\begin{empheq}[box=\eqnbox]{equation}
-Q_{\rm bottom}= H_{\rm bottom}(T_{\rm bottom})
-\end{empheq} 
-\paragraph{Option 2:} Force restore and equilibrium gradient: We assume that the surface temperature varies due to diurnal variations in surface flux, which penetrate to a characteristic depth $d$. The temperature varies linearly between the surface and depth $d$, below which the temperature is constant and equal to the daily average temperature. The surface temperature averages to the daily average. We define and solve prognostically for the average bulk volumetric internal energy, which corresponds to this average temperature and to an average liquid fraction. We use the surface fluxes to define the surface temperature given the average bulk temperature. The bottom temperature is equal to the bulk temperature. If $d$ falls below half the snow depth, we will revert to a linear profile, as the assumptions made in the force restore approach no longer hold. 
-
-In this case,  the equations governing the internal energy are (You et al, 2014)
-\begin{empheq}[box=\eqnbox]{equation}
-Q_{surf }(T_{\rm surf}, \bar{T}) =-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{d} = R_n - LE + H_{\rm surf}
-\end{empheq}
-\begin{empheq}[box=\eqnbox]{equation}
-\frac{d\tilde{I}_{snow}}{dt} = \frac{1}{z_{\rm snow}}\bigg[Q_{\rm surf} - Q_{\rm bottom}\bigg]- S_R
-\end{empheq}
-\begin{empheq}[box=\eqnbox]{equation}
-Q_{\rm bottom}= H_{\rm bottom}(\bar{T})
-\end{empheq} 
-where 
+Our default choice is a piecewise-linear profile. This choice of profile is motivated by the force-restore approach \citep{Dickinson88}, which assumes the snow is primarily driven by ``fast'' diurnal variations in surface flux. In a deep enough snowpack, this leads to a surface temperature which oscillates over one day about a reference temperature, where the reference temperature is an average temperature over longer (seasonal) timescales. The characteristic depth over which a diurnal heat flux can penetrate is
 \begin{equation}
-    d = \text{max}\bigg(\bigg(\frac{2\kappa_{\rm snow}\times 24 \text{hrs}}{\rho_{\rm snow} c_{\rm snow}}\bigg)^{1/2}, z_{\rm snow}/2\bigg)
+    d = \bigg(\frac{2\kappa_{\rm snow}\times 24 \text{hrs}}{\rho_{\rm snow} c_{\rm snow}}\bigg)^{1/2};
+\end{equation}
+this depth also splits the snowpack into a near-surface region and a deeper snowpack. The profile requires three free parameters: two slopes and an intercept, with temperature continuous at the kink (at depth $d$). We specify them instead via $T_{\rm surf}, T_{\rm bottom}$ and $T(h)$, the temperature at depth $d$ or height above the ground $h = \text{max}(0,z_{\rm snow}-d)$.  The profile is
+\begin{equation} 
+T(z) =
+    \begin{cases}
+         (T(h)-T_{\rm bottom}) \frac{z}{h} +T_{\rm bottom} & z<h \\
+        \frac{T_{\rm surf}- T(h)}{z_{\rm snow}-h}(z-h)+ T(h) & z\geq h.
+    \end{cases}
 \end{equation}
 
-With both options, the prognostic variables are $\tilde{I}_{\rm snow}$ (from which we obtain $l$, and $\bar{T}$). We assume density is parameterized, and $z_{\rm snow}$ is then known via density and $SWE$ (our other prognostic variable). The first equation represents the equilibrium between the surfaces fluxes and internal energy flux within the pack, which depends on the thermal conductivity of the snow, $\kappa_{\rm snow}$, and the temperature gradient within the snow. We can write the surface flux in this manner due to the assumption of a linear temperature profile between the surface and the location of the bulk surface temperature, and constant $\kappa_{\rm snow}$. All terms on the right hand side are energy fluxes (W/m$^2$/s). $R_n$ is net radiation; $LE$ is energy fluxes associated with latent heat; $H$ denotes a sensible heat flux; $\tilde{I}_R $ is the energy associated with liquid leaving the system when liquid fraction exceed the maximum holding capacity. 
+Employing this, our constraints result in a system of equations (along with Equation \eqref{eq:i_integrated}) to advance the internal energy in time:
+\begin{align}
+\bar{T} &= \frac{T(h)z_{\rm snow}+ T_{\rm surf} (z_{\rm snow}-h) + hT_{\rm bottom}}{ 2z_{\rm snow}}\\
+Q_{\rm surf }(T_{\rm surf}; \ldots)& =-\kappa_{\rm snow} \frac{T_{\rm surf}- T(h)}{z_{\rm snow}-h}\\
+Q_{\rm bottom }(T_{\rm bottom}; \ldots)& =-\kappa_{\rm snow} \frac{T(h)-T_{\rm bottom}}{h}
+\end{align}
 
-The second equation, for $\tilde{I}_{snow}$, is equivalent to the original partial differential equation (Equation \eqref{eq:i_continuous}), for a single layer of snow, and the third equation specifies what fluxes at the bottom of the snowpack are considered - it does not add additional unknown variables. $T_{\rm surf}$ is solved for using the surface flux equation and the bulk temperature, and the linear profile/constant profile is used to get $T_{\rm bottom}$ needed for the sensible heat loss at the ground.
+The method is to (1) take the updated $\tilde{I}_{\rm snow}$ and $z_{\rm snow}$ (from $SWE$ and density), (2) compute the bulk $l$ and $\bar{T}$, then (3) solve for the free parameters of the temperature profile using the three constraints, and then (4) compute the surface and bottom fluxes using the surface and bottom temperature, and (5) update the internal energy.
+
+The depth $d$ should be on the order of 0.1m \citep{Dickinson88} for a range of snow conditions. The scenario motivating the force-restore approach assumes $d\ll z_{\rm snow}$. When the height of the snowpack $z_{\rm snow}$ falls below $d$, $h=0$, and the profile becomes linear, with $T(h) = T_{\rm bottom} = T(z=0)$. In this limit, the flux condition on the lower boundary \eqref{eq:qbott_tprofile} has a RHS of zero. Moreover, a linear profile has only two free parameters. To resolve this, we relax the lower boundary condition on flux \eqref{eq:qbott_tprofile}. Namely, the temperature at the lower boundary is set to be that given by the linear profile specified by the surface flux and bulk temperature constraints, and the flux at the lower boundary $Q_{\rm bottom}$ to be used in the equation for internal energy is evaluated at that temperature. Inconsistently, however, this is no longer equal to $-\kappa_{\rm snow}  \partial_z T(z)$ evaluated at $z=0$, since this would lead to zero net flux across the snowpack. 
+
+As just alluded to, simpler profiles are also possible, with modifications to the application of boundary conditions used in determining the profile $T(z)$. However, these have the same consistency issue: these profiles do not satisfy $Q_{\rm bottom} = -\kappa_{\rm snow}  \partial_z T(z)|_{z = 0}$. We give two possible two-free parameter temperature profiles below. Both can be established by using the first two constraints (on bulk temperature and the surface flux) to determine the profile, and then solving for  $T_{\rm bottom} = T(z=0)$ for use in $Q_{\rm bottom}$. 
+
+
+A linear profile \citep{Semtner76a} would have two free parameters (a slope and intercept), and a temperature profile of the form
+\begin{equation}\label{eq:linear}
+        T(z) = a z+b.
+\end{equation}
+If we pursued this, our constraints would result in:
+\begin{align}
+a &= \frac{2(T_{\rm surf} - \bar{T})}{z_{\rm snow}} \\
+b  = T_{\rm bottom} & = 2\bar{T}- T_{\rm surf} \\
+Q_{\rm surf }(T_{\rm surf}; \bar{T}, \ldots) &=-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{z_{\rm snow}/2}
+\end{align}
+
+A second option for a profile with two free parameters is a different variation of the force-restore (equilibrium gradient; \citet{You2014}) approach. Above a depth $d$, again taken to be the characteristic depth over which diurnal heating fluxes penetrate, the temperature varies linearly; below $d$, the temperature is constant (zero slope). This is equivalent to our default profile under the assumption that the slope in the bottom portion of the snowpack is negligible, so that $Q_{\rm bottom}$ can be evaluated at $T_{\rm bottom} \approx T(h)$. The profile takes the following form
+\begin{equation} 
+T(z) =
+    \begin{cases}
+         T_{\rm bottom} & z<h \\
+        \frac{T_{\rm surf}-T_{\rm bottom}}{z_{\rm snow}-h}(z-h)+ T_{\rm bottom} & z\geq h,
+    \end{cases}
+\end{equation}
+where both $T_{\rm surf}$ and $T_{\rm bottom} = T(h)$ must be constrained. The final set of equations required to advance the system is
+\begin{align}
+\bar{T} &=\frac{1}{z_{\rm snow}} \bigg[T_{\rm bottom}h+ \frac{T_{\rm surf}+T_{\rm bottom}}{2}(z_{\rm snow}-h)\bigg] \\
+Q_{surf }(T_{\rm surf}; \ldots)& =-\kappa_{\rm snow} \frac{T_{\rm surf}- T_{\rm bottom}}{z_{\rm snow}-h}
+\end{align}
+
+Finally, if we desired a truly one layer model with homogenous temperature, a constraint on bulk temperature alone would be sufficient. This would require dropping the relationship between the boundary fluxes and the temperature profile (\eqref{eq:qsurf_tprofile} and \eqref{eq:qbott_tprofile}) entirely, and replacing them with $T_{\rm surf} = T(z_{\rm snow}) = \bar{T}$ and  $T_{\rm bottom} = T(0) =  \bar{T}$.
+
+
+
+
+%Two options are given. As discussed in the section on snow water equivalent, we make several assumptions consistent with a bulk approach:
+%\begin{framed}
+%\textsc{Assumption:} Snow density, thermal conductivity, and liquid water fraction are constant with depth and represent bulk values. If the snow density is allowed to vary in time or horizontal location, one approach is to treat the thermal conductivity as a fixed function of that density using the expression from Bonan's book.}
+%\end{framed}
+%Modeling the thermal conductivity as a function of density may improve the performance of snowmelt models (if the density was able to be appropriately modeled), though the errors in modeling the density may introduce errors in modeling the surface heat conduction and the internal energy content.
+
+%\paragraph{Option 1:} The temperature within the snowpack varies linearly (Semtner 1976). We solve prognostically for the bulk volumetric internal energy (which is the average, given our assumption of constant $l$), and use the surface fluxes $Q_{\rm surf}$ to define the surface temperature given the average temperature. The bottom temperature is then determined by the slope and $z_{\rm snow}$, and it in general is different from $T_{\rm ground}$.
+
+%We approximate the surface energy flux as equal to the internal heat flux within the snow pack, resulting from the difference in surface and average (middle) temperature of the snowpack (Semtner et al 1976). In this case,  the equations governing the bulk internal energy are
+%\begin{empheq}[box=\eqnbox]{equation}
+%Q_{\rm surf }(T_{\rm surf}, \bar{T}) =-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{z_{\rm snow}/2} = R_n - LE + H_{\rm surf}
+%\end{empheq}
+%\begin{empheq}[box=\eqnbox]{equation}
+%\frac{d\tilde{I}_{snow}}{dt} = -\frac{1}{z_{\rm snow}}\bigg[Q_{\rm surf} - Q_{\rm bottom}\bigg]- S_R
+%\end{empheq}
+%\begin{empheq}[box=\eqnbox]{equation}
+%Q_{\rm bottom}= H_{\rm bottom}(T_{\rm bottom})
+%\end{empheq} 
+%\paragraph{Option 2:} Force restore and equilibrium gradient: We assume that the surface temperature varies due to diurnal variations in surface flux, which penetrate to a characteristic depth $d$. The temperature varies linearly between the surface and depth $d$, below which the temperature is constant and equal to the daily average temperature. The surface temperature averages to the daily average. We define and solve prognostically for the average bulk volumetric internal energy, which corresponds to this average temperature and to an average liquid fraction. We use the surface fluxes to define the surface temperature given the average bulk temperature. The bottom temperature is equal to the bulk temperature. If $d$ falls below half the snow depth, we will revert to a linear profile, as the assumptions made in the force restore approach no longer hold. 
+
+%In this case,  the equations governing the internal energy are (You et al, 2014)
+%\begin{empheq}[box=\eqnbox]{equation}
+%Q_{surf }(T_{\rm surf}, \bar{T}) =-\kappa_{\rm snow} \frac{T_{\rm surf}- \bar{T}}{d} = R_n - LE + H_{\rm surf}
+%\end{empheq}
+%\begin{empheq}[box=\eqnbox]{equation}
+%\frac{d\tilde{I}_{snow}}{dt} = \frac{1}{z_{\rm snow}}\bigg[Q_{\rm surf} - Q_{\rm bottom}\bigg]- S_R
+%\end{empheq}
+%\begin{empheq}[box=\eqnbox]{equation}
+%Q_{\rm bottom}= H_{\rm bottom}(\bar{T})
+%\end{empheq} 
+%where 
+%\begin{equation}
+%    d = \text{max}\bigg(\bigg(\frac{2\kappa_{\rm snow}\times 24 \text{hrs}}{\rho_{\rm snow} c_{\rm snow}}\bigg)^{1/2}, z_{\rm snow}/2\bigg)
+%\end{equation}
+
+%With both options, the prognostic variables are $\tilde{I}_{\rm snow}$ (from which we obtain $l$, and $\bar{T}$). We assume density is parameterized, and $z_{\rm snow}$ is then known via density and $SWE$ (our other prognostic variable). The first equation represents the equilibrium between the surfaces fluxes and internal energy flux within the pack, which depends on the thermal conductivity of the snow, $\kappa_{\rm snow}$, and the temperature gradient within the snow. We can write the surface flux in this manner due to the assumption of a linear temperature profile between the surface and the location of the bulk surface temperature, and constant $\kappa_{\rm snow}$. All terms on the right hand side are energy fluxes (W/m$^2$/s). $R_n$ is net radiation; $LE$ is energy fluxes associated with latent heat; $H$ denotes a sensible heat flux; $\tilde{I}_R $ is the energy associated with liquid leaving the system when liquid fraction exceed the maximum holding capacity. 
+
+%The second equation, for $\tilde{I}_{snow}$, is equivalent to the original partial differential equation (Equation \eqref{eq:i_continuous}), for a single layer of snow, and the third equation specifies what fluxes at the bottom of the snowpack are considered - it does not add additional unknown variables. $T_{\rm surf}$ is solved for using the surface flux equation and the bulk temperature, and the linear profile/constant profile is used to get $T_{\rm bottom}$ needed for the sensible heat loss at the ground.
 
 %The sensible heat flux at the bottom of the snowpack appears in the bulk equation, rather than as a boundary condition. If instead we additionally prescribed $Q_{bottom}$, as we did $Q_{surf}$, we would uniquely determine the temperature profile from these two equations. It's unclear if this would be sufficient (we wouldn't be able to obtain $l$ from $T_b$ if $T_b$ was at the freezing point), or if it would be consistent with the bulk $I_b$ if we additionally solved for that prognostically. 
 
@@ -1859,7 +1969,7 @@ The second equation, for $\tilde{I}_{snow}$, is equivalent to the original parti
 %H_{\rm surf} & = H_{snow2atm}
 %\end{align}
 %where $H_{snow2atm}$ is sensible heat loss through heat diffusion at snow-atmosphere boundary layer; $H_{snow2soil}$ is sensible heat loss through heat diffusion at snow-soil boundary layer;\\
-\hl{Shuang: there is energy brought in from precipitation, including advection energy and possible latent heat from freezing of rain; currently we ignore this term to keep the same with soil physics, we could revisit later if this term is necessary for snow}
+
 
 %There are other approaches to calculate surface snow temperature (force-restore approach, modified force-restore approach), as discussed in Sultana et al 2014, these different approaches might not effectively change model performance, thus we revisit once needed, see the references below. 
 
@@ -1883,75 +1993,89 @@ The second equation, for $\tilde{I}_{snow}$, is equivalent to the original parti
 %Equation above can be solved numerically for $T_{surf}$ using the Newton-Rhapson scheme. Other approximation methods may be discussed later. \textbf{Please put your recommended solving approach here. }
 
 
-\subsection{ Surface and other energy fluxes}
-The net surface flux is composed of radiation $R_n$, latent heat $LE$, and sensible heat $H_{\rm surf}$ fluxes. These terms are all functionally dependent on the surface temperature, $T_{\rm surf}$. The sensible heat flux at the bottom of the snowpack $H_{\rm bottom}$ depends on the bottom temperature of the snow, which is a simple function of $T_{\rm surf}$ and $\bar{T}$ (linear profile) or equal to $\bar{T}$ (force restore profile). The loss of energy due to liquid water runoff is described in Section \ref{sec:snow_runoff}.
+\subsection{Boundary energy fluxes $Q$}
+The net surface flux $Q_{\rm surf}$ is composed of radiation $R_{\rm surf}$, latent heat $LE$, and sensible heat $H_{\rm surf}$ fluxes. These terms are all functionally dependent on the surface temperature, $T_{\rm surf}$. The net bottom energy flux $Q_{\rm bottom}$ is composed of a sensible heat flux $H_{\rm bottom}$ and, if we choose to include it, a net thermal radiation of snow and soil $R_{\rm bottom}$. All terms depend on the bottom temperature of the snow, $T_{\rm bottom}$. The loss of energy due to liquid water runoff is described in Section \ref{sec:snow_runoff}.
 
 
-\subsubsection{Net radiation ($R_n$)}
+\subsubsection{Net surface radiation ($R_{\rm surf}$)}
 \begin{empheq}[box=\eqnbox]{equation}
-R_n = LW_{net} + SW_{net}
+R_{\rm surf} = LW_{\rm net} + SW_{\rm net}
 \end{empheq}
-where $SW_{net}$ is net shortwave radiation; $LW_{net}$ is  net long wave radiation.
-The current documentation covers the basic terms for calculating snow energy balance, as represented in simple snow models (eg. MOD-WET). Some other terms we might consider to add: black body emission from soil to snow, downward shortwave radiation into soil when snow exist (penetrate though snowpack, used in soil energy balance), please list anything else you think is important and corresponding equations:
+where $SW_{\rm net}$ is net shortwave radiation; $LW_{\rm net}$ is  net long wave radiation.
+The current documentation covers the basic terms for calculating snow energy balance, as represented in simple snow models (eg. MOD-WET).
 
-\paragraph{Net long wave radiation}
-Snowcover, even when shallow, acts nearly as a blackbody to longwave radiation. Thus, when snowcover is present, the top snow layer replaces the top soil layer as a radiating and absorbing surface. Soil and vegetation likewise have high emissivities (low reflectivities). Following ED-2, we make the assumption that multiple longwave reflections do not occur; once-reflected radiation is assumed to be fully absorbed upon next reaching a surface (Walko et al 2000; Longo et al. 2019).
-Upwelling long wave ($LW^{\uparrow}$) is a function of snow surface temperature; Downwelling long wave radiation ($LW^{\downarrow}$) is from input data;
-\begin{align}
-LW_{net} &= LW^{\downarrow}-LW^{\uparrow}\nonumber \\
+\paragraph{Net surface long wave radiation}
+Snowcover, even when shallow, acts nearly as a blackbody to longwave radiation. Thus, when snowcover is present, the top snow layer replaces the top soil layer as a radiating and absorbing surface. Following ED-2, we make the assumption that multiple longwave reflections do not occur; once-reflected radiation is assumed to be fully absorbed upon next reaching a surface \citep{Walko00a,Longo19a}. The downwelling long wave radiation $LW^{\downarrow}$ is supplied via re-analysis data or from the atmosphere model. The upwelling long wave radiation $LW^{\uparrow}$ is a function of snow surface temperature. The net is
+\begin{empheq}[box=\eqnbox]{equation}
+\begin{split}
+LW_{\rm net} &= LW^{\downarrow}-LW^{\uparrow}\nonumber \\
 &= LW^{\downarrow} - [(1-\epsilon_{snow})LW^{\downarrow}+\epsilon_{snow} \sigma  T_{\rm surf}^4] \nonumber \\
 &= \epsilon_{snow}[LW^{\downarrow}- \sigma  T_{\rm surf}^4 ]   
-\end{align}
-where $\epsilon_{snow}$ is snow long wave emissivity constant 0.99 (same value used in MOD WET model and UEB model), $\sigma$ is Stefan-Boltzman constant, $T_{\rm surf}$ is snow surface temperature.
+\end{split}
+\end{empheq}
+where $\epsilon_{snow}$ is snow long wave emissivity (equal to a constant of 0.99, MODWET \& UEB), $\sigma$ is the Stefan-Boltzman constant, and $T_{\rm surf}$ is snow surface temperature.
 
-\paragraph{Net shortwave radiation ($SW_{net}$)}
-In simple models such as MOD-WET and UEB, the incident downward short wave radiation (SW) is directly used in for calculating net shortwave radiation:
+\paragraph{Net surface shortwave radiation}
+In simple models such as MOD-WET and UEB, the incident downward short wave radiation $SW^{\downarrow}$ is directly used in for calculating net shortwave radiation:
 \begin{equation}
-SW_{net} = SW^{\downarrow} (1-\alpha_{snow})
-\end{equation} where $SW^{\downarrow}$ is downward short wave radiation as known input variable, $\alpha_{snow}$ is snow albedo. 
+SW_{\rm net} = SW^{\downarrow} (1-\alpha_{\rm snow})
+\end{equation} where $\alpha_{snow}$ is the snow albedo. 
 %Some other models (eg. ED2) calculate shortwave radiation separately for bare ground and vegetated area.  Net shortwave radiation for bare ground fraction on a pixel is the same as equation above. For areas with vegetation, downward shortwave radiation to snow is determined from canopy radiation model. 
 
-However, the downward short wave radiation can penetrate to considerable depths in the snowpack. ED2 (LEAF-2) considers the transmissivity of each snow layer.  For a bulk model, the implication is that some portion of the short wave radiation passes through the snowpack and acts as a surface flux for the underlying soil. In this case, the set shortwave radiation received by snowcover is:
+For shallow snowpacks, the transmissivity of snow can allow for warming of the soil underneath. The fraction of incoming shortwave radiation that is transmitted through the snow of some depth is given by
 \begin{equation}
-SW_{net} = SW^{\downarrow}(1-\alpha_{snow})(1-\gamma_{snow}+\gamma_{snow}\alpha_{\rm soil})
-\end{equation} where $\gamma_{snow}$ is transmissivity of snow pack 
-\begin{equation}
-\gamma_{snow} = e^{-{\epsilon}z_{snow}}
+\gamma_{\rm snow} = e^{-{\epsilon}z_{\rm snow}},
 \end{equation}
-where $z_{snow}$ is snowcover depth, $\epsilon$ is extinction coefficient equals 20$m^{-1}$  based on average value in de Quervain (1973).
+where is $\epsilon$ is the extinction coefficient. This depends on the structure of the snow grains, but typical values range from $0.02$cm$^{-1}$ to 2cm$^{-1}$ \citep{deQuervain_1972snow}. We will use a value of $0.05$? That is consistent with the shallow snow $h$ value.
 
-The additional shortwave radiation reaching the soil surface is 
+In this case, the net shortwave radiation received by snowcover is:
+\begin{empheq}[box=\eqnbox]{equation}
+SW_{\rm net} = SW^{\downarrow}(1-\alpha_{\rm snow})(1-\gamma_{\rm snow})(1+\gamma_{\rm snow}\alpha_{\rm soil}),
+\end{empheq}
+the additional shortwave radiation reaching the soil surface is 
+\begin{empheq}[box=\eqnbox]{equation}
+SW_{\rm net, soil} = SW^{\downarrow}(1-\alpha_{\rm snow})\gamma_{\rm snow}(1-\alpha_{\rm soil}),
+\end{empheq}
+and an amount $SW^{\downarrow} [\alpha_{\rm snow}+ \gamma_{\rm snow}^2\alpha_{\rm soil}(1-\alpha_{\rm snow})]$ is reflected to the atmosphere. Terms proportional to $\gamma_{\rm snow}^2$ will generally be small - they indicate radiation  that has passed through the snowpack, reflected off of the soil, and been transmitted back through the snow. We arbitrarily include these in surface fluxes, and retain them so that, as $z_{\rm snow} \rightarrow 0$, $\gamma_{\rm snow}\rightarrow 1$, and no radiation is absorbed by the snow. However, we would separately need to enforce $\alpha_{\rm snow} \rightarrow 0$ in order to obtain the correct result for bare soil (see shallow snow albedo).
+
+%With a thin snowpack, penetrating solar radiation to the underlying soil can be quite large and heat cannot be released from the soil to the atmosphere in this situation. Thus, if the snowpack has total snow depth less than 0.1 m and there are no explicit snow layers, the solar radiation is absorbed by the top soil layer.\\
+
+Next, we list a few methods for calculating snow albedo. Snow albedo ranges between about 0.50 and 0.90, and decreases with grain size, the angle of solar incidence, impurities, and the ratio of direct to diffuse sunlight.
+\paragraph{Shallow snow albedo}
+
+In UEB model \citep{TarbotonLuce,You2014}, when the snowpack is shallow ($z_{\rm snow}<h = 0.1$m), the effective snow albedo is interpolated from a deep snow albedo and a bare soil albedo ($\alpha_{\rm soil}$):
 \begin{equation}
-SW_{net, soil} = SW^{\downarrow}(1-\alpha_{snow})(\gamma_{snow}-\gamma_{snow}\alpha_{\rm soil})
+\alpha_{\rm snow, eff} = r_\alpha\alpha_{\rm soil}+(1-r_\alpha)\alpha_{\rm snow}\\
 \end{equation}
-%When there is light snowcover, shortwave radiation can still penetrate into the soil, $SW_{down}$ for soil surface when snow exist need to considered separately during the coupling.
-In CLM5: With a thin snowpack, penetrating solar radiation to the underlying soil can be quite large and heat cannot be released from the soil to the atmosphere in this situation. Thus, if the snowpack has total snow depth less than 0.1 m and there are no explicit snow layers, the solar radiation is absorbed by the top soil layer.\\
+\begin{equation}
+r_\alpha = (1-z/h)e^{-z/2h}.
+\end{equation}
 
 \paragraph{Snow albedo}
-Next, we list a few methods for calculating snow albedo used in different models, Renato will bring up more options and we need to discuss which level of complexity is necessary for CliMA purpose.Snow albedo ranges between about 0.50 and 0.90, and decreases with grain size, the angle of solar incidence, impurities, and the ratio of direct to diffuse sunlight.\\
-\textbf{shallow snow albedo}\hl{ (Could leave the shallow snow albedo optional)}\\
-In UEB model (Dickinson et al., 1993, Tarboton and Luce 1996, You et al., 2014), when the snowpack is shallow (z<h=0.1m), the surface albedo is interpolated from snow albedo ($\alpha_{snow}$) and bare ground albedo ($\alpha_{bg}$):
+
+Here, $\alpha_{\rm snow}$ is calculated using USACE (1956) formulation:
 \begin{equation}
-\alpha_{surf} = r_\alpha\alpha_{bg}+(1-r_\alpha)\alpha_{snow}\\
-\end{equation}\\
-\begin{equation}
-r_\alpha = (1-z/h)e^{-z/2h}
-\end{equation}\\
-where $r_\alpha$approximate the exponential extinction of radiation penetration of snow scaled to $1/e^2$
-at depth z, where h=0.1m.\\
-\textbf{Non-shallow snow albedo}\\
-Here, $\alpha_{snow}$ (snow albedo) is calculated using USACE (1956) formulation:
-\begin{equation}
-\alpha_{snow} = \alpha_0+K \cdot \exp(-day_{counter} * r)    
+\alpha_{\rm snow} = \alpha_0+K \cdot \exp(-N_d * r)    
 \end{equation}
-where $\alpha_0$ is minimum snowpack albedo ~0.4, $K$ is a constant ~0.44, K and $\alpha_0$ define the maximum albedo of fresh snow, $day_{counter}$ is number of days since the last snowfall, calculate from snowfall time series, $r$ is recession coefficients, 0.12 for $T_{air}>T_f$ and 0.05 for $T_{air}<T_f$, $T_f$ is water freezing temperature constant. This method is used in MOD-WET model.ECMWF land surface model used a different method, which differ for melting and non-melting conditions (Dutra et al., 2010).\\
+where $\alpha_0$ is minimum snowpack albedo ~0.4, $K$ is a constant ~0.44, K and $\alpha_0$ define the maximum albedo of fresh snow, $N_d$ is number of days since the last snowfall, calculated from snowfall time series or by tracking in an additional variable, $r$ is recession coefficients, 0.12 for $T_{\rm air}>T_f$ and 0.05 for $T_{\rm air}<T_f$, $T_f$ is water freezing temperature constant. This method is used in MOD-WET model. ECMWF land surface model used a different method, which differ for melting and non-melting conditions \citep{Dutra_Balsamo_2010}.
 
+A second option for the deep snow albedo is to use existing measurements of albedo as a function of wavelength, combined with concurrent measurements of $SWE$, density, etc. to create an e.g. regression model for albedo. We could also use the SNICAR model to create the dataset from which we learn. 
 
-\textbf{Renato bring up alternative plans for radiation transfer and albedo.}\\
+A third option is that used in the JSBACH model \citep{JSBACH}. They assume the snow albedo in both the NIR and visible bands can be expressed as a weighted combination of the albedo predicted by two models. The first model accounts for the temperature dependence of snow albedo (from ECHAM5), while the second model accounts for aging of snow (from BATS), as follows
+\begin{equation}
+    \alpha_{\rm snow}^{\rm ECHAM} = \alpha_{\rm snow}^{\rm min}+ (\alpha_{\rm snow}^{\rm max}-\alpha_{\rm snow}^{\rm min})\times \begin{cases}
+        0 & \text{for  } T_{\rm surf} > T_f \\
+        \frac{T_f-T_{\rm surf}}{5 K} &\text{for  } T_f - 5\text{K} \leq T_{\rm surf} \leq T_f \\
+        1 & \text{for  } T_{\rm surf} < T_f-5 \text{K} \\
+    \end{cases}
+\end{equation}
+and
+\begin{equation}
+    \alpha_{\rm snow}^{\rm BATS} = \alpha_{\rm snow}(\tau) - r(\theta_{\rm zenith})(1-\alpha_{\rm snow}(\tau)),
+\end{equation}
+where $\alpha_{\rm snow}^{\rm min, max}$ are prescribed parameters for each band, $\tau$ is the age of the snow surface, $\theta_{\rm zenith}$ is the zenith angle, and $\alpha_{\rm snow}(\tau)$ is a prescribed functional form for aging snow.
 
 \subsubsection{Latent heat flux}
-\hl{altered to be consistent with soil expressions; original text is commented out. note that the latent heat appearing is different!}
-
 Latent heat flux in the snow module describes moisture fluxes between the atmosphere and the land surface, including sublimation of water from snowpack and evaporation. The total mass flux in vapor $E$ is described in the snow water equivalent section, Equation \eqref{eq:snow_e}.
 
 Following the soil model (Equation \eqref{eq:mass_flux_atmos}), the energy flux resulting from this is
@@ -1962,7 +2086,7 @@ where
 \begin{equation}
     h_{v, \rm sfc} = c_{p,v} (T_{\rm surf}-T_0) + L_{v,0},
 \end{equation}
-$c_{p,v}$ is the isobaric specific heat capacity of water vapor and $L_{v,0}$ is the latent heat of vaporization. The quantity $h_{v, \rm sfc}$ is the specific enthalpy of the vapor. We have neglected the gravitational potential term, as we do for the soil model.
+$c_{p,v}$ is the isobaric specific heat capacity of water vapor and $L_{v,0}$ is the latent heat of vaporization. The quantity $h_{v, \rm sfc}$ is the specific enthalpy of the vapor. We have neglected the gravitational potential term, as we do for the soil model. \hl{This is inconsistent with every snow model we have looked at, all of which use the latent heat of sublimation for sublimation. In that case, we would compute the net LHF using $lE^l$ and $(1-l)E_i$ separately.}. 
 
 
 %in the future may include evaporation of water from snowpack (when account for liquid phase in snowpack). Same as ED2 model, the total enthalpy flux associated with vapor loss (sublimation) is the sum of enthalpy flux due to phase change and enthalpy flux due to mass exchange (correspond to ED2 equations 73- 74):
@@ -1975,12 +2099,12 @@ $c_{p,v}$ is the isobaric specific heat capacity of water vapor and $L_{v,0}$ is
 %\end{equation}where $l_{iv3}$ is the specific latent heat of sublimation at the water triple point ($T_3$), $c_{pv}$ is the specific heat of water vapor at constant pressure. Look up to equation in ED2 model if liquid phase in considered in snowpack to calculate evaporation fluxes.
 %equation for $E_{mass}$ is listed in previous mass balance section;
 
-\subsubsection{Sensible heat flux at upper boundaries}
-Snow-air boundary sensible heat flux is referenced from MOD-WET (MATLAB-based Modular Distributed Watershed Educational Toolbox, Margulis 2017 Introduction to Hydrology, aerodynamic resistance, ra), and UEB (Utah Energy Balance snowmelt model, turbulent transfer conductance for sensible heat, $K_h$):
+\subsubsection{Sensible heat flux at surface}
+Snow-air boundary sensible heat flux is referenced from MOD-WET \citep{Margulis}, and UEB \citep{You2014}:
 \begin{equation}
 H_{snow2atm}= \rho_a c_p (T_{\rm surf}-T_{a})g_{\rm ae}
 \end{equation}
-where $\rho_a$ is air density, $c_p$ is specific heat capacity of air (1004 J/kg/K), $T_{\rm surf}$ is snow surface temperature, $T_{a}$ is air temperature (in CLM said ‘atmosphere potential temperature’, use the same term with soil physics team in their upper boundary layer condition); $g_{ae}$ is the same aerosol resistance constant computed for latent heat fluxes. This is consistent with the exchange fluxes used for the soil model (neglecting changes in gravitational potential), though we have not included the term depending on $E$ in Equation \eqref{eq:SHF_soil_atmos}.
+where $\rho_a$ is air density, $c_p$ is specific heat capacity of air, $T_{\rm surf}$ is snow surface temperature, $T_{a}$ is air temperature (in CLM said ‘atmosphere potential temperature’, use the same term with soil physics team in their upper boundary layer condition); $g_{ae}$ is the same aerosol resistance constant computed for latent heat fluxes. This is consistent with the exchange fluxes used for the soil model (neglecting changes in gravitational potential), though we have not included the term depending on $E$ in Equation \eqref{eq:SHF_soil_atmos}.
 %from von Karman's constant ($k_v=0.4$), horizontal wind speed at reference height (u),wind speed measurement (reference) height (z), zero-plane displacement height (d), and the aerodynamic (momentum) roughness height ($z_0$ ), all the height/length value are in unit of meter:
 %\begin{equation}
 %K_h = K_e =  (\frac{{k^2_vu}}{ln((z-d)/z_0)^2})
@@ -1989,27 +2113,45 @@ where $\rho_a$ is air density, $c_p$ is specific heat capacity of air (1004 J/kg
 %d: Zero Plane displacement height is defined as the height at which the mean velocity is zero due to large obstacles such as buildings/canopy. If there are no large obstacles then d≈0, UEB treated d as zero, MOD-WET let d = 0.7* $h_{snow}$ (characteristic roughness height, or height of snow roughness elements, a physical constant value = 0.03, unit m) 
 
 %When there is a temperature gradient near the surface, buoyancy effects may enhance or dampen the turbulent transfers, $K_e$ and $K_h$ need adjustment using stability functions for momentum, sensible heat, and water vapor. This adjustment was not applied in MOD-WET model but was used in UEB, we'll check if the adjustment is necessary after the first round of tests, see equations 7-11 from You et al., 2014.
-\subsubsection{Sensible heat flux at lower boundaries}
-Snow-soil boundary sensible heat flux is referenced from ED-2 (Walko et al., 2000 equations 6-8):
-\begin{equation}
-H_{snow2soil}=\frac{-0.5(K_s + C_g \lambda)(T_{bottom}-T_{topsoil} )}{(0.5 z_{snow}- 0.5 z_{topsoil})}
-\end{equation}
-   where $K_s$ is heat diffusion coefficient represented by an empirical function with snow temperature and density, as in equation (fill); $C_g$ is specific heat capacity of dry soil particles; $\lambda$ is soil thermal conductivity calculated by surface soil water potential in equation below, in unit ($J m^{-1} s^{-1} K^{-1}$); $T_{stw}$ is the temperature of snowpack (total standing water); $T_{topsoil}$ is temperature of topsoil, $z_{snow}$ and $z_{topsoil}$ is the thickness of snowpack and topsoil layer. 
-   \hl{what are units?}
-\begin{equation}
-K_s= (1.093 * 10^{-3})*e^{(0.027*T_{tsw} * [0.03+0.303(\rho_s*10^{-3})-0.177(\rho_s 10^{-3})^2 +2.25(\rho_s*10^{-3})^3]}
-\end{equation}
-\hl{why not use soil thermal conductivity directly? we calculate it in the soil model.}
-for $log_{10}|100\phi|\leqslant5.1$:
-\begin{equation}
-\lambda = e^{-log_{10}|100\phi|+2.7} \cdot 4.186 \cdot 10^2
-\end{equation}
-for $log_{10}|100\phi|>5.1$:
+\subsubsection{Heat fluxes at the ground}
 
+Heat fluxes at the ground discussed here include radiative heat and conductive heat. MODWET model does not include lower boundary fluxes \citep{Margulis}. ED2 accounted for conductive heat flux, but we did not find if they calculated longwave radiation at the lower boundary \citep{Walko00a}. UEB used a measured ground heat flux for driving the snow model, but did not compute this\citep{TarbotonLuce}. In CLM5 technote, we did not find descriptions of conductive heat or longwave radiation transfer at the lower boundary.
+
+From \citet{TarbotonLuce}: ``Ground heat flux is generally much smaller than the surface energy transfers \citep{bras1990hydrology} and is frequently neglected over short time periods. However the integrated affect over a season can be significant \citep{Male_Gray_1981}. In early season even short periods are affected by ground heat flux.''.
+\begin{framed}
+\textsc{Assumption:} In the first version we assume the snow only gains or loses heat from the top. Thus we do not simulate any heat transfer between snow and soil. After testing, we will compute how large these fluxes are and determine if they should be included.
+\end{framed}
+
+\paragraph{*Net bottom radiation $R_{\rm bottom}$}
+We have not seen this term present in any snow model, but both the snow and soil emit thermal radiation at their interface. The net radiation (positive upwards) would be
+\begin{align}
+    R_{\rm bottom} &= \epsilon_{\rm soil} \sigma T_{\rm soil}^4- \epsilon_{\rm snow} \sigma T_{\rm bottom}^4
+\end{align}
+Assuming temperature differences of 1 K, this is on the order of 5 W/m$^2$ ($\epsilon \sim 1, T\sim 273$K). Ground flux measurements reported by \citet{UNM_report} were between 10 and 75 W/m$^2$.
+
+\paragraph{*Conductive heat flux at the soil/snow interface}
+We imagine two slabs of material, with temperature $T = T_{\rm bottom}$ at the top boundary, and $T = T_{\rm soil}$ at the bottom boundary. At the interface between them, assumed to be halfway, we assume temperature continuity and heat flux continuity. This results in an exchange
 \begin{equation}
-\lambda = 0.00041 \cdot 4.186 \cdot 10^2
+G=\frac{2\kappa_{\rm snow} \kappa_{\rm soil}}{\kappa_{\rm snow} +\kappa_{\rm soil}}\frac{T_{\rm bottom}-T_{\rm soil}}{l}
 \end{equation}
-where $\phi$ is surface soil water potential, in unit of water pressure (m, 1 m height of water column = 9.81 kPa), get from soil physics module output.\\
+where $l$ is the distance between the two boundaries, and $\kappa$ is a thermal conductivity (known from both the soil and snow models). The conductivity of soil is $\sim$3-30x larger than that of snow, so the conductivity of snow should dominate.
+
+While it might make sense to use $l\sim 2\Delta z$, where $\Delta z$ is the resolution of the soil model, \hl{we expect this will run into issues}. Using this as a boundary condition for soil is likely OK - it would be akin to a flux generated by a Dirichlet condition on $T_{\rm soil} = T_{\rm bottom}$ in a finite volume approach. I think this would produce an output that converges as $\Delta z \rightarrow \infty$. However, the snow model knows nothing about the resolution of the soil model. As resolution increases, it just sees an increasing $G$. I think we need to fix $l$ equal to something reasonable and not make it resolution dependent, but am not sure how to motivate the value we choose.
+
+%  where $K_s$ is soil thermal conductivity, calculated from soil physics module, in unit \hl{check with soil($J m^{-1} s^{-1} K^{-1}$)}; $T_{stw}$ is the temperature of snowpack (total standing water); $T_{topsoil}$ is temperature of topsoil, $z_{snow}$ and $z_{topsoil}$ is the thickness of snowpack and topsoil layer 
+%\hl{why not use soil thermal conductivity directly? we calculate it in the soil model.}\\
+%\hl{sure, if soil model has it, no reason to calculate again, commented out the next section for soil thermal conductivity}\\
+%\hl{the conductivity of soil is ~3-30x the conductivity of snow, so we might also be able to approximate it using just $K_soil$}
+% for $log_{10}|100\phi|\leqslant5.1$:
+% \begin{equation}
+% \lambda = e^{-log_{10}|100\phi|+2.7} \cdot 4.186 \cdot 10^2
+% \end{equation}
+% for $log_{10}|100\phi|>5.1$:
+
+% \begin{equation}
+% \lambda = 0.00041 \cdot 4.186 \cdot 10^2
+% \end{equation}
+% where $\phi$ is surface soil water potential, in unit of water pressure (m, 1 m height of water column = 9.81 kPa), get from soil physics module output.\\
 
 
 % KMD: I commented out snowmelt section, as $l$ is determined diagnostically from internal energy, and what was in the text was specific to the case where snowmelt was immediately turned to runoff
@@ -2032,11 +2174,11 @@ where $\phi$ is surface soil water potential, in unit of water pressure (m, 1 m 
 %\end{equation}\begin{equation}
 %M = min(M_{max} , M)
 %\end{equation}where $M_{max}$ is maximum snowmelt available.
-%\hl{Anna: do we rly need this caping?}
+
 \section{Liquid water runoff}\label{sec:snow_runoff}
-We model the liquid water in the snowpack using a bucket model. Liquid precipitation and melting snow fill the bucket, and when it reaches a capacity, a volume flux $\tilde{R}$ leaves. There is a corresponding volumetric energy sink term $S_R$. \hl{This section is a little sketchy still.}
+We model the liquid water in the snowpack using a bucket model. Liquid precipitation and melting snow fill the bucket, and when it reaches a capacity, a volume flux $\tilde{R}$ leaves. There is a corresponding volumetric energy sink term $S_R$. 
 \subsection{Bucket capacity}
-One approach to determine the bucket capacity is as follows. Following SNOWPACK, we assume liquid water in excess of the residual water volumetric liquid fraction $\theta_r$ drains to lower depths in the snow. We do not model this drainage, and assume it exits the snow system when it meets the soil. In that case, the liquid water mass fraction maximum is
+One approach to determine the bucket capacity is as follows. Following SNOWPACK \citep{Bartelt}, we assume liquid water in excess of the residual water volumetric liquid fraction $\theta_r$ drains to lower depths in the snow.  We do not model this drainage, and assume that the water exits the snow system when it meets the soil. In that case, the liquid water mass fraction maximum is
 \begin{equation}\label{eq:lmax}
 l_{\rm max} = 
 \begin{cases}
@@ -2044,19 +2186,19 @@ l_{\rm max} =
     0 & \text{for    } {\tilde{I}_{\rm snow} \geq \rho_{\rm snow}c_l(T_f-T_0)},
 \end{cases}
 \end{equation}
-where $c_l$ is the specific heat capacity of liquid water, $T_f$ is the freezing point, and $T_0$ is a reference temperature. The second condition (with $l_{\rm max} = 0$) applies if the bulk internal energy $\tilde{I}_{\rm snow}$ is larger than a certain threshold indicating that the snowpack has entirely melted, and all water should runoff. More complex models might let $\theta_r$ be a function of snow density; a value of 0.08 is used in Bartelt and Lehning, 2002.
+where $c_l$ is the specific heat capacity of liquid water, $T_f$ is the freezing point, and $T_0$ is a reference temperature. The second condition (with $l_{\rm max} = 0$) applies if the bulk internal energy $\tilde{I}_{\rm snow}$ is larger than a certain threshold indicating that the snowpack has entirely melted, and all water should runoff. More complex models might let $\theta_r$ be a function of snow density; a value of 0.08 is used in \citet{Bartelt}.
 
 As liquid water can only exist in this model at the freezing point, $l_{\rm max}$ (Equation \eqref{eq:lmax}) corresponds to a maximum of internal energy of
 \begin{equation}
     \tilde{I}_{\rm max} = \rho_{\rm snow}[c_{\rm snow}(l_{\rm max})(T_f-T_0)-(1-l_{\rm max})L_{f,0}].
 \end{equation}
-Volumetric internal energies in excess of this should be damped to this value over a representative timescale (which indicates that the entire snowpack is lost if the internal energy $l_{\rm max} = 0$. We would then need to convert this into a volume flux of water for the $SWE$ equation.
+Volumetric internal energies in excess of this should be damped to this value over a representative timescale (which indicates that the entire snowpack is lost if the internal energy $l_{\rm max} = 0$. We then convert this into a volume flux of water for the $SWE$ equation.
 
 \subsection{Runoff terms}
 \begin{empheq}[box=\eqnbox]{equation}
 S_R = -\frac{\tilde{I}_{\rm snow} - \tilde{I}_{\rm max}}{\tau}\mathcal{H}(\tilde{I}_{\rm snow} - \tilde{I}_{\rm max})
 \end{empheq}
-where $\tau \sim \Delta t$. We could also let this timescale be related to the hydraulic conductivity in snow and the depth of the snowpack. 
+where $\tau \sim \Delta t$. \hl{We could also let this timescale be related to the hydraulic conductivity in snow and the depth of the snowpack. }
 
 We could define the mass flux (kg/m$^2$/s) in runoff as
 \begin{equation}
@@ -2066,12 +2208,12 @@ where $S_R$ is a sink of volumetric internal energy (J/m$^3$/s) due to runoff (d
 \begin{equation}
 \tilde{R} = \frac{R}{\rho_l}.
 \end{equation}
-We believe it is appropriate to use the density of liquid water here, as this term will affect $SWE$, but this needs to be thought about.
+It is appropriate to use the density of liquid water here, as this term will affect $SWE$.
 
 
-\section{Snow Cover Fraction (SCF)}
+\section{Snow Cover Fraction (SCF)}\label{sec:scf}
 The fraction of the ground covered by snow is important to calculate how much of the soil surface is interacting with the atmosphere. Snow rarely covers the ground uniformly and instead is distributed patchily across the surface. Models partition the land surface into snow-covered and snow-free fractions when calculating surface energy fluxes and the hydrologic cycle. 
-In CLM4, surface energy fluxes are calculated assuming a uniform snow cover. To more realistically simulate environments having patchy snow cover, CLM4 modify the model by computing the surface fluxes separately for snow‐free and snow‐covered fractions of a grid cell. 'The direct exposure of the snow‐free surfaces to the atmosphere leads to greater heat loss from the ground during autumn and greater heat gain during spring. The net effect is to reduce annual mean soil temperatures by up to 3°C in snow‐affected regions.' (Swenson & Lawrence 2017)
+In CLM4, surface energy fluxes are calculated assuming a uniform snow cover. To more realistically simulate environments having patchy snow cover, CLM4 modify the model by computing the surface fluxes separately for snow‐free and snow‐covered fractions of a grid cell. 'The direct exposure of the snow‐free surfaces to the atmosphere leads to greater heat loss from the ground during autumn and greater heat gain during spring. The net effect is to reduce annual mean soil temperatures by up to 3 degrees C in snow‐affected regions.' (Swenson \& Lawrence 2017)
 The relationship between snow depth and snow cover fraction is complex, differs between accumulation and melt because of the patchiness of snowmelt, and the parameterizations used in models vary considerably.
 
 There are several alternative ways to calculate SCF, from simple to complex, we list 3 generations of SCF equations here:\\
@@ -2103,10 +2245,10 @@ In balance between representing unresolved processes and computational efficienc
 f_{snow}=1 - [ \frac{1}{\pi} acos (2\frac{W_{snow}}{W_{snow,max}}  - 1) ]^{N_{melt}} 
 \end{equation}
 where $W_{snow}$ is the snow water equivalent (kg m-2), $W_{snow,max}$ is the maximum accumulated snow water equivalent, and $N_{melt} = \frac{200}{min(10,\sigma_{topo})}$ is an index of topographic variability defined in relation to the standard deviation of elevation within a grid cell ( n = 1 when $\sigma_{topo}$ = 200 m). $acos$ is arccosine, the reverse of $cosine$ 
-The inverse cosine function possesses the flexibility to capture the spread in snow depth–SCF trajectories, as well as having numerical properties that facilitate an internally consistent description of snow depth, density and SCF. An additional benefit of this SCF parameterization is its computationally efficient closed form (see figure 8 in Swenson & Lawrence 2012).
+The inverse cosine function possesses the flexibility to capture the spread in snow depth–SCF trajectories, as well as having numerical properties that facilitate an internally consistent description of snow depth, density and SCF. An additional benefit of this SCF parameterization is its computationally efficient closed form (see figure 8 in Swenson \& Lawrence 2012).
 
 \textbf{SNOWFALL EVENTS}
-To parameterize the increase in SCF due to a snowfall event, Swenson & Lawrence (2012) assume that precipitation is distributed randomly throughout a region, e.g., a model grid cell or satellite pixel, and that events having greater amounts of snowfall lead to higher SCF. Thus, the fraction of a pixel that is snow covered after a single precipitation event can be expressed as
+To parameterize the increase in SCF due to a snowfall event, Swenson \& Lawrence (2012) assume that precipitation is distributed randomly throughout a region, e.g., a model grid cell or satellite pixel, and that events having greater amounts of snowfall lead to higher SCF. Thus, the fraction of a pixel that is snow covered after a single precipitation event can be expressed as
 \begin{equation}
 s = min(1,kSWE)
 \end{equation}where s is the probability that a point within the pixel is snow covered after a single snowfall event, SWE is the snow water equivalent, and k is a scale factor. In principle, k can be estimated by measuring s and SWE when precipitation occurs over an initially snow-free area. The SCF due to snowfall event N+1 is:
@@ -2117,21 +2259,22 @@ When snowfall occurs,$f_{snow}$ is updated as
 
 \begin{equation}
 f_{snow}^{n+1} = 1-[1-tanh(k_{accum}q_{snow}\Delta t)][1-f_{snow}^{n}]
-\end{equation}where $k_{accum}$ is a constant whose default value is 0.1, $q_{snow}\Delta t$ is the amount of new snow mass, $f_{snow}^{n+1}$ is the updated snow covered fraction (SCF), and $f_{snow}^{n}$ is the SCF from the previous time step.
+\end{equation}
+where $k_{accum}$ is a constant whose default value is 0.1, $q_{snow}\Delta t$ is the amount of new snow mass, $f_{snow}^{n+1}$ is the updated snow covered fraction (SCF), and $f_{snow}^{n}$ is the SCF from the previous time step.
 
-\section{Snow module input}
-\textbf{From atmosphere or radiation transfer module:}\\
-shortwave downward radiation\\
-longwave downward radiation\\
-air temperature \\
-wind speed\\
-total pressure\\
-precipitation in snowfall and rainfall form, respectively\\
-\textbf{From soil module:}\\
-soil surface temperature
+\section{Snow module parameters}
+\subsection{From other models or reanalysis data:}
+\begin{itemize}
+    \item incident shortwave radiation
+    \item incident longwave radiation
+    \item air temperature
+    \item conductance for sensible heat and latent heat exchange
+    \item precipitation
+    \item \ldots
+\end{itemize}
 
-\section{Parameters can be optimized}
-snow density, heat capacity of snow, heat conductivity of snow, snow albedo, characteristic roughness height, timescale on which runoff leaves. 
+\subsection{Parameters to be optimized}
+%snow density, heat capacity of snow, heat conductivity of snow, snow albedo, characteristic roughness height, timescale on which runoff leaves. 
 %\section{Physical constants}
 %cp=1004;        % Specific heat capacity of air (J/kg/K)
 %rhow=1000;      % Density of water (kg/m^3)
@@ -2151,36 +2294,31 @@ snow density, heat capacity of snow, heat conductivity of snow, snow albedo, cha
 %kappa=0.4;          % Von Karman constant (-)
 %T_f=273.15;     % Water freezing temp.(K)
 
-\section{Appendix}
-\subsection{A1}
-A1 calculate air density from air temperature ($T_a$), total pressure P in Pa, and physical constants Rv, Rd, $e_{s0}$
+%\section{Appendix}
+%\subsection{A1}
+%A1 calculate air density from air temperature ($T_a$), total pressure P in Pa, and physical constants Rv, Rd, $e_{s0}$
 
-Air temperature $T_a$, in K, saturated vapor pressure e in Pa, total pressure P in Pa, and ideal gas constant of dry air $R_d$ (287 J/kg/K):
-\begin{equation}
-\rho_a=P/(R_d T_v)
-\end{equation}where $T_v$ is virtual temperature, the virtual temperature of a moist air parcel is the temperature at which a theoretical dry air parcel would have a total pressure and density equal to the moist parcel of air:
-\begin{equation}
-T_v=T_a./(1-(1-\epsilon)*(e_a/P))
-\end{equation}
-where $\epsilon$ is the ratio of ideal gas constant of dry air ($R_d$ 287 J/kg/K) and ideal gas constant of water vapor ($R_v$ 461 J/kg/K), 0.622, unit-less. $e_a$ is air vapor pressure computed from:
+%Air temperature $T_a$, in K, saturated vapor pressure e in Pa, total pressure P in Pa, and ideal gas constant of dry air $R_d$ (287 J/kg/K):
+%\begin{equation}
+%\rho_a=P/(R_d T_v)
+%\end{equation}where $T_v$ is virtual temperature, the virtual temperature of a moist air parcel is the temperature at which a theoretical dry air parcel would have a total pressure and density equal to the moist parcel of air:
+%\begin{equation}
+%T_v=T_a./(1-(1-\epsilon)*(e_a/P))
+%\end{equation}
+%where $\epsilon$ is the ratio of ideal gas constant of dry air ($R_d$ 287 J/kg/K) and ideal gas constant of water vapor ($R_v$ 461 J/kg/K), 0.622, unit-less. $e_a$ is air vapor pressure computed from:
 
-\begin{equation}
-e_a = q_aP_{srf}/\epsilon
-\end{equation}
-a function of specific humidity ($q_a$), and surface pressure ($P_srf$) in Pa, both as input; 
-\subsection{A2}
-A2 calculate snow surface specific humidity in unit kg H2O/kg air, which requires ice saturated vapor pressure $e_{ice}$ in Pa (calculated from $T_{air}$) and atmospheric pressure P in Pa.
-\begin{equation}
-e_{ice}=e_{s0}  e^{(\frac{ls}{Rv(1/T_0-1/T)})};
-\end{equation}\begin{equation}
-q_{surf}=\epsilon * e_{ice}/P
-\end{equation}
-where e_s0=611(Pa) is reference saturated vapor pressure in Clausius-Clapeyron Equation , Rv=461(J/kg/K) is ideal gas constant of water vapor , T_0=273.15 is reference temperature in Clausius-Clapeyron Equation (K), ls=2.83e6 (J/kg) is latent heat of sublimation , $\epsilon$ is $R_d/R_v$ =0.622, unitless.
-
-
-
-\section{General Comments and notes}
-\section{Questions to be discussed}
+%\begin{equation}
+%e_a = q_aP_{srf}/\epsilon
+%\end{equation}
+%a function of specific humidity ($q_a$), and surface pressure ($P_srf$) in Pa, both as input; 
+%\subsection{A2}
+%A2 calculate snow surface specific humidity in unit kg H2O/kg air, which requires ice saturated vapor pressure $e_{ice}$ in Pa (calculated from $T_{air}$) and atmospheric pressure P in Pa.
+%\begin{equation}
+%e_{ice}=e_{s0}  e^{(\frac{ls}{Rv(1/T_0-1/T)})};
+%\end{equation}\begin{equation}
+%q_{surf}=\epsilon * e_{ice}/P
+%\end{equation}
+%where$ e_s0$=611(Pa) is reference saturated vapor pressure in Clausius-Clapeyron Equation , Rv=461(J/kg/K) is ideal gas constant of water vapor , $T_0$=273.15 is reference temperature in Clausius-Clapeyron Equation (K), ls=2.83e6 (J/kg) is latent heat of sublimation , $\epsilon$ is $R_d/R_v$ =0.622, unitless.
 
 
 \chapter{Rivers}\label{c:rivers}
@@ -2320,7 +2458,7 @@ That would lead to a conservation equation of the form:
 \hl{This was the original text here - we'd be solving an ODE for the momentum. This is intriguing and much simpler?}
 Streamflow through a river channel is typically described by depth-integrated Navier-Stokes equations, called as shallow water equations or St. Venant equations in either 2-D or 1-D form. For the purpose of computational efficiency, we apply a simplified form of 1-D St. Venant equation for conservation of momentum. 
 \begin{equation}
-    \frac{\partial Q}{\partial t}+ \frac{1}{A}\frac{\partial Q^2}{\partial x}} + gA\dfrac{\partial h}{\partial x} -gAS_o + gAS_f = 0
+    \frac{\partial Q}{\partial t}+ \frac{1}{A}\frac{\partial Q^2}{\partial x} + gA\frac{\partial h}{\partial x} -gAS_o + gAS_f = 0
 \end{equation}
 where $Q$ is the discharge, $t$ is time, $A$ is the channel cross-sectional area, $x$ is the downstream direction, $g$ is the gravitational acceleration, $h$ is water column height above the channel bed, $S_o$ is the bed (channel bottom) slope, and $S_f$ is the friction slope. The terms represent local acceleration, advective acceleration, pressure force, gravity force, and friction force, respectively. Equation (4.1) can be further simplified by (1) ignoring the 2nd (advection) term, (2) substituting 
 \begin{equation}
@@ -2815,7 +2953,7 @@ The Michaelis-Menten parameters are also temperature dependent:
 \begin{array}{l l}
 K_c = 30Q_{10{\_}Kc}^{0.1(T_c-25)} & \\
 K_o = 3 \cdot 10^{4} Q_{10{\_}Ko}^{0.1(T_c-25)} &
-\end{array}\right.
+\end{array}
 \end{equation}
 \noindent with $Q_{10{\_}Kc}$ = 2.1 and $Q_{10{\_}Ko}$ = 1.2.
 
@@ -3225,15 +3363,132 @@ Overview: this "module" provides
 \par With the updated flow rates within each flow path element, we are able to calculate water pressure at each element. We also update the water contents in each capacitance tissue using $\text{RWC} = \text{RWC} + \dfrac{\Delta E \cdot \Delta t}{V_\text{max}}$, where $\Delta t$ is the time interval.
 
 
+\begin{equation}
+\begin{aligned}
+    \frac{d}{dt}w_{base} = k_{max,root}e^{(-p/b)^e}d(\psi + z)
+\end{aligned}
+\end{equation}
+
+
 %\bibliography{references.bib}
+\subsection{Non-Steady state alternative model}
 
+water mass balance equation. 
 
+\subsubsection{Overview}
 
+We follow the supply-demand theory of plant hydraulics (see Sperry 2003 for an overview). In contrast to other models, which are primarily based on empirical response functions, this model is based on the interdependence of transpiration and canopy xylem pressure. It is calculated by integrating “vulnerability curves” describing the loss of hydraulic conductance with negative pressure (Sperry 2003). Crucially, and differently from Sperry’s paper, we do not solve the steady-state system - there is a time derivative of volumetric water content ($\vartheta$), the state variable of the system. This represents water storage in plants, a quantity observable by satellites, including GPS (see V Humphrey's work). 
 
+Are given psi in soil as input, know what ET needs to happen based on temperature 
+
+We model the xylem vulnerability curve as a modified logistic function, (translating weibull shape parameters into logistic function parameters). Per Yujie's work, this is computationally less expensive.
+
+height change: remove a portion of psi due to gravity (an additive psi-gravity term). this works out to a fraction bw 0,1 that removes a portion (modeling a bit oddly)
+
+\subsubsection{differential equations}
+
+\subsubsection{analytical solution}
+
+% \begin{equation*}\label{e:root_soil_water_conservation}
+% \begin{aligned}
+% \frac{\partial  \vartheta_{base}}{\partial t} =  \sum_i (K_{root,i} (z_{soil,i} + \psi_{soil,i} + P_{soil,i} - (z_{base} + \psi_{base} + P_{base}))\\ - \sum_i (K_{leaf} (z_{base} + \psi_{base} + P_{base} - (z_{leaf,j} + \psi_{leaf,j} + P_{leaf,j}))
+% \end{aligned}
+% \end{equation*}
+
+% \begin{equation*}
+%     \begin{aligned}
+%     \frac{\partial  \vartheta_{leaf,j}}{\partial t} = (K_{leaf,j} (z_{base} + \psi_{base} + P_{base} - (z_{leaf,j} + \psi_{leaf,j} + P_{leaf,j})) - S)
+%     \end{aligned}
+% \end{equation*}
+\newpage
+
+\begin{equation*}
+    \begin{aligned}
+    k(P) = \frac{a+1}{a} [1- \frac{1}{1+a e^{bP}}]
+    \end{aligned}
+\end{equation*} 
+%should the exp be a 2 here?
+
+\begin{equation*}
+    \begin{aligned}
+    \frac{\partial}{\partial t}\overline{\vartheta_{base}} &= \sum_{i=1}^{n}
+    \int_{tip,root,i}^{base} k_{max,root,i}2^{((-h+z) /(\psi_{50}))^\alpha}dh ...
+    \end{aligned}
+\end{equation*}
+    
+\begin{equation*}
+    \begin{aligned} 
+   ... - \int_{base}^{leaf} k_{max,xylem}2^{((-h+z)/(\psi_{50}))^\beta}dh 
+    \end{aligned}
+\end{equation*}
+    
+\begin{equation*}
+    \begin{aligned}
+    \frac{\partial}{\partial t}\overline{\vartheta_{leaf}} &=  \int_{base}^{leaf} k_{max,xylem}2^{((-h+z) /(\psi_{50}))^\beta}dh - T
+    \end{aligned}
+\end{equation*}
+
+analytical solutions (courtesy of Yujie):
+
+\begin{equation*}
+    \begin{aligned}
+    \frac{a+1}{ab} (log(a \exp{b \psi{d} + 1} - log(a \exp{b \psi{u} + 1})
+    \end{aligned}
+\end{equation*}
+
+analytical solution with height change:
+\begin{equation*}
+    \begin{aligned}
+    \frac{a+1}{ab} (log(a \exp{b \psi{d} + 1} - log(a \exp{b \psi{u} + 1})
+    \end{aligned}
+\end{equation*}
+
+%b is psi 50, alpha/beta is power thing (c)
+
+where \\
+
+                                                %   # -Scholz et al. 2011 Book, Hydraulic Capacitance: Biophysics and Functional Significance,
+                                                %   C can also be related to P50 see same book
+\begin{itemize}
+    %\item $h = \psi + z$
+    %\item $C_{base}$ = (79 + 8*height)*1e-6 is the tree capacitance [kg m−3 Pa−1] (from Pierre, Scholz book)
+    %\item $C_{leaf}$ =  [kg m−3 Pa−1] (from Pierre, Scholz book)
+    \item n = number of roots
+    %\item b = Weibull scale parameter % for vulnerability curve from root tip to base
+    \item $\alpha$ = Weibull shape parameter (root to base/underground) %for vulnerability curve from root tip to base
+    \item $\beta$ = Weibull shape parameter (base to leaf/aboveground)
+    \item $\psi_{avg} = \frac{\psi_{base} + \psi_{leaf}}{2}$ (may be weighed differently: 0.1/0.9 or similar)
+    \item $\psi_{base}$, $\psi_{leaf}$ = $2^{(-w_{j}/d)^f}$ where j = root or base and d,f are weibull parameters
+    \item $w_{j} = \frac{volume of water in reservoir}{reservoir size} = \theta_l$
+    \item $\psi_{50}$ = location where $\psi$ is 50\% of its value between bounds of integral
+\end{itemize}
+
+$\psi (\theta)$ comes from the paper "Vapor pressure deficit as the main driver of canopy conductance limitation at BCI during 2 the 2015 El Niño event" by Fang et al, still a preprint?
+
+Question: is psi water matric potential or water pressure potential?
+
+Question: do we need a $psi(z)$ curve
+
+\begin{table}[]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllll}
+\hline
+Parameter   & Description     & Unit & Source \\ \hline
+%$C$ & blah &  ? & FETCH?\\
+$\psi_{50}$ & blah &  ? & sperry? fetch? 2015 paper? \\ 
+$k_{max}$ & blah  & ? &  ? \\ [2ex]
+other variables & Description  & Units & Definition \\ \hline
+blah  & blah &  blah & ?       \\
+
+\hline
+\end{tabular}%
+}
+\caption{Parameters for Non-steady state plant hydraulics model}
+\label{tab:plant_hydraulics_non_steady_parameters}
+\end{table}
 
 
 \chapter{Carbon Cycle}
-
 - Phenology
 - Allocation
 - Respiration
