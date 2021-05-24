@@ -111,9 +111,9 @@ Using the continuity equation \eqref{e:continuity} to expand advective flux dive
      \frac{\partial}{\partial t} \theta + \vec{u} \cdot \nabla \theta 
     & = \mathcal{S}_\theta - \frac{1}{\rho} \nabla \cdot \left(\rho \vec{\mathcal{T}} \right) - \theta \mathcal{S}_\rho.
 \end{align}
-The continuity equation is left in flux form, as is common. The specific mass source $\mathcal{S}_\rho$ appears on the right-hand side of all equations here because mass is not necessarily conserved (though deviations from mass conservation, for example, due to precipitation formation in Earth's atmosphere, are small and are often neglected). 
+The continuity equation is left in flux form, as is common. The specific mass source $\mathcal{S}_\rho$ appears on the right-hand side of all equations here because mass is not necessarily conserved (though deviations from mass conservation, for example, due to precipitation falling out of Earth's atmosphere, are small and are often neglected). 
 
-An alternative, curl form of the advective momentum equation results from using the vector identity
+An alternative curl form of the advective momentum equation results from using the vector identity
 \begin{align*}
 \vec{u} \cdot \nabla \vec{u} &= \nabla \left( \frac{\| \vec{u} \|^2}{2} \right) - \vec{u} \times (\nabla \times \vec{u})\\
 &= \nabla K + \vec{\omega} \times \vec{u},
@@ -136,7 +136,7 @@ is the specific kinetic energy. Using this transformation, the advective momentu
 \end{subequations}
 where we have combined the term involving the relative vorticity $\vec{\omega}$ with the Coriolis acceleration $-2\vec{\Omega} \times \vec{u}$ in the source term $\vec{\mathcal{S}}_u$. Taking the curl of this equation, the conservation law for vorticity is straightforwardly obtained, and other conservation laws (e.g., for potential vorticity) can be derived. If the discrete curl of a discrete gradient vanishes \citep{Taylor10a}, discretizing this form of the momentum equation will result in a faithful representation of rotational wave modes. Hence, this curl form of the momentum equation is often used in large-scale atmosphere and ocean models with finite-difference methods and related methods, such as continuous Galerkin (spectral element) methods. 
 
-Hybrid equation sets are also commonly used. For example, it an advective form of the momentum equation, discretized with spectral methods, combined with flux forms of scalar equations, discretized with finite-volume methods have been in use in atmosphere modeling for decades. While the curl form of the momentum equation leads to a more accurate representation of rotational wave modes than the flux form, using flux forms for the continuity and thermodynamic equations usually does not substantially affect dispersion characteristics of wave modes \citep{Thuburn05n}.
+Hybrid equation sets are also commonly used. For example, an advective form of the momentum equation, discretized with spectral methods, combined with flux forms of scalar equations, discretized with finite-volume methods have been in use in atmosphere modeling for decades. While the curl form of the momentum equation leads to a more accurate representation of rotational wave modes than the flux form, using flux forms for the continuity and thermodynamic equations usually does not substantially affect dispersion characteristics of wave modes \citep{Thuburn05n}.
 
 \section{Transformation to Generalized Coordinates}
 
@@ -154,7 +154,7 @@ We will need the (symmetric) covariant metric tensor
 \begin{equation}
     g_{ij} = \vec{b}_i \cdot \vec{b}_j = \frac{\partial x^k}{\partial\xi^i} \frac{\partial x^k}{\partial \xi^j},
 \end{equation} 
-where $\vec{r} = (x^1, x^2, x^3)$ denote coordinates of the position vector $\vec{r}$ in the reference frame in which the metric tensor is expressed. For example, they can be Cartesian coordinates of an embedding Euclidean reference space. Here and throughout, we use the Einstein convention of summation over repeated indices. We also  adopt the usual convention that subscripts indicate covariant tensor components and superscripts contravariant tensor components \citep[e.g.,][]{Arfken13}. 
+where $\vec{r} = (x^1, x^2, x^3)$ denote coordinates of the position vector $\vec{r}$ in the reference frame in which the metric tensor is expressed; they usually are Cartesian coordinates of an embedding Euclidean reference space. Here and throughout, we use the Einstein convention of summation over repeated indices. We also  adopt the usual convention that subscripts indicate covariant tensor components and superscripts contravariant tensor components \citep[e.g.,][]{Arfken13}. 
 
 We will also need the contravariant metric tensor $g^{ij}$, which is the matrix inverse of the covariant metric tensor $g_{ij}$, that is, 
 \[
@@ -166,7 +166,7 @@ where $\delta^i_j$ is Kronecker's delta (a mixed rank-2 tensor, as indicated by 
 \end{equation}
 this is the Jacobian determinant $|\partial (x^1, x^2, x^3)/\partial (\xi^1, \xi^2, \xi^3)|$ of the transformation from $(x^1, x^2, x^3)$ to $(\xi^1, \xi^2, \xi^3)$ coordinates.
 
-We assume the Jacobian and metric tensor to not depend on time.
+We assume that the Jacobian and metric tensor do not depend on time.
 
 \subsection{Representation of Vectors and Tensors}
 
@@ -211,11 +211,11 @@ where
 \begin{equation}
 \Gamma^i_{jk} = \frac{g^{il}}{2} \left( \frac{\partial g_{jl}}{\partial \xi^k} + \frac{\partial g_{kl}}{\partial \xi^j} - \frac{\partial g_{jk}}{\partial \xi^l} \right)
 \end{equation}
-is the Christoffel symbol of the second kind, which represents changes of the basis vectors in space. The Christoffel symbols are defined by
+is the Christoffel symbol of the second kind. The Christoffel symbols represent changes of the basis vectors in space are defined by
 \[
-\frac{\partial\vec{b}_k}{\partial \xi^{j}} = \Gamma^{i}_{jk} \vec{b}_i
+\frac{\partial\vec{b}_k}{\partial \xi^{j}} = \Gamma^{i}_{jk} \vec{b}_i.
 \]
-and satisfy symmetry with respect to the lower indices, $\Gamma^{i}_{jk} = \Gamma^{i}_{kj}$.
+They satisfy symmetry with respect to the lower indices, $\Gamma^{i}_{jk} = \Gamma^{i}_{kj}$.
 
 \paragraph{Directional Derivative of a Scalar} The  directional derivative $\vec{u} \cdot \nabla \theta$ of a scalar $\theta$ is the contraction of the contravariant components $u^j$ of the direction vector $\vec{u}$ with the covariant gradient components,
 \begin{equation}
@@ -261,7 +261,7 @@ where
 0 & \text{if any two indices are equal}
 \end{cases}
 \]
-is the completely antisymmetric Levi-Civita symbol. Contraction with the covariant metric tensor can be used to obtain the covariant components of the curl, $(\nabla \times F)_i$, from the contravariant components $(\nabla \times \vec{F})^i$ according to  Eq.~\eqref{e:covariant_components}.
+is the completely antisymmetric Levi-Civita symbol. Contraction with the covariant metric tensor can be used to obtain the covariant components of the curl $(\nabla \times F)_i$ from the contravariant components $(\nabla \times \vec{F})^i$ according to  Eq.~\eqref{e:covariant_components}.
 
 \subsection{Vector and Tensor Products}
 
@@ -316,7 +316,7 @@ The auxiliary field $\chi$ is obtained from the divergence of the gradient of $\
 \begin{equation}
     \chi = \frac{1}{J} \frac{\partial}{\partial\xi^i} \left( J  g^{ij} \frac{\partial\theta}{\partial\xi^j} \right).
 \end{equation}
-Hyperdiffusion is generally only applied in the horizontal, so only horizontal derivatives are considered in the above relations. As for a scalar diffusivity, when the hyperdiffusivity is a scalar with $\vec{\mathcal{D}}_4 = \mathcal{D}_4 \vec{I}$, the contravariant hyperdiffusion tensor is
+Hyperdiffusion is generally only applied in the horizontal, so only horizontal derivatives are considered in the above relations. As was the case for a scalar diffusivity, when the hyperdiffusivity is a scalar with $\vec{\mathcal{D}}_4 = \mathcal{D}_4 \vec{I}$, the contravariant hyperdiffusion tensor is
 \[
 \mathcal{D}_4^{ik} = \mathcal{D}_4 g^{ik}.
 \]
@@ -356,7 +356,7 @@ Here, the covariant derivative $\nabla_j$ appears in the tensor divergence \eqre
 \end{equation}
 Unfortunately, (cumbersome) Christoffel symbols appear inside the tensor divergence in this equation set. In computational fluid dynamics, it is standard practice to avoid calculations with Christoffel symbols, and the apparent sources they imply in a conservation law, by computing with Cartesian velocities as dependent variables \citep{Vinokur74a}.
 
-%The Jacobian $J$ appears in the explicit time derivatives (as part of the four-dimensional space-time divergence) because we want to allow vertical coordinates that are flow- and time-dependent. For example, for pressure-based coordinates, $J$ is time-dependent. It can also be convenient to multiply the balance equations by $J$ and absorb the Jacobian into a new, coordinate-dependent density $\rho_\eta = \rho J$ \citep[e.g.,][]{Schneider03}.
+%The Jacobian $J$ appears in the explicit time derivatives (as part of the four-dimensional space-time divergence) because we want to allow vertical coordinates that are flow- and time-dependent. For example, for pressure-based coordinates, $J$ is time-dependent. It can also be convenient to multiply the balance equations by $J$ and absorb the Jacobian into a new, coordinate-dependent density $\rho_\zeta = \rho J$ \citep[e.g.,][]{Schneider03}.
 
 Other differential operators such as gradients (e.g., pressure gradient) or vector operators such as cross products (e.g., the Coriolis acceleration) are inserted in the fluxes and source terms according to the transformation rules outlined above. For example, the terms associated with the pressure gradient, geopotential gradient, and Coriolis acceleration in the specific momentum source \eqref{e:momentum_source} become
 \begin{equation}
@@ -390,12 +390,12 @@ where
 is the specific kinetic energy. 
 
 Alternatively, after contraction with the covariant metric tensor, the momentum equation can be written in terms of covariant velocity components as
-\begin{multline}
+\begin{equation}
     \frac{\partial}{\partial t} u_i + \epsilon_{ikl} (2\Omega^k + \omega^k) u^l 
     = 
-    -\frac{1}{\rho} \frac{\partial p}{\partial\xi^i} - \frac{\partial}{\partial \xi^i} (\Phi + K) \\
+    -\frac{1}{\rho} \frac{\partial p}{\partial\xi^i} - \frac{\partial}{\partial \xi^i} (\Phi + K) 
     - g_{ij} \frac{1}{\rho} \nabla_k (\rho \tau^{jk}) + \mathcal{S}'_{u, i} - \mathcal{S}_\rho u_i.
-\end{multline}
+\end{equation}
 \end{subequations}
 In this form, the equation for the $i$-th covariant velocity component $u_i$ only involves scalar derivatives with respect to $\xi^i$. This can be exploited when two coordinates (e.g., $\xi^1$ and $\xi^2$) are purely horizontal; in that case, geopotential gradients only appear in one (vertical, $\xi^3$) equation, and only vertical derivatives appear in the equation for $u_3$. Hence, implicit solves for the vertical direction only involve the equation for $u_3$ and not the other velocity components. 
 
@@ -418,69 +418,71 @@ For a given radius $r$, the altitude
 \end{equation}
 is measured relative to the geoid, which has a radial distance $r_\mathrm{geo}(\lambda,\phi)$ from the barycenter of the planet. In general, the radius of the geoid depends on longitude $\lambda$ and latitude $\phi$. However, as is usually done, we approximate the planet as spherical, so that the geoid $r_\mathrm{geo}(\lambda,\phi) = a$ is taken to have a constant radius $a$, equal to the mean planetary radius.\footnote{However, it is not necessary to make this approximation, and at some point, it may be interesting to retain the fact that Earth is a rotational ellipsoid, with the geopotential gradient $\nabla \Phi$ being the normal to the geoid \citep{Baldauf20a}.}
 
-We wish to transform the altitude $z$ (or radius $r$) to a generalized vertical coordinate $\eta \in [0, 1]$, such that $\eta=0$ at the surface with elevation $z_s(\lambda, \phi)$  and $\eta=1$ at the top of the model domain. Furthermore, we want $\eta$ to be stretched in such a way that mesh elements (for spectral elements) or grid points (for finite differences) can reasonably be taken as equally spaced in $\eta$. 
+We wish to transform the altitude $z$ (or radius $r$) to a generalized vertical coordinate $\zeta \in [0, 1]$, such that $\zeta=0$ at the surface with elevation $z_s(\lambda, \phi)$  and $\zeta=1$ at the top of the model domain. Furthermore, we want $\zeta$ to be stretched in such a way that mesh elements (for spectral elements) or grid points (for finite differences) can reasonably be taken as equally spaced in $\zeta$. 
 
-We achieve these goals by transforming from altitude $z$ to the generalized coordinate $\eta$ in two steps: (i) coordinate stretching, and (ii) introduction of a terrain-following coordinate.
-
-\subsection{Coordinate Stretching} We introduce a stretched vertical coordinate $\zeta$ as a monotonically increasing and differentiable function $\sigma(z)$ of altitude $z$. For atmospheres, a good choice is 
-\begin{equation}
-    \zeta = \sigma(z) = 1 - \exp(-z/H),
-\end{equation}
-where $H = R_d T_0/g$ is the atmospheric scale height, with reference temperature $T_0$, gas constant of dry air $R_d$, and gravitational acceleration $g$ ($H \approx 7.5~\mathrm{km}$ in Earth's atmosphere). Equal increments of this transformed coordinate $\zeta$ correspond to approximately equal increments in pressure or mass. For the inverse function $z = \sigma^{-1}(\zeta)$, this choice of stretching function gives
-\begin{equation}
-    z = \sigma^{-1}(\zeta) = - H \log(1-\zeta).
-\end{equation}
-We allow general monotonic and differentiable functions $\sigma$ for the stretching transformation. 
+We achieve these goals by transforming from altitude $z$ to the generalized coordinate $\zeta$ in two steps: (i) introduction of a terrain-following coordinate $\eta$, and (ii) stretching of $\eta$.
 
 \subsection{Terrain-Following Coordinates}
 
-Common choices of terrain-following coordinates include the following.
+Common choices of nondimensional terrain-following coordinates $\eta$, with $\eta=0$ at the surface and $\eta=1$ at the top of the model domain, include the following.
 
-\subsubsection{Gal-Chen and Sommerville Coordinate} \citet{Gal-Chen75a} offered one simple choice of a terrain-following coordinate, defined by 
+\subsubsection{Gal-Chen and Sommerville Coordinate} \citet{Gal-Chen75a} offered one simple choice of a terrain-following coordinate $\eta$, defined by 
 \begin{equation}\label{e:Gal-Chen}
-    \zeta(\eta) = \eta \zeta_t + \zeta_s(\lambda, \phi)(1 - \eta),
+    z(\lambda, \phi, \eta) = \eta z_t + z_s(\lambda, \phi)(1 - \eta),
 \end{equation}
-where $\zeta_s(\lambda, \phi) = \sigma(z_s(\lambda, \phi))$ is the stretched vertical coordinate at the surface, and $\zeta_t = \sigma(z_t)$ is the stretched vertical coordinate at the top of the domain at altitude $z_t$, taken to be constant. This vertical coordinate satisfies $\eta = 0$ at the surface ($\zeta=\zeta_s(\lambda, \phi)$) and $\eta = 1$ at the top ($\zeta=\zeta_t$) of the model domain. The effect of topographic features on the vertical coordinate attenuates linearly in the stretched vertical coordinate $\zeta$. 
+where $z_t$ is the vertical height of the model domain, which is taken to be constant. This vertical coordinate satisfies $\eta = 0$ at the surface ($z=z_s(\lambda, \phi)$) and $\eta = 1$ at the top ($z=z_t$) of the model domain. The effect of topographic features on the vertical coordinate attenuates linearly with altitude $z$. 
 
-\hl{[include flat horizontal coordinate surfaces near top]}
+\hl{[include flat horizontal coordinate surfaces near top?]}
 
 \subsubsection{Sch\"ar et al. Coordinate} \citet{Schar02a} introduced a terrain-following coordinate that gives stronger attenuation of the coordinate surface warping with height. This smooth-level vertical (SLEVE) coordinate is defined by
 \begin{equation}\label{e:Schaer}
-    \zeta(\eta) = \eta \zeta_t + \zeta_s(\lambda,\phi) \frac{\sinh\left((1-\eta)/s\right)}{\sinh(1/s)}.
+    z(\lambda, \phi, \eta) = \eta z_t + z_s(\lambda,\phi) \frac{\sinh\left((1-\eta)/s\right)}{\sinh(1/s)}.
 \end{equation}
-This vertical coordinate is likewise defined so that  $\eta = 0$ at the surface ($\zeta=\zeta_s(\lambda, \phi)$) and $\eta = 1$ at the top ($\zeta=\zeta_t$) of the model domain (in a slight modification of the definitions of \citet{Schar02a}, who also took $\zeta = z$). The nondimensional scale $s$ gives an $e$-folding scale $s \zeta_t$ over which the coordinate warping decays with height. For the coordinate to be well defined ($\zeta$ must increase monotonically with $\eta$), it is crucial that the decay scale $s \zeta_t$ is larger than the tallest topographic obstacle $\max(\zeta_s)$. 
+This vertical coordinate is likewise defined so that  $\eta = 0$ at the surface ($z=z_s(\lambda, \phi)$) and $\eta = 1$ at the top ($z=z_t$) of the model domain (in a slight modification of the definitions of \citet{Schar02a}). The nondimensional scale $s$ implies a dimensional $e$-folding scale $s z_t$ over which the coordinate warping decays with height. A typical choice for a model domain with $z_t = 30~\mathrm{km}$ is $s = 0.3$. For the coordinate to be well defined ($z$ must increase monotonically with $\eta$), it is crucial that the decay scale $s z_t$ is larger than the tallest topographic obstacle $\max(z_s)$. 
 
 \citet{Schar02a} and \citet{Leuenberger10q} discuss how this vertical coordinate can be extended to a multiscale situation, in which the effects of smaller topographic scales on the coordinate surfaces decay more rapidly with height than those of larger scales.  
 
+\subsection{Coordinate Stretching} We introduce a stretched vertical coordinate $\zeta$ as a monotonically increasing and monotone function $\sigma(\eta)$ of the terrain-following coordinate $\eta$. For atmospheres, a good choice is the exponential stretching
+\begin{equation}
+    \zeta = \sigma(\eta) = \frac{1 - e^{-\eta/h}}{1-e^{-1/h}},
+\end{equation}
+where $h=H/z_t$ is a nondimensional e-folding scale and $H$ is the scale height. With the atmospheric scale height $H \approx 7.5~\mathrm{km}$, equal increments of this transformed coordinate $\zeta$ correspond to approximately equal increments in pressure or mass when $\eta = z/z_t$ because $p \propto \exp(-z/H)$. For smaller $H$, coordinate surfaces are more concentrated near the surface. At the surface ($\eta=0$), we have $\zeta=0$, and at the top of the model domain ($\eta=1$), we have $\zeta=1$.
+
+For the inverse function $\eta = \sigma^{-1}(\zeta)$, this choice of stretching function gives
+\begin{equation}
+    \eta = \sigma^{-1}(\zeta) = - h \log\left(1-(1-e^{-1/h})\zeta\right).
+\end{equation}
+We allow general monotone functions $\sigma$ for the stretching transformation. 
+
 \subsection{Combined Vertical Coordinate Transformation}
 
-With any choice of terrain-following coordinate $\eta$, the combined transformation of stretching and transformation to terrain-following coordinates is the concatenation
+With any choice of terrain-following coordinate $\eta$, the combined transformation of  transformation to terrain-following coordinates and stretching is the concatenation
 \begin{equation}
-    z = r - r_\mathrm{geo} = \sigma^{-1}\left(\zeta(\eta) \right).
+    z = r - r_\mathrm{geo} = z\left(\lambda, \phi, \sigma^{-1}(\zeta)\right).
 \end{equation}
 Terms in metric tensors can be obtained by differentiation of this relation using the chain rule. 
 
 \subsection{Boundary Conditions} For the advective velocity $\vec{u}$, the physical no-slip boundary condition is generally unresolvable in GCMs and LES. The usual impenetrable (no normal flow) boundary conditions that instead are used at the top and bottom of the domain are 
 \[
-\vec{n} \cdot \vec{u} = 0 \qquad \text{at} \quad \eta = 0, 1,
+\vec{n} \cdot \vec{u} = 0 \qquad \text{at} \quad \zeta = 0, 1,
 \]
 where $\vec{n}$ is the upward pointing unit normal vector at the boundary, with 
 \[
-\vec{n} = \frac{\nabla \eta}{\|\nabla \eta\|}. 
+\vec{n} = \frac{\nabla \zeta}{\|\nabla \zeta\|}. 
 \]
 Expanded in generalized coordinates, the covariant unit normal vector is
 \[
-n_i = \frac{1}{\|\nabla\eta\|} \frac{\partial \eta}{\partial \xi_i} \qquad \text{at} \quad \eta = 0, 1
+n_i = \frac{1}{\|\nabla\zeta\|} \frac{\partial \zeta}{\partial \xi_i} \qquad \text{at} \quad \zeta = 0, 1
 \]
 and with that, the no-normal flow condition becomes
 \[
 n_i u^i = 0.
 \]
-For the important special case $\xi_3 = \eta$, on which we will focus later, this implies $u^3 = 0$.
+For the important special case $\xi_3 = \zeta$, on which we will focus later, this implies $u^3 = 0$.
 
 Similarly, we have Dirichlet boundary conditions on tracers $\theta$ themselves (which are unchanged in generalized coordinates from Cartesian coordinates) and on normal gradients of tracers, which appear in diffusive tracer fluxes, so that
 \[
-\vec{n} \cdot \nabla \theta = f \qquad \text{at} \quad \eta = 0, 1.
+\vec{n} \cdot \nabla \theta = f \qquad \text{at} \quad \zeta = 0, 1.
 \]
 Here, $f$ is some function given on the boundary. Expanded in generalized coordinates, this is 
 \[
@@ -524,14 +526,14 @@ u = \sqrt{g_{11}} u^1, \quad v =\sqrt{g_{22}} u^2, \quad w =\sqrt{g_{33}} u^3.
 
 The covariant velocities, obtained by contraction with the covariant metric tensor \eqref{e:spherical_metric_tensors}, are $(u_1, u_2, u_3) = (u r \cos\phi, r v, w)$.
 
-\paragraph{Horizontal Cartesian Coordinates With Terrain-Following Vertical Coordinate} In LES settings with Cartesian geometry, we use horizontal Cartesian coordinates $x$ and $y$ and a terrain-following vertical coordinate $\eta$. 
+\paragraph{Horizontal Cartesian Coordinates With Transformed Vertical Coordinate} In LES settings with Cartesian geometry, we use horizontal Cartesian coordinates $x$ and $y$ and a transformed (terrain-following and/or stretched) vertical coordinate $\zeta$. 
 The transformation from the Cartesian coordinates is
 \[
-x = x, \quad y = y, \quad z = z(x, y, \eta).
+x = x, \quad y = y, \quad z = z(x, y, \zeta).
 \]
 In this case, the Jacobian determinant of transformation from Cartesian coordinates is 
 \[
-J = \frac{\partial z}{\partial\eta},
+J = \frac{\partial z}{\partial\zeta},
 \]
 and the covariant metric tensor is \citep{Guerra16a}
 \begin{equation}\label{e:Cartesian_terrain_cov_metric}
@@ -570,20 +572,20 @@ u^1 = \frac{Dx}{Dt} = u, \qquad u^2 = \frac{Dy}{Dt} = v
 \]
 in the $x$ and $y$ direction, respectively, and the velocity
 \begin{align*}
-u^3 & = \frac{D\eta}{Dt} 
- = \frac{\partial \eta}{\partial t} + u \frac{\partial \eta}{\partial x} + v \frac{\partial \eta}{\partial y} + w \frac{\partial \eta}{\partial z}\\
- & \equiv \dot \eta
+u^3 & = \frac{D\zeta}{Dt} 
+ = \frac{\partial \zeta}{\partial t} + u \frac{\partial \zeta}{\partial x} + v \frac{\partial \zeta}{\partial y} + w \frac{\partial \zeta}{\partial z}\\
+ & \equiv \dot \zeta
 \end{align*}
-is the vertical velocity measured in the direction normal to surfaces of constant $\eta$ (i.e., normal to surface topography at the surface). The covariant velocity components follow by contraction with the covariant metric tensor \eqref{e:Cartesian_terrain_cov_metric} and depend on the topography.
+is the vertical velocity measured in the direction normal to surfaces of constant $\zeta$ (i.e., normal to surface topography at the surface). The covariant velocity components follow by contraction with the covariant metric tensor \eqref{e:Cartesian_terrain_cov_metric} and depend on the topography.
 
-\paragraph{Spherical Polar Coordinates With Terrain-Following Vertical Coordinate} Another common choice of coordinates are the polar spherical coordinates longitude ($\xi^1 = \lambda$), latitude ($\xi^2 = \phi$), paired with a terrain-following vertical coordinate ($\xi^3 = \eta$). 
+\paragraph{Spherical Polar Coordinates With Transformed Vertical Coordinate} Another common choice of coordinates are the polar spherical coordinates longitude ($\xi^1 = \lambda$), latitude ($\xi^2 = \phi$), paired with a transformed vertical coordinate ($\xi^3 = \zeta$). 
 The transformation from Cartesian coordinates is
 \[
-x = r(\lambda, \phi, \eta)\cos\phi\cos\lambda, \quad y=r(\lambda, \phi, \eta)\cos\phi\sin\lambda, \quad z=r(\lambda, \phi, \eta)\sin\phi.
+x = r(\lambda, \phi, \zeta)\cos\phi\cos\lambda, \quad y=r(\lambda, \phi, \zeta)\cos\phi\sin\lambda, \quad z=r(\lambda, \phi, \zeta)\sin\phi.
 \]
 In this case, the spherical coordinate system is no longer orthogonal. The Jacobian is \citep{Staniforth03a}
 \[
-J=  r^2 \cos\phi \, \frac{\partial r}{\partial \eta}.
+J=  r^2 \cos\phi \, \frac{\partial r}{\partial \zeta}.
 \]
 The covariant metric tensor $g_{ij}$ is 
 \begin{equation}\label{e:spherical_terrain_cov_metric}
@@ -591,20 +593,20 @@ The covariant metric tensor $g_{ij}$ is
     \begin{matrix}
     r^2\cos\phi^2 + \big(\frac{\partial r}{\partial \lambda}\big)^2 &
     \frac{\partial r}{\partial \lambda}\frac{\partial r}{\partial \phi}& 
-    \frac{\partial r}{\partial \lambda}\frac{\partial r}{\partial \eta} \\
+    \frac{\partial r}{\partial \lambda}\frac{\partial r}{\partial \zeta} \\
    & 
    r^2 + \big(\frac{\partial r}{\partial \phi}\big)^2& 
-   \frac{\partial r}{\partial \eta}\frac{\partial r}{\partial \phi} \\
-       & & \big(\frac{\partial r}{\partial \eta}\big)^2
+   \frac{\partial r}{\partial \zeta}\frac{\partial r}{\partial \phi} \\
+       & & \big(\frac{\partial r}{\partial \zeta}\big)^2
     \end{matrix}
     \right),
 \end{equation}
 
 The contravariant horizontal velocity components \eqref{e:angular_velocities} in a local Cartesian coordinate system are unchanged, but the contravariant vertical velocity is the velocity
 \[
-u^3 = \frac{D\eta}{Dt} \equiv \dot\eta
+u^3 = \frac{D\zeta}{Dt} \equiv \dot\zeta
 \]
-in the direction normal to surfaces of constant $\eta$. The covariant velocity components follow by contraction with the covariant metric tensor \eqref{e:spherical_terrain_cov_metric} and depend on the topography.
+in the direction normal to surfaces of constant $\zeta$. The covariant velocity components follow by contraction with the covariant metric tensor \eqref{e:spherical_terrain_cov_metric} and depend on the topography.
 
 %For internal computations in the GCM, we use a similar coordinate system, but with coordinates on the faces of a cube parameterizing longitude $\lambda$ and latitude $\phi$ along spherical shells.
 
@@ -645,7 +647,7 @@ For limited-area models in Cartesian geometry, or when using finite-volume or di
 
 \subsection{Expansion in Generalized Coordinates}
 
-To expand the equations in a set of coordinates, let $\xi^1$ and $\xi^2$ denote two horizontal coordinates. For example, they may be the Cartesian coordinates $\xi^1 = x$ and $\xi^2 =y$ for a model defined in Cartesian geometry; or they may be coordinates in a reference element parameterizing the polar coordinates longitude $\lambda$ and latitude $\phi$ for a model defined on a sphere. Let $\xi^3$ denote an arbitrary vertical coordinate, for example, the radial coordinate $r$ or a terrain-following coordinate $\eta$. To expand the governing equations in $(\xi^1, \xi^2, \xi^3)$ coordinates, we use the general relations in section~\ref{e:EOM_general_coord}. 
+To expand the equations in a set of coordinates, let $\xi^1$ and $\xi^2$ denote two horizontal coordinates. For example, they may be the Cartesian coordinates $\xi^1 = x$ and $\xi^2 =y$ for a model defined in Cartesian geometry; or they may be coordinates in a reference element parameterizing the polar coordinates longitude $\lambda$ and latitude $\phi$ for a model defined on a sphere. Let $\xi^3$ denote an arbitrary vertical coordinate, for example, the radial coordinate $r$ or a terrain-following coordinate $\zeta$. To expand the governing equations in $(\xi^1, \xi^2, \xi^3)$ coordinates, we use the general relations in section~\ref{e:EOM_general_coord}. 
 
 \subsubsection{Atmosphere and Ocean GCMs}
 
@@ -690,62 +692,43 @@ If the momentum equation in flux form is used, its expansion in $(\xi^1, \xi^2, 
 
 The above equations apply equally well in Cartesian geometry in a box or in spherical geometry, just with different metrics and different interpretations of the velocity components $u^i$ and $u_i$:
 \begin{itemize}
-\item In Cartesian geometry, Cartesian velocity components can be obtained from the contravariant velocity components $u^i$ via
+\item Cartesian velocity components can be obtained from the covariant velocity components $u_j$ via
 \begin{subequations}\label{e:specific_transformations}
 \begin{equation}
-u = \frac{\partial x}{\partial \xi^i} u^i, \qquad v = \frac{\partial y}{\partial \xi^i} u^i, \qquad w = \frac{\partial z}{\partial \xi^i} u^i.
+u = \frac{\partial x}{\partial \xi^i} g^{ij} u_j, \qquad v = \frac{\partial y}{\partial \xi^i} g^{ij} u_j, \qquad w = \frac{\partial z}{\partial \xi^i} g^{ij} u_j.
 \end{equation}
+We denote the corresponding transformation matrix $T_{C2c}^{-1}$.
 \item In spherical geometry, local Cartesian velocity components can be obtained via the angular velocities from
 \begin{equation}
-u = r \cos\phi \frac{\partial \lambda}{\partial \xi^i} u^i, \qquad v = r \frac{\partial \phi}{\partial \xi^i} u^i, \qquad w = \frac{\partial r}{\partial \xi^i} u^i.
+u = r \cos\phi \frac{\partial \lambda}{\partial \xi^i} g^{ij} u_j, \qquad v = r \frac{\partial \phi}{\partial \xi^i} g^{ij} u_j, \qquad w = \frac{\partial r}{\partial \xi^i} g^{ij} u_j.
 \end{equation}
 \end{subequations}
+We denote the corresponding transformation matrix $T_{S2c}^{-1}$.
 \end{itemize}
 
-To state these relations abstractly and in general, let $(\hat x^1, \hat x^2, \hat x^3)$ be a reference coordinate system in which we wish to express velocities, with covariant metric tensor $\hat g_{ij}$. The contravariant velocity components in the reference system are 
+To state these relations abstractly and in general, let $(\hat x^1, \hat x^2, \hat x^3)$ be a physical coordinate system in which we wish to express velocities, with covariant metric tensor $\hat g_{ij}$. The contravariant velocity components in the physical coordinate system are 
 \begin{equation}\label{e:velocity_transform_to_phys}
-\hat u^i = \frac{\partial \hat x^i}{\partial \xi^j} u^j.
+\hat u^i = \frac{\partial \hat x^i}{\partial \xi^j} g^{jk} u_k.
 \end{equation}
-In terms of the contravariant velocities in the reference system, we can write the velocity vector as
+In terms of the contravariant velocities in the physical system, we can write the velocity vector as
 \[
 \vec{u} = \hat u^i \hat{\vec{b}}_i.
 \]
-We can further normalize the basis vectors $\hat{\vec{b}}_i$ with their length $\sqrt{\hat g_{ii}}$. The velocity components in terms of this normalized basis of the reference system then are
+We can further normalize the basis vectors $\hat{\vec{b}}_i$ with their length $\sqrt{\hat g_{ii}}$. The physical velocity components in terms of this normalized then are
 \begin{equation}\label{e:velocity_transform_to_phys}
-\check{u}^i = \sqrt{\hat g_{ii}}\hat{u}^i = \sqrt{\hat g_{ii}} \, \frac{\partial \hat x^i}{\partial \xi^j} u^j \qquad \text{(no summation over $i$}).
+\check{u}^i = \sqrt{\hat g_{ii}}\hat{u}^i = \sqrt{\hat g_{ii}} \, \frac{\partial \hat x^i}{\partial \xi^j} g^{jk} u^k \qquad \text{(no summation over $i$}).
 \end{equation}
 For Cartesian and spherical coordinates of the reference system, we have:
 \begin{itemize}
 \item For Cartesian coordinates $(\hat x^1, \hat x^2, \hat x^3)=(x, y, z)$, the metric tensor is $(\hat g_{ij}) = \vec{I}$.
 \item For spherical polar coordinates $(\hat x^1, \hat x^2, \hat x^3)=(\lambda, \phi, r)$, the metric tensor is $(\hat g_{ij}) = \mathrm{diag}\left((r \cos \phi)^2, r^2,  1\right)$. 
 \end{itemize}
-In either case, the transformation from contravariant generalized velocities $u^i$ to physical velocities $\check{u}^i$ in the reference system is the general transformation \eqref{e:velocity_transform_to_phys}. The inverse transformation, from physical velocities $\check{u}^i$ in the reference system to contravariant generalized velocities is given by
+In either case, the transformation from covariant generalized velocities $u_i$ to physical velocities $\check{u}^i$ in the reference system is the general transformation \eqref{e:velocity_transform_to_phys}. The inverse transformation, from physical velocities $\check{u}^i$ in the reference system to covariant generalized velocities is given by
 \begin{equation}\label{e:velocity_transform_from_phys}
-    u^i = \frac{\partial \xi^i}{\partial \hat x^j} \left(\frac{\check{u}^j}{\sqrt{\hat g_{jj}}}\right).
+    u_k = g_{ki} \frac{\partial \xi^i}{\partial \hat x^j} \left(\frac{\check{u}^j}{\sqrt{\hat g_{jj}}}\right).
 \end{equation}
 
 To make this general formulation of the equations usable on the sphere, it remains to define metrics. We will do so on a cubed-sphere mesh.
-
-
-
-\subsection{Velocity Transformations-2}
-
-The above equations apply equally well in Cartesian geometry in a box or in spherical geometry, just with different metrics and different interpretations of the velocity components $u^i$ and $u_i$:
-\begin{itemize}
-\item In both Cartesian geometry and spherical geometry, Cartesian velocity components can be obtained from the covariant velocity components $u_i$ via
-\begin{subequations}\label{e:specific_transformations}
-\begin{equation}
-u_x = \frac{\partial x}{\partial \xi^i} g^{ij}u_j, \qquad u_y = \frac{\partial y}{\partial \xi^i} g^{ij}u_j, \qquad u_z = \frac{\partial z}{\partial \xi^i} g^{ij}u_j.
-\end{equation}
-Let denote the transformation matrix to be $T_{C2c}^{-1}$.
-\item In spherical geometry, local Cartesian velocity components can be obtained via the angular velocities from
-\begin{equation}
-u_r = r \cos\phi \frac{\partial \lambda}{\partial \xi^i} g^{ij}u_j, \qquad u_{\lambda} = r \frac{\partial \phi}{\partial \xi^i} g^{ij}u_j, \qquad u_{\phi} = \frac{\partial r}{\partial \xi^i} g^{ij}u_j.
-\end{equation}
-Let denote the transformation matrix to be $T_{S2c}^{-1}$.
-\end{subequations}
-\end{itemize}
-
 
 %\section{Scratch Heap}
 
