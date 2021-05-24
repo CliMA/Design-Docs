@@ -2475,18 +2475,39 @@ or solving for $\dvec{\theta}$ gives
 \end{align}
 
 \subsubsection*{Strong-form Curl of a vector field on an element}
-To compute the contravariant components $\sigma^i$ of the curl of a vector field $\vec{u}$ in terms
-of the covariant components $u_j$ it is most natural to use the strong form
+To compute the contravariant components $\sigma^i$ of the curl of a vector field
+$\vec{u}$ in terms of the covariant components $u_j$ it is most natural to use
+the strong form
 \begin{equation}
    \inner{\phi}{J v^i} = \inner{\phi}{\epsilon^{ijk} \frac{\partial u_k}{\partial \xi^j}},
 \end{equation}
-which leads to the discrete forms
+which leads to the discrete form
 \begin{equation}
    \dvec{\phi}^{T} \mat{W} \mat{J} \dvec{v}^i = \epsilon^{ijk} \dvec{\phi}^{T} \mat{W} \mat{D}_{\xi^j} \dvec{u}_{k},
 \end{equation}
 or solving for $\dvec{v}^i$ this is
 \begin{equation}
    \dvec{v}^i = \epsilon^{ijk} \mat{J}^{-1} \mat{D}_{\xi^j} \dvec{u}_{k}.
+\end{equation}
+
+\subsubsection*{Weak-form Curl of a vector field on an element}
+When computing terms like $\nabla \times (\nabla \times \vec{u})$ which arise in
+vector hyperdiffusion, it maybe useful to do a weak-strong form. Namely, if we
+wish to compute the contravariant components $\sigma^i$ of the curl of a vector
+field $\vec{u}$ in terms of the covariant components $u_j$ using a weak-form we
+have that
+\begin{equation}
+   \inner{\phi}{J v^i} =
+   -\inner{\frac{\partial \phi}{\partial \xi^j}}{\epsilon^{ijk} u_k},
+\end{equation}
+which leads to the discrete form
+\begin{equation}
+   \dvec{\phi}^{T} \mat{W} \mat{J} \dvec{v}^i =
+   -\epsilon^{ijk} \dvec{\phi}^{T} \mat{D}_{\xi^j}^{T} \mat{W} \dvec{u}_{k},
+\end{equation}
+or solving for $\dvec{v}^i$ this is
+\begin{equation}
+   \dvec{v}^i = -\epsilon^{ijk} \mat{J}^{-1} \mat{W}^{-1} \mat{D}_{\xi^j}^{T} \mat{W} \dvec{u}_{k},
 \end{equation}
 
 \subsubsection*{Weak-form divergence of a tensor on an element}
